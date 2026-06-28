@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>机场数字孪生 · AirportTwin — OPC Studio</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* OPC Studio nav bar */
+    #nav-bar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 400;
+      height: 44px; display: flex; align-items: center; gap: 12px;
+      padding: 0 16px;
+      background: rgba(13, 10, 7, 0.96);
+      border-bottom: 0.5px solid rgba(201, 148, 74, 0.18);
+      backdrop-filter: blur(8px);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif;
+    }
+    #nav-back {
+      color: #c9944a; font-size: 13px; font-weight: 500; text-decoration: none;
+      padding: 4px 10px; border: 0.5px solid rgba(201, 148, 74, 0.22);
+      border-radius: 7px; transition: background 0.15s;
+    }
+    #nav-back:hover { background: rgba(201, 148, 74, 0.10); }
+    #nav-title { flex: 1; font-size: 14px; font-weight: 600; color: #e8b86d; letter-spacing: 0.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #lang-btn {
+      background: rgba(201, 148, 74, 0.12); border: 1px solid rgba(201, 148, 74, 0.18);
+      color: #c9944a; font-size: 12px; font-weight: 600; padding: 5px 12px;
+      border-radius: 8px; cursor: pointer;
+    }
+    #lang-btn:hover { background: rgba(201, 148, 74, 0.22); }
+    /* Everything else sits below the nav */
+    #app { position: absolute; top: 44px; left: 0; right: 0; bottom: 0; width: auto; height: auto; }
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="nav-bar">
+    <a id="nav-back" href="/">← 返回主页</a>
+    <span id="nav-title">机场数字孪生 · AirportTwin</span>
+    <button id="lang-btn" onclick="window.__toggleLang && window.__toggleLang()">EN</button>
+  </div>
+  <div id="app">
+    <div id="canvas-container"></div>
+    <div id="ui-root"></div>
+  </div>
+  <script type="module" src="main.js"></script>
+</body>
+</html>

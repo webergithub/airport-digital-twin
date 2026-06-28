@@ -1,0 +1,529 @@
+/* ─── Reset & base ─────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #080f1a;
+  --surface:  #0d1829;
+  --surface2: #142236;
+  --border:   #1e3050;
+  --text:     #d4e8ff;
+  --text2:    #6a8caa;
+  --accent:   #4aa8ff;
+  --green:    #2ecc71;
+  --red:      #e74c3c;
+  --yellow:   #f39c12;
+  --orange:   #e67e22;
+  --purple:   #9b59b6;
+  --cyan:     #1abc9c;
+  --font:     'Segoe UI', system-ui, sans-serif;
+}
+
+html, body {
+  width: 100%; height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  overflow: hidden;
+}
+
+/* ─── Layout ─────────────────────────────────────────────────────────── */
+#app { width: 100vw; height: 100vh; position: relative; }
+
+#canvas-container {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+#canvas-container canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+#ui-root {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* ─── Overlay base ────────────────────────────────────────────────────── */
+#ui-overlay {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.panel {
+  position: absolute;
+  background: rgba(8, 18, 35, 0.90);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  backdrop-filter: blur(12px);
+  pointer-events: all;
+}
+
+/* ─── Window chrome (drag / minimize / resize) ────────────────────────── */
+.win {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0 !important;          /* bar/body carry their own spacing */
+}
+.win-bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: move;
+  user-select: none;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  border-radius: 10px 10px 0 0;
+  background: rgba(20, 34, 54, 0.55);
+}
+.win-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.win-min {
+  flex: 0 0 auto;
+  width: 22px; height: 18px;
+  padding: 0;
+  font-size: 13px; line-height: 1;
+  background: var(--surface2);
+  color: var(--text2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.win-min:hover { color: var(--text); border-color: var(--accent); }
+.win-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px;
+}
+.win-collapsed { height: auto !important; min-height: 0 !important; max-height: none !important; }
+.win-collapsed > .win-body,
+.win-collapsed > .win-resize { display: none !important; }
+.win-collapsed > .win-bar { border-bottom: none; border-radius: 9px; }
+.win-resize {
+  position: absolute;
+  right: 1px; bottom: 1px;
+  width: 16px; height: 16px;
+  cursor: nwse-resize;
+  z-index: 2;
+}
+.win-resize::after {
+  content: '';
+  position: absolute;
+  right: 3px; bottom: 3px;
+  width: 8px; height: 8px;
+  border-right: 2px solid var(--text2);
+  border-bottom: 2px solid var(--text2);
+  opacity: 0.7;
+}
+/* Panels whose content was laid out by the panel itself keep that layout in the body */
+#panel-config .win-body,
+#panel-gate-detail .win-body { display: flex; flex-direction: column; gap: 7px; }
+
+/* ─── Left config panel ───────────────────────────────────────────────── */
+#panel-config {
+  top: 12px; left: 12px;
+  width: 215px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+/* ─── Right flight board panel ────────────────────────────────────────── */
+#panel-flights {
+  top: 12px; right: 12px;
+  width: 240px;
+  max-height: calc(100vh - 130px);
+  overflow-y: auto;
+}
+
+/* ─── Panel typography ────────────────────────────────────────────────── */
+.panel-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.panel-subtitle {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text2);
+  letter-spacing: 0.5px;
+  margin: 6px 0 4px;
+}
+
+.divider { border: none; border-top: 1px solid var(--border); margin: 6px 0; }
+
+/* ─── Form controls ───────────────────────────────────────────────────── */
+.ctrl-label {
+  font-size: 11px;
+  color: var(--text2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ctrl-label span { color: var(--text); font-weight: 600; }
+
+input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+  cursor: pointer;
+  height: 4px;
+}
+
+.sel-input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 11px;
+  padding: 5px 8px;
+  cursor: pointer;
+}
+
+button {
+  width: 100%;
+  padding: 7px 0;
+  border: none;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.08s;
+  letter-spacing: 0.3px;
+}
+button:hover  { filter: brightness(1.18); }
+button:active { transform: scale(0.97); }
+
+.btn-primary   { background: var(--accent);  color: #000; }
+.btn-danger    { background: var(--red);     color: #fff; }
+.btn-warn      { background: var(--yellow);  color: #000; }
+.btn-success   { background: var(--green);   color: #000; }
+.btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+
+/* ─── Flight board ────────────────────────────────────────────────────── */
+.fids-header {
+  display: grid;
+  grid-template-columns: 70px 1fr 56px 36px;
+  gap: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+
+.flight-row {
+  display: grid;
+  grid-template-columns: 70px 1fr 56px 36px;
+  gap: 4px;
+  padding: 5px 6px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  margin-bottom: 3px;
+  align-items: center;
+  background: var(--surface2);
+  transition: background 0.2s;
+}
+.flight-row:hover { background: var(--surface); border-color: var(--border); }
+
+.fr-callsign {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  font-family: monospace;
+}
+
+.fr-airline  { font-size: 10px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fr-gate     { font-size: 11px; font-weight: 600; color: var(--cyan); text-align: right; font-family: monospace; }
+
+.fr-state {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 4px;
+  text-align: center;
+  white-space: nowrap;
+}
+.state-taxiing-in  { background: #1a3a2a; color: var(--green); }
+.state-at-gate     { background: #1a2a3a; color: var(--accent); }
+.state-pushback    { background: #2a2a1a; color: var(--yellow); }
+.state-taxiing-out { background: #2a1a0a; color: var(--orange); }
+.state-holding     { background: #3a1a0a; color: #ff8c42; }
+.state-takeoff     { background: #3a0a0a; color: var(--red); }
+.state-done        { background: #1a1a2a; color: var(--text2); }
+
+/* ─── Stats bar ───────────────────────────────────────────────────────── */
+#stats-bar {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(8, 18, 35, 0.92);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: flex;
+  gap: 0;
+  backdrop-filter: blur(12px);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 20px;
+  border-right: 1px solid var(--border);
+  min-width: 90px;
+}
+.stat-item:last-child { border-right: none; }
+
+.stat-lbl { font-size: 9px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+.stat-val  { font-size: 20px; font-weight: 700; color: var(--accent); line-height: 1.2; }
+.stat-unit { font-size: 9px; color: var(--text2); }
+
+/* ─── Event log ───────────────────────────────────────────────────────── */
+#event-log {
+  position: absolute;
+  bottom: 74px;
+  right: 12px;
+  width: 240px;
+  max-height: 150px;
+  background: rgba(8, 18, 35, 0.88);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+}
+
+.log-title {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text2);
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--border);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+#log-items { overflow-y: auto; max-height: 120px; }
+
+.log-item {
+  font-size: 10px;
+  padding: 3px 10px;
+  border-bottom: 1px solid rgba(30,48,80,0.4);
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  line-height: 1.4;
+}
+
+.log-time    { color: var(--text2); flex-shrink: 0; font-family: monospace; font-size: 9px; }
+.log-info    { color: var(--text); }
+.log-land    { color: var(--green); }
+.log-depart  { color: var(--orange); }
+.log-gate    { color: var(--accent); }
+.log-warn    { color: var(--red); }
+.log-atc     { color: var(--cyan); }
+
+/* ─── CSS2D labels ────────────────────────────────────────────────────── */
+.gate-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(100, 160, 220, 0.9);
+  background: transparent;
+  pointer-events: none;
+  user-select: none;
+  font-family: monospace;
+}
+
+.aircraft-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.alabel-call {
+  font-size: 9px;
+  color: rgba(200, 230, 255, 0.95);
+  background: rgba(0, 0, 0, 0.65);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: monospace;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.alabel-state {
+  font-size: 8px;
+  color: rgba(150, 200, 255, 0.7);
+  font-family: monospace;
+}
+
+/* ─── Runway label ────────────────────────────────────────────────────── */
+.rwy-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.8);
+  font-family: monospace;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ─── Gate number badge (clickable look) ──────────────────────────────── */
+.gate-badge {
+  font-size: 13px;
+  font-weight: 800;
+  color: #d4e8ff;
+  background: rgba(18, 48, 71, 0.85);
+  border: 1px solid var(--accent);
+  border-radius: 5px;
+  padding: 2px 8px;
+  font-family: monospace;
+  letter-spacing: 0.5px;
+  pointer-events: none;
+  user-select: none;
+  box-shadow: 0 0 8px rgba(74,168,255,0.35);
+}
+
+/* ─── Exit-focus button ───────────────────────────────────────────────── */
+#btn-exit-gate {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: auto;
+  padding: 8px 18px;
+  font-size: 12px;
+  z-index: 30;
+  pointer-events: all;
+}
+
+/* ─── Gate ground-handling detail panel ───────────────────────────────── */
+#panel-gate-detail {
+  top: 12px; left: 12px;
+  width: 290px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.gd-flight {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  font-family: monospace;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.gd-overall-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.gd-overall-track {
+  flex: 1;
+  height: 8px;
+  background: var(--surface2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+#gd-overall-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent), var(--cyan));
+  transition: width 0.2s;
+}
+#gd-overall-pct {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  font-family: monospace;
+  min-width: 34px;
+  text-align: right;
+}
+
+#gd-nodes { display: flex; flex-direction: column; gap: 3px; margin-top: 2px; }
+
+.gd-node {
+  display: grid;
+  grid-template-columns: 78px 1fr;
+  gap: 7px;
+  align-items: center;
+  padding: 3px 5px;
+  border-radius: 5px;
+  border-left: 2px solid transparent;
+  opacity: 0.5;
+  transition: opacity 0.2s, background 0.2s;
+}
+.gd-node.active {
+  opacity: 1;
+  background: rgba(74,168,255,0.08);
+  border-left-color: var(--accent);
+}
+.gd-node.done { opacity: 0.7; }
+
+.gd-node-row { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+.gd-node-label { font-size: 10px; font-weight: 600; white-space: nowrap; }
+.gd-node-time { font-size: 9px; color: var(--text2); font-family: monospace; white-space: nowrap; }
+
+/* ─── Analytics / optimization panel ──────────────────────────────────── */
+#panel-analytics { left: 12px; bottom: 14px; width: 256px; }
+.an-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.an-cell {
+  display: flex; flex-direction: column; gap: 1px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 5px 8px;
+}
+.an-k { font-size: 9px; color: var(--text2); }
+.an-v { font-size: 15px; font-weight: 700; color: var(--accent); font-family: monospace; }
+.an-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; }
+.an-auto { font-size: 10px; color: var(--text2); display: flex; align-items: center; gap: 5px; cursor: pointer; }
+.an-auto input { accent-color: var(--accent); }
+#an-export { width: auto; padding: 5px 10px; font-size: 10px; }
+.an-head { font-size: 9px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin: 8px 0 4px; }
+.an-decisions { max-height: 120px; overflow-y: auto; display: flex; flex-direction: column; gap: 3px; }
+.an-dec { font-size: 10px; color: var(--text); line-height: 1.35; }
+.an-dect { color: var(--cyan); font-family: monospace; font-size: 9px; margin-right: 6px; }
+.an-logcount { color: var(--text2); }
+
+.gd-node-track {
+  height: 6px;
+  background: var(--surface2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.gd-node-bar { height: 100%; width: 0%; border-radius: 3px; transition: width 0.2s; }

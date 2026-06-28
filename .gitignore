@@ -1,0 +1,7 @@
+# Editor / OS
+.claude/
+.DS_Store
+*.log
+
+# Dependencies (none — Three.js is loaded via CDN import map)
+node_modules/
