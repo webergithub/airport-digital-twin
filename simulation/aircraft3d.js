@@ -123,26 +123,20 @@ function buildWingPair(p, M) {
   return [mk(-1), mk(+1)];
 }
 
+// Flat swept wingtip extension. Stays in the wing plane (the wing's dihedral is
+// carried over so the tip is flush) — no vertical winglet/sharklet that would
+// read as the wing "folding upward". Raked tips reach a bit further out.
 function buildTipDevice(p, M, sign) {
   const half  = p.wingSpan / 2;
   const baseX = sign * half;
   const baseY = p.wingY + half * Math.sin(p.wingDihedral);
   const baseZ = p.wingZ + p.wingSweep * 0.4;
-  if (p.tipStyle === 'raked') {
-    const g = buildLiftingSurface(half * 0.45, p.wingTipChord, p.wingTipChord * 0.4, p.wingSweep * 0.9, 0.05, sign);
-    g.translate(0, 0, -p.wingTipChord * 0.5);
-    const m = new THREE.Mesh(g, M.wing);
-    m.position.set(baseX, baseY, baseZ);
-    m.rotation.z = sign * p.wingDihedral;
-    m.castShadow = true;
-    return m;
-  }
-  const tall = p.tipStyle === 'sharklet' ? 0.46 : 0.40;
-  const cant = p.tipStyle === 'sharklet' ? -0.18 : -0.38;
-  const m = new THREE.Mesh(new THREE.BoxGeometry(0.05, tall, p.wingTipChord * 0.85), M.wing);
-  m.position.set(baseX, baseY + tall * 0.45, baseZ);
-  m.rotation.z = sign * cant;
-  if (p.tipStyle === 'winglet') m.rotation.x = 0.15;
+  const tipLen = (p.tipStyle === 'raked' ? 0.45 : 0.22) * half;
+  const g = buildLiftingSurface(tipLen, p.wingTipChord, p.wingTipChord * 0.45, p.wingSweep * 0.9, 0.05, sign);
+  g.translate(0, 0, -p.wingTipChord * 0.5);
+  const m = new THREE.Mesh(g, M.wing);
+  m.position.set(baseX, baseY, baseZ);
+  m.rotation.z = sign * p.wingDihedral;   // flush with the wing, no upward fold
   m.castShadow = true;
   return m;
 }
@@ -182,9 +176,8 @@ function buildMesh(type, baseColor) {
   const cR = cL.clone(); cR.position.x = p.fusR * 0.985;
   grp.add(sL, sR, cL, cR);
 
-  // Wings + tips
+  // Wings — clean swept tips (no upward winglet/sharklet that reads as a "fold")
   const [wL, wR] = buildWingPair(p, M); grp.add(wL, wR);
-  grp.add(buildTipDevice(p, M, +1), buildTipDevice(p, M, -1));
 
   // Engines
   const ex = (p.wingSpan / 2) * p.engSpanFrac;
@@ -257,9 +250,10 @@ export class Aircraft3D {
     this.group.position.set(flight.x, 0.6 + (flight.y || 0), flight.z);
     scene.add(this.group);
 
-    // Door (forward-left) local offset, for jet-bridge docking.
+    // Door (forward-left) local offset, for jet-bridge docking. Y sits on the
+    // upper side of the fuselage (cabin-door height), not floating above it.
     const p = PROFILES[flight.type] ?? PROFILES.MEDIUM;
-    this._doorLocal = new THREE.Vector3(-(p.fusR + 0.05), 0.55, -p.fusLen * 0.30);
+    this._doorLocal = new THREE.Vector3(-(p.fusR + 0.05), p.fusR * 0.55, -p.fusLen * 0.30);
 
     // Pushback tug (child at the nose; visible only during pushback)
     this._tug = buildPushbackTug(p);

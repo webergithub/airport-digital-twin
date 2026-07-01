@@ -25,7 +25,10 @@ const matPax       = new THREE.MeshBasicMaterial({ color: 0xffe0a0 });
 const EXTEND_DUR = 3.0, RETRACT_DUR = 2.5;
 const L0 = 0.9, L1 = 1.0, CAB_HD = 0.4, BELLOWS_D = 0.18;
 const PIVOT_Y = 1.35;                         // tunnel height ≈ cabin door height
-const ANCHOR_DX = 1.8, ANCHOR_Z = 16;         // pedestal on the terminal side, +X of gate
+// Pedestal sits on the apron BESIDE the forward door (+X side, ~door z), so the
+// tunnel reaches the door from the side — NOT from north of the nose, which
+// would make it cross over the aircraft's front.
+const ANCHOR_DX = 2.8, ANCHOR_Z = 13.4;
 const smooth = p => p * p * (3 - 2 * p);
 const clamp  = (v, a, b) => Math.max(a, Math.min(b, v));
 const _tmp   = new THREE.Vector3();
