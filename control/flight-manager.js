@@ -28,6 +28,15 @@ const TAXI     = 3.2;
 const FAST     = 14.0;  // landing deceleration start / takeoff end
 const SLOT_GAP = 9;     // departure queue slot spacing (center-to-center)
 
+// Right-skewed turnaround multiplier: ~60% near-target, ~25% minor overrun,
+// ~15% significant overrun — mirrors real ground-handling delay distributions.
+function _turnFactor() {
+  const r = Math.random();
+  if (r < 0.60) return 0.95 + Math.random() * 0.10;   // 0.95–1.05 (on-time)
+  if (r < 0.85) return 1.05 + Math.random() * 0.15;   // 1.05–1.20 (minor delay)
+  return 1.20 + Math.random() * 0.30;                 // 1.20–1.50 (significant)
+}
+
 const holdXof = runway => (runway === 'RWY1' ? -45 : -55);
 const rzOf    = runway => (runway === 'RWY1' ? -25 : -42);
 const exitXof = runway => (runway === 'RWY1' ?  45 :  55);
@@ -121,7 +130,12 @@ export class Flight {
     this.runway         = runway;
     this.gateId         = gateId;
     this.color          = color ?? 0xddddee;
+    // Planned/target turnaround — drives the A-CDM TOBT (Target Off-Block Time).
     this.turnaroundTime = turnaroundTime;
+    // Actual turnaround varies (right-skewed, like real ops): most flights are
+    // near-target, a minority overrun due to late ground handling. The gap
+    // between actual and target off-block is what A-CDM punctuality measures.
+    this.actualTurnaround = Math.round(turnaroundTime * _turnFactor());
 
     this.state          = FS.TAXIING_IN;
     this.stateTimer     = 0;
@@ -138,6 +152,9 @@ export class Flight {
 
     // Ground-handling plan (created on entering AT_GATE)
     this.turnaround     = null;
+
+    // A-CDM milestones (recorded by AirportAPI): ATA/AIBT/TOBT/AOBT/ATOT
+    this.milestones     = {};
 
     const w0 = this._wps[0] ?? { x: 0, z: 0, y: 0 };
     this.x   = w0.x;
@@ -200,7 +217,7 @@ export class Flight {
       case 'at_gate':
         this.state      = FS.AT_GATE;
         this.stateTimer = 0;
-        this.turnaround = new TurnaroundPlan(this.turnaroundTime, Date.now());
+        this.turnaround = new TurnaroundPlan(this.actualTurnaround, Date.now());
         break;
       case 'taxi_out':
         // Leaving the gate apron — eligible for runway queue enqueue.
@@ -297,6 +314,7 @@ export class Flight {
       state:    this.state,
       gateId:   this.gateId,
       runway:   this.runway,
+      milestones: this.milestones,
       turnaround: this.turnaround ? this.turnaround.snapshot() : null,
     };
   }

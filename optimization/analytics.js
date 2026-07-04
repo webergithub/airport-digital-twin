@@ -27,6 +27,8 @@ export class AnalyticsEngine {
     this._noGateSeen = 0;
     this._timing = new Map();        // flightId → { spawn, gateIn, takeoff }
     this._decisions = [];            // optimization action log
+    this._otp = { onTime: 0, total: 0 }; // A-CDM off-block punctuality (AOBT vs TOBT)
+    this._turn = [];                 // actual turnaround durations (AOBT − AIBT)
 
     this._wireEvents();
   }
@@ -43,6 +45,15 @@ export class AnalyticsEngine {
     this._api.on('flight_takeoff', f => {
       const r = this._timing.get(f.id);
       if (r) { r.takeoff = this._simT; if (r.gateIn != null) this._push(this._depWait, r.takeoff - r.gateIn); }
+      // A-CDM punctuality: was the actual off-block within tolerance of target?
+      const m = f.milestones;
+      if (m && m.AOBT && m.TOBT && m.AIBT) {
+        const planned = m.TOBT.sim - m.AIBT.sim;
+        const tol = Math.max(6, 0.1 * planned);        // ~10% ≈ 15-min A-CDM window
+        this._otp.total++;
+        if (m.AOBT.sim - m.TOBT.sim <= tol) this._otp.onTime++;
+        this._push(this._turn, m.AOBT.sim - m.AIBT.sim);
+      }
     });
     this._api.on('flight_departed', f => this._timing.delete(f.id));
     this._api.on('no_gate', () => { this._noGate++; });
@@ -99,6 +110,9 @@ export class AnalyticsEngine {
       throughput: this._api.getStats().throughput,
       interval:   this._sch.getStats().interval,
       targetUtil: this._targetUtil,
+      otp:        this._otp.total ? this._otp.onTime / this._otp.total : 1,
+      otpCount:   this._otp.total,
+      avgTurn:    this._avg(this._turn),
       completed:  { taxiIn: this._taxiIn.length, dep: this._depWait.length },
     };
   }

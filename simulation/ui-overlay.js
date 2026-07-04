@@ -89,6 +89,7 @@ export class UIOverlay {
       <div id="panel-gate-detail" class="panel" style="display:none">
         <div class="panel-title"><span data-i18n="fids.gate">${t('fids.gate')}</span> <span id="gd-gate">—</span> <span data-i18n="gd.suffix">${t('gd.suffix')}</span></div>
         <div id="gd-flight" class="gd-flight" data-i18n="gd.waiting">${t('gd.waiting')}</div>
+        <div id="gd-acdm" class="gd-acdm"></div>
         <div class="gd-overall-row">
           <div class="gd-overall-track"><div id="gd-overall-bar"></div></div>
           <span id="gd-overall-pct">0%</span>
@@ -171,14 +172,21 @@ export class UIOverlay {
   // ── Analytics / optimization layer panel ─────────────────────────────────────
   updateAnalytics({ metrics, decisions, logCounts }) {
     const m = metrics || {};
-    const cell = (label, val) => `<div class="an-cell"><span class="an-k">${label}</span><span class="an-v">${val}</span></div>`;
+    const cell = (label, val, cls = '') =>
+      `<div class="an-cell${cls ? ' ' + cls : ''}"><span class="an-k">${label}</span><span class="an-v">${val}</span></div>`;
     const grid = document.getElementById('an-metrics');
     if (grid) {
+      // A-CDM on-time performance — color-coded KPI (green ≥85%, amber ≥70%, red below).
+      const otpPct = Math.round((m.otp ?? 1) * 100);
+      const otpCls = m.otpCount ? (otpPct >= 85 ? 'an-good' : otpPct >= 70 ? 'an-warn' : 'an-bad') : '';
+      const otpVal = m.otpCount ? `${otpPct}%` : '—';
       grid.innerHTML =
+        cell(t('an.onTime'),     otpVal, otpCls) +
         cell(t('an.gateUtil'),   `${Math.round((m.gateUtil ?? 0) * 100)}%`) +
         cell(t('an.interval'),   `${m.interval ?? '—'}s`) +
         cell(t('an.avgTaxiIn'),  `${(m.avgTaxiIn ?? 0).toFixed(0)}s`) +
         cell(t('an.avgDepWait'), `${(m.avgDepWait ?? 0).toFixed(0)}s`) +
+        cell(t('an.avgTurn'),    `${(m.avgTurn ?? 0).toFixed(0)}s`) +
         cell(t('an.throughput'), `${m.throughput ?? 0}`) +
         cell(t('an.noGate'),     `${m.noGate ?? 0}`);
     }
@@ -284,6 +292,24 @@ export class UIOverlay {
         ? `${flight.callsign} · ${t('airline.' + flight.airline, flight.airline)} · ${flight.type}`
         : t('gd.waiting');
     }
+    // A-CDM milestone strip (times shown relative to arrival / ATA).
+    const acdm = document.getElementById('gd-acdm');
+    if (acdm) {
+      const ms = flight && flight.milestones ? flight.milestones : null;
+      if (ms && ms.ATA) {
+        const base = ms.ATA.sim;
+        const cell = (code) => {
+          const m = ms[code];
+          const val = m ? `+${Math.max(0, m.sim - base).toFixed(0)}s` : '—';
+          return `<span class="acdm-cell${m ? ' set' : ''}"><span class="acdm-code">${code}</span><span class="acdm-t">${val}</span></span>`;
+        };
+        acdm.innerHTML = `<div class="acdm-head">${t('gd.acdm')}</div>` +
+          ['ATA', 'AIBT', 'TOBT', 'AOBT', 'ATOT'].map(cell).join('');
+      } else {
+        acdm.innerHTML = '';
+      }
+    }
+
     const bar = document.getElementById('gd-overall-bar');
     const pct = document.getElementById('gd-overall-pct');
     const overall = plan ? Math.round(plan.overall * 100) : 0;

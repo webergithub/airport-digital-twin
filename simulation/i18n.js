@@ -105,6 +105,9 @@ const DICT = {
   'gd.waiting': { zh: '等待航班进位…', en: 'Awaiting aircraft…' },
   'gd.exit':    { zh: '← 返回全景',    en: '← Back' },
   'gd.suffix':  { zh: '· 地面保障',    en: '· Ground Handling' },
+  'gd.acdm':    { zh: 'A-CDM 里程碑',  en: 'A-CDM Milestones' },
+  'an.onTime':  { zh: '准点',          en: 'On-time' },
+  'an.avgTurn': { zh: '平均过站',      en: 'Avg turnaround' },
 
   // ── Ground-handling nodes (by node id) ──
   'node.CHOCKS_ON':    { zh: '上轮挡',     en: 'Chocks on' },

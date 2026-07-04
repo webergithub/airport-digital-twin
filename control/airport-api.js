@@ -37,6 +37,12 @@ export class AirportAPI {
   /** Apply a new gate layout (already set via setGates) — prune stale occupancy. */
   reconfigureGates() { this._gates.reconfigure(); }
 
+  // ── A-CDM milestones (Airport Collaborative Decision Making) ────────────────
+  // Record a standard milestone timestamp on a flight (sim-sec + wall-clock).
+  _milestone(flight, key, simSec = this._clock) {
+    (flight.milestones ??= {})[key] = { sim: +simSec.toFixed(1), wall: Date.now() };
+  }
+
   // ── Flight spawning ────────────────────────────────────────────────────────
   spawnArrival({ callsign, airline, type, runway, color }) {
     const gate = this._gates.assignGate();
@@ -52,6 +58,7 @@ export class AirportAPI {
     this._flights.set(flight.id, flight);
     this._gates.occupy(gate.id, flight.id);
     this._stats.arrivals++;
+    this._milestone(flight, 'ATA');           // Actual Time of Arrival (on final)
     this.emit('flight_spawned', flight.getStatus());
     return flight;
   }
@@ -68,7 +75,16 @@ export class AirportAPI {
       if (flight.state !== prevState) {
         switch (flight.state) {
           case FS.AT_GATE:
+            this._milestone(flight, 'AIBT');    // Actual In-Block Time
+            // Target Off-Block Time = in-block + planned turnaround (predicted).
+            flight.milestones.TOBT = {
+              sim: +(this._clock + flight.turnaroundTime).toFixed(1),
+              wall: Date.now() + flight.turnaroundTime * 1000,
+            };
             this.emit('flight_arrived', flight.getStatus());
+            break;
+          case FS.PUSHBACK:
+            this._milestone(flight, 'AOBT');    // Actual Off-Block Time (pushback)
             break;
           case FS.TAXIING_OUT:
             // Left the gate apron → join its runway's departure queue (once).
@@ -78,6 +94,7 @@ export class AirportAPI {
             this.emit('atc_hold', flight.getStatus());
             break;
           case FS.TAKEOFF:
+            this._milestone(flight, 'ATOT');    // Actual Take-Off Time
             this.emit('flight_takeoff', flight.getStatus());
             break;
           case FS.DONE:
@@ -149,6 +166,7 @@ export class AirportAPI {
         headingDeg: +(Math.atan2(dir.x, dir.z) * R2D).toFixed(1),
         speedMps:   +((f.currentSpeed || 0) * UNIT_M).toFixed(1),
         altitudeM:  +((f.y || 0) * UNIT_M).toFixed(1),
+        milestones: f.milestones ?? {},        // A-CDM: ATA/AIBT/TOBT/AOBT/ATOT
         turnaround: f.turnaround ? f.turnaround.snapshot() : null,
       };
     });

@@ -449,6 +449,52 @@ button:active { transform: scale(0.97); }
   border-bottom: 1px solid var(--border);
 }
 
+/* A-CDM milestone strip (Airport Collaborative Decision Making) */
+.gd-acdm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 4px;
+}
+.gd-acdm:empty { display: none; }
+.gd-acdm .acdm-head {
+  flex-basis: 100%;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.gd-acdm .acdm-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  flex: 1;
+  min-width: 40px;
+  padding: 3px 2px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface2);
+  opacity: 0.45;
+}
+.gd-acdm .acdm-cell.set {
+  opacity: 1;
+  border-color: var(--accent);
+}
+.gd-acdm .acdm-code {
+  font-size: 9px;
+  font-weight: 700;
+  font-family: monospace;
+  color: var(--cyan);
+}
+.gd-acdm .acdm-t {
+  font-size: 11px;
+  font-weight: 700;
+  font-family: monospace;
+  color: var(--text);
+}
+
 .gd-overall-row {
   display: flex;
   align-items: center;
@@ -510,6 +556,13 @@ button:active { transform: scale(0.97); }
 }
 .an-k { font-size: 9px; color: var(--text2); }
 .an-v { font-size: 15px; font-weight: 700; color: var(--accent); font-family: monospace; }
+/* A-CDM on-time KPI color states */
+.an-cell.an-good { border-color: #2ecc71; }
+.an-cell.an-good .an-v { color: #2ecc71; }
+.an-cell.an-warn { border-color: #f39c12; }
+.an-cell.an-warn .an-v { color: #f39c12; }
+.an-cell.an-bad  { border-color: #e74c3c; }
+.an-cell.an-bad .an-v  { color: #e74c3c; }
 .an-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; }
 .an-auto { font-size: 10px; color: var(--text2); display: flex; align-items: center; gap: 5px; cursor: pointer; }
 .an-auto input { accent-color: var(--accent); }

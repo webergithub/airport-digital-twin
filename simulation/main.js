@@ -280,3 +280,15 @@ window.__scheduler = scheduler;
 window.__gi = gi;
 window.__bridges = bridges;
 window.__pump = (n = 30, dt = 0.1) => { for (let i = 0; i < n; i++) renderFrame(dt); };
+// Fast-forward the whole pipeline in lock-step (keeps all layer clocks in sync).
+window.__analytics = analytics;
+window.__step = (n = 200, dt = 0.5) => {
+  for (let i = 0; i < n; i++) {
+    api.update(dt);
+    scheduler.update(dt);
+    const s = api.getSnapshot();
+    analytics.update(s, dt);
+    runLog.tick(s, dt);
+  }
+  return analytics.getMetrics();
+};
