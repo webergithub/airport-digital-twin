@@ -215,6 +215,44 @@ export class AirportAPI {
   // Expose raw flight objects for 3D layer
   getRawFlights() { return this._flightObjects(); }
 
+  // ── Predicted Off-Block Time (Assaia/Schiphol turnaround prediction) ────────
+  // POBT = predicted turnaround-completion (ready) time = AIBT + total handling.
+  // It is FROZEN at gate-in (= AIBT + totalSec), so it does NOT drift once
+  // handling finishes: a subsequent DMAN gate hold (waiting for TSAT) is a
+  // deliberate metering delay, not a turnaround overrun, and must not inflate
+  // riskSec. riskSec = how far predicted readiness slips past the target
+  // off-block (TOBT) — the ground-handling overrun; at-risk beyond ~10% tol.
+  // Returns null when the flight is not in an active turnaround.
+  _pobt(f) {
+    if (f.state !== FS.AT_GATE || !f.turnaround) return null;
+    const tobtSim = f.milestones?.TOBT?.sim ?? null;
+    const aibtSim = f.milestones?.AIBT?.sim ?? this._clock;
+    const pobtSim = +(aibtSim + f.turnaround.totalSec).toFixed(1);
+    const tol = Math.max(6, 0.1 * f.turnaroundTime);
+    const riskSec = tobtSim == null ? 0 : +(pobtSim - tobtSim).toFixed(1);
+    return { pobtSim, tobtSim, riskSec, tol, atRisk: riskSec > tol };
+  }
+
+  /** Turnaround Control wall — one compact card per occupied gate, sorted
+   *  worst-first (highest predicted-off-block risk). Powers the ops-wall panel. */
+  getTurnaroundWall() {
+    const cards = [];
+    for (const f of this._flightObjects()) {
+      const p = this._pobt(f);
+      if (!p) continue;
+      const nodes = f.turnaround.snapshot().nodes
+        .map(n => ({ s: n.done ? 2 : n.active ? 1 : 0, c: n.color }));
+      cards.push({
+        flightId: f.id, callsign: f.callsign, airline: f.airline, gate: f.gateId,
+        overall: +f.turnaround.overall.toFixed(3), held: f.isGateHeld,
+        pobtSim: p.pobtSim, tobtSim: p.tobtSim, riskSec: p.riskSec,
+        tol: +p.tol.toFixed(1), atRisk: p.atRisk, nodes,
+      });
+    }
+    cards.sort((a, b) => (b.riskSec - a.riskSec) || (b.overall - a.overall));
+    return { clock: +this._clock.toFixed(1), atRisk: cards.filter(c => c.atRisk).length, cards };
+  }
+
   // ── Standard JSON data interface (data contract for UI / analytics / log) ────
   // A complete, serializable snapshot of all running data: aircraft positions,
   // speeds, altitudes, headings, gate/runway state, and per-flight turnaround.
@@ -223,6 +261,7 @@ export class AirportAPI {
     const R2D = 180 / Math.PI;
     const flights = this._flightObjects().map(f => {
       const dir = f.getDirection();
+      const p = this._pobt(f);
       return {
         id: f.id, callsign: f.callsign, airline: f.airline, type: f.type,
         state: f.state, gate: f.gateId, runway: f.runway, slot: f.slot,
@@ -232,6 +271,8 @@ export class AirportAPI {
         altitudeM:  +((f.y || 0) * UNIT_M).toFixed(1),
         milestones: f.milestones ?? {},        // A-CDM: ATA/AIBT/TOBT/ARDT/TSAT/AOBT/ATOT
         holdingAtGate: f.isGateHeld,           // DMAN gate hold (awaiting TSAT)
+        pobtSim:    p ? p.pobtSim : null,      // predicted off-block (turnaround)
+        turnAtRisk: p ? p.atRisk : false,      // POBT slips past TOBT tolerance
         turnaround: f.turnaround ? f.turnaround.snapshot() : null,
       };
     });

@@ -15,6 +15,7 @@ A browser-based **airport ground-operations digital twin** built with Three.js (
 - **Runway sequencing** — departures hold-short on the taxiway and line up without overlapping; only one aircraft is on the runway at a time.
 - **A-CDM milestones** — each flight records the standard Airport Collaborative Decision Making timestamps (ATA → AIBT → TOBT → ARDT → TSAT → AOBT → ATOT), shown as a milestone strip in the gate detail view and driving an on-time-performance KPI. Turnaround durations vary with a realistic right-skewed delay distribution.
 - **DMAN departure metering** — as in Eurocontrol A-CDM pre-departure sequencing and NASA ATD-2 surface metering, ready flights are held at the gate (engines off) instead of joining a long runway queue, then released one at a time with a TSAT start-up approval. A toggle turns metering on/off, and the analytics panel estimates fuel saved by the holds.
+- **Turnaround Control wall** — an Assaia-/Schiphol-style operations wall with one card per occupied gate: a live 13-node progress strip, a predicted off-block time (POBT) countdown, and a POBT-vs-target (TOBT) risk chip, auto-sorted worst-first with an at-risk count. Click a card to zoom into that gate's detail view.
 - **Movable UI** — every panel can be dragged, minimized to a title bar, and resized.
 - **Bilingual** — full 中文 / English toggle.
 

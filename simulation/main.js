@@ -109,6 +109,9 @@ const ui = new UIOverlay(document.getElementById('ui-root'), (action, payload) =
     case 'exitGate':
       gi.exitFocus();
       break;
+    case 'focusGate':
+      gi.focusGate(payload.gateId);   // Turnaround wall card → focus that gate
+      break;
     case 'toggleAutoOpt':
       analytics.setAutoOptimize(payload.on);
       ui.log(t(payload.on ? 'log.autoOptOn' : 'log.autoOptOff'), 'info');
@@ -203,6 +206,7 @@ function logicTick() {
     decisions: analytics.getDecisions(),
     logCounts: runLog.counts(),
   });
+  ui.updateTurnWall(api.getTurnaroundWall());
 
   if (focusedGateId) {
     const occ    = api.getGateOccupancy().gates.find(g => g.id === focusedGateId);

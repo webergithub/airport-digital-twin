@@ -42,6 +42,7 @@ const DICT = {
   'panel.log':       { zh: '运行日志',       en: 'Event Log' },
   'panel.analytics': { zh: '📈 数据分析与优化', en: '📈 Analytics & Optimization' },
   'panel.gateDetail':{ zh: '机位 · 地面保障', en: 'Gate · Ground Handling' },
+  'panel.turnwall':  { zh: '🕑 过站监控墙',   en: '🕑 Turnaround Control' },
 
   // ── Config panel ──
   'cfg.interval':    { zh: '到港间隔 (秒)：', en: 'Arrival interval (s):' },
@@ -108,6 +109,13 @@ const DICT = {
   'gd.exit':    { zh: '← 返回全景',    en: '← Back' },
   'gd.suffix':  { zh: '· 地面保障',    en: '· Ground Handling' },
   'gd.acdm':    { zh: 'A-CDM 里程碑',  en: 'A-CDM Milestones' },
+
+  // ── Turnaround Control wall ──
+  'tw.atRiskN':  { zh: '⚠ {n} 个航班有超时风险', en: '⚠ {n} turnaround(s) at risk' },
+  'tw.onTrackN': { zh: '✓ {n} 个航班过站中 · 均准点', en: '✓ {n} turnaround(s) · on track' },
+  'tw.empty':    { zh: '暂无在站航班', en: 'No aircraft at gates' },
+  'tw.pobt':     { zh: '就绪 ~{s}s', en: 'ready ~{s}s' },
+  'tw.held':     { zh: '待放行 (TSAT)', en: 'Hold (TSAT)' },
   'an.onTime':  { zh: '准点',          en: 'On-time' },
   'an.avgTurn': { zh: '平均过站',      en: 'Avg turnaround' },
   'an.taxiOut': { zh: '平均滑出',      en: 'Avg taxi-out' },

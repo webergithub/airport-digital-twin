@@ -15,7 +15,7 @@ export class UIOverlay {
 
     // Make the overlay panels into movable windows (titles read from each panel).
     this._wm = new WindowManager();
-    ['panel-config', 'panel-flights', 'event-log', 'panel-gate-detail', 'panel-analytics']
+    ['panel-config', 'panel-flights', 'event-log', 'panel-gate-detail', 'panel-analytics', 'panel-turnwall']
       .forEach(id => this._wm.register(document.getElementById(id)));
   }
 
@@ -98,6 +98,13 @@ export class UIOverlay {
         <div id="gd-nodes"></div>
       </div>
 
+      <!-- Turnaround Control wall: multi-gate POBT watchlist (Assaia-style) -->
+      <div id="panel-turnwall" class="panel">
+        <div class="panel-title" data-i18n="panel.turnwall">${t('panel.turnwall')}</div>
+        <div id="tw-head" class="tw-head"></div>
+        <div id="tw-cards" class="tw-cards"></div>
+      </div>
+
       <!-- Data algorithm layer: analytics + optimization + run log -->
       <div id="panel-analytics" class="panel">
         <div class="panel-title" data-i18n="panel.analytics">${t('panel.analytics')}</div>
@@ -171,6 +178,50 @@ export class UIOverlay {
     document.getElementById('an-export').addEventListener('click', () => {
       this._cb('exportLog');
     });
+
+    // Turnaround Control wall — click a card to focus that gate.
+    document.getElementById('tw-cards').addEventListener('click', e => {
+      const card = e.target.closest('.tw-card');
+      if (card && card.dataset.gate) this._cb('focusGate', { gateId: card.dataset.gate });
+    });
+  }
+
+  // ── Turnaround Control wall (multi-gate POBT watchlist) ──────────────────────
+  updateTurnWall(wall) {
+    const cont = document.getElementById('tw-cards');
+    if (!cont) return;
+    const cards  = (wall && wall.cards) || [];
+    const clock  = wall ? wall.clock : 0;
+    const atRisk = wall ? wall.atRisk : 0;
+
+    const head = document.getElementById('tw-head');
+    if (head) {
+      head.className = 'tw-head' + (atRisk > 0 ? ' at-risk' : '');
+      head.textContent = !cards.length ? ''
+        : atRisk > 0 ? tf('tw.atRiskN', { n: atRisk })
+                     : tf('tw.onTrackN', { n: cards.length });
+    }
+    if (!cards.length) { cont.innerHTML = `<div class="tw-empty">${t('tw.empty')}</div>`; return; }
+
+    cont.innerHTML = cards.map(c => {
+      // Risk chip reuses the OTP color idiom: on-target / minor / at-risk.
+      const band = c.riskSec <= c.tol ? 'tw-good' : c.riskSec <= 2 * c.tol ? 'tw-warn' : 'tw-bad';
+      const chip = c.tobtSim == null ? '—' : `${c.riskSec > 0 ? '+' : ''}${c.riskSec.toFixed(0)}s`;
+      const strip = c.nodes.map(n => `<span class="tw-seg tw-s${n.s}" style="background:${n.c}"></span>`).join('');
+      const foot = c.held
+        ? `<span class="tw-hold">${t('tw.held')}</span>`
+        : `<span class="tw-pobt">${tf('tw.pobt', { s: Math.max(0, c.pobtSim - clock).toFixed(0) })}</span>`;
+      return `
+        <div class="tw-card" data-gate="${c.gate}" title="${c.callsign} · ${c.gate}">
+          <div class="tw-card-top">
+            <span class="tw-cs">${c.callsign}</span>
+            <span class="tw-gate">${c.gate}</span>
+            <span class="tw-chip ${band}">${chip}</span>
+          </div>
+          <div class="tw-strip">${strip}</div>
+          <div class="tw-foot">${foot}</div>
+        </div>`;
+    }).join('');
   }
 
   // ── Analytics / optimization layer panel ─────────────────────────────────────
@@ -283,6 +334,7 @@ export class UIOverlay {
     const gd = document.getElementById('gd-gate'); if (gd) gd.textContent = gateId;
     set('panel-gate-detail', 'flex');   // .win uses flex layout
     set('panel-config', 'none');
+    set('panel-turnwall', 'none');      // wall shares the top-center zone with ← exit
     this.showExitButton();
   }
 
@@ -290,6 +342,7 @@ export class UIOverlay {
     const set = (id, disp) => { const e = document.getElementById(id); if (e) e.style.display = disp; };
     set('panel-gate-detail', 'none');
     set('panel-config', 'flex');
+    set('panel-turnwall', '');          // restore stylesheet default
     this.hideExitButton();
   }
 

@@ -77,6 +77,11 @@ export class TurnaroundPlan {
   get complete() { return this.t >= this.totalSec; }
   get overall()  { return Math.min(1, this.t / this.totalSec); }
 
+  /** Sim-seconds of ground handling still remaining on the critical path.
+   *  The last node (pushback tug) ends at totalSec, so this is the predicted
+   *  time until the aircraft is ready to leave the gate — the basis for POBT. */
+  remainingSec() { return Math.max(0, this.totalSec - this.t); }
+
   getActiveNodes() { return this.nodes.filter(n => n.active); }
 
   /** Completed node timeline with start/end timestamps — for the run log. */

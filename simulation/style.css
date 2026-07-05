@@ -8,6 +8,7 @@
   --border:   #1e3050;
   --text:     #d4e8ff;
   --text2:    #6a8caa;
+  --muted:    #4a6484;
   --accent:   #4aa8ff;
   --green:    #2ecc71;
   --red:      #e74c3c;
@@ -580,3 +581,45 @@ button:active { transform: scale(0.97); }
   overflow: hidden;
 }
 .gd-node-bar { height: 100%; width: 0%; border-radius: 3px; transition: width 0.2s; }
+
+/* ─── Turnaround Control wall (multi-gate POBT watchlist) ──────────────── */
+#panel-turnwall {
+  top: 12px; left: 50%; transform: translateX(-50%);
+  /* Stay clear of the config (left) and flight-board (right) panels on
+     narrower viewports — they occupy ~252px on each side. */
+  width: min(372px, calc(100vw - 520px));
+  max-height: 200px;
+}
+#panel-turnwall .win-body { max-height: 168px; overflow-y: auto; }
+.tw-head {
+  font-size: 10px; font-weight: 700; color: var(--text2);
+  letter-spacing: 0.3px; margin-bottom: 6px;
+}
+.tw-head.at-risk { color: #e74c3c; }
+.tw-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.tw-empty { font-size: 10px; color: var(--muted); padding: 4px 2px; }
+.tw-card {
+  display: flex; flex-direction: column; gap: 4px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 5px 7px; cursor: pointer;
+  transition: border-color 0.15s;
+}
+.tw-card:hover { border-color: var(--accent); }
+.tw-card-top { display: flex; align-items: center; gap: 5px; }
+.tw-cs { font-size: 11px; font-weight: 700; font-family: monospace; color: var(--text); }
+.tw-gate { font-size: 9px; font-weight: 700; color: var(--cyan); font-family: monospace; }
+.tw-chip {
+  margin-left: auto; font-size: 10px; font-weight: 700; font-family: monospace;
+  padding: 1px 5px; border-radius: 4px;
+}
+.tw-chip.tw-good { color: #2ecc71; background: rgba(46, 204, 113, 0.14); }
+.tw-chip.tw-warn { color: #f39c12; background: rgba(243, 156, 18, 0.14); }
+.tw-chip.tw-bad  { color: #e74c3c; background: rgba(231, 76, 60, 0.16); }
+.tw-strip { display: flex; gap: 1px; height: 5px; }
+.tw-seg { flex: 1; border-radius: 1px; opacity: 0.22; }
+.tw-seg.tw-s2 { opacity: 1; }
+.tw-seg.tw-s1 { animation: tw-pulse 1.1s ease-in-out infinite; }
+@keyframes tw-pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+.tw-foot { display: flex; align-items: center; justify-content: flex-end; }
+.tw-pobt { font-size: 9px; color: var(--text2); font-family: monospace; }
+.tw-hold { font-size: 9px; font-weight: 700; color: #f39c12; }

@@ -70,10 +70,12 @@ export class RunLogger {
         onGround: snapshot.stats.onGround,
         arrivals: snapshot.stats.arrivals, departures: snapshot.stats.departures,
         metering: snapshot.metering,
+        turnAtRisk: snapshot.flights.filter(f => f.turnAtRisk).length,
         flights: snapshot.flights.map(f => ({
           id: f.id, cs: f.callsign, state: f.state, gate: f.gate,
           pos: f.position, spd: f.speedMps, alt: f.altitudeM,
           held: f.holdingAtGate || undefined,     // omitted from JSON when false
+          pobt: f.pobtSim ?? undefined,           // predicted off-block (at gate)
         })),
       });
       if (this._snapshots.length > this._maxSnaps) this._snapshots.shift();
