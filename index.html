@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>机场数字孪生 · AirportTwin — OPC Studio</title>
-  <meta name="description" content="机场地面运行数字孪生：真实波音/空客机型、廊桥对接、13 节点航班保障全流程与跑道排队仿真。Airport ground-ops digital twin with jet-bridge docking and runway sequencing." />
-  <meta name="keywords" content="机场数字孪生, airport digital twin, 机场仿真, ground operations, runway, Three.js, OPC Studio" />
+  <title>机场数字孪生 AirportTwin — 数字机场仿真平台 | OPC Studio</title>
+  <meta name="description" content="机场数字孪生（数字机场）仿真平台：真实波音/空客机型、廊桥对接、13 节点航班保障、跑道排队与 A-CDM 里程碑，浏览器直接运行。Airport digital twin with jet-bridge docking, turnaround workflow and runway sequencing." />
+  <meta name="keywords" content="机场数字孪生, 数字机场, 机场孪生, airport digital twin, digital airport, 机场仿真, A-CDM, DMAN, ground operations, runway, Boeing, Airbus, Three.js, OPC Studio" />
   <link rel="canonical" href="https://opcstudio.cc/airport-twin/" />
   <link rel="alternate" hreflang="zh-CN" href="https://opcstudio.cc/airport-twin/" />
   <link rel="alternate" hreflang="en" href="https://opcstudio.cc/airport-twin/" />
@@ -14,15 +14,15 @@
   <meta name="theme-color" content="#0d0a07" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="OPC Studio" />
-  <meta property="og:title" content="机场数字孪生 · AirportTwin — OPC Studio" />
-  <meta property="og:description" content="机场地面运行数字孪生：真实波音/空客机型、廊桥对接、13 节点航班保障全流程与跑道排队仿真。Airport ground-ops digital twin with jet-bridge docking and runway sequencing." />
+  <meta property="og:title" content="机场数字孪生 AirportTwin — 数字机场仿真平台 | OPC Studio" />
+  <meta property="og:description" content="机场数字孪生（数字机场）仿真平台：真实波音/空客机型、廊桥对接、13 节点航班保障、跑道排队与 A-CDM 里程碑，浏览器直接运行。Airport digital twin with jet-bridge docking, turnaround workflow and runway sequencing." />
   <meta property="og:url" content="https://opcstudio.cc/airport-twin/" />
   <meta property="og:image" content="https://opcstudio.cc/assets/og-image.png" />
   <meta property="og:locale" content="zh_CN" />
   <meta property="og:locale:alternate" content="en_US" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="机场数字孪生 · AirportTwin — OPC Studio" />
-  <meta name="twitter:description" content="机场地面运行数字孪生：真实波音/空客机型、廊桥对接、13 节点航班保障全流程与跑道排队仿真。Airport ground-ops digital twin with jet-bridge docking and runway sequencing." />
+  <meta name="twitter:title" content="机场数字孪生 AirportTwin — 数字机场仿真平台 | OPC Studio" />
+  <meta name="twitter:description" content="机场数字孪生（数字机场）仿真平台：真实波音/空客机型、廊桥对接、13 节点航班保障、跑道排队与 A-CDM 里程碑，浏览器直接运行。Airport digital twin with jet-bridge docking, turnaround workflow and runway sequencing." />
   <meta name="twitter:image" content="https://opcstudio.cc/assets/og-image.png" />
   <script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebApplication", "name": "AirportTwin", "alternateName": "机场数字孪生", "url": "https://opcstudio.cc/airport-twin/", "applicationCategory": "Simulation", "operatingSystem": "Any", "author": {"@type": "Organization", "name": "OPC Studio", "url": "https://opcstudio.cc/"}, "inLanguage": ["zh-CN", "en"], "isAccessibleForFree": true}</script>
   <link rel="stylesheet" href="simulation/style.css">
@@ -43,7 +43,16 @@
       border-radius: 7px; transition: background 0.15s;
     }
     #nav-back:hover { background: rgba(201, 148, 74, 0.10); }
-    #nav-title { flex: 1; font-size: 14px; font-weight: 600; color: #e8b86d; letter-spacing: 0.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #nav-title { flex: 1; margin: 0; font-size: 14px; font-weight: 600; color: #e8b86d; letter-spacing: 0.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #about-btn { background: rgba(201, 148, 74, 0.12); border: 1px solid rgba(201, 148, 74, 0.18); color: #c9944a; font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 8px; cursor: pointer; }
+    #about-btn:hover { background: rgba(201, 148, 74, 0.22); }
+    #about-panel { display: none; position: fixed; top: 52px; right: 8px; z-index: 500; width: min(440px, 94vw); max-height: calc(100vh - 70px); overflow-y: auto; background: rgba(18, 14, 9, 0.97); border: 1px solid rgba(201, 148, 74, 0.3); border-radius: 12px; padding: 18px 20px; color: #d9c9ae; font-size: 13px; line-height: 1.75; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5); }
+    #about-panel.open { display: block; }
+    #about-panel h2 { font-size: 15px; color: #e8b86d; margin: 0 0 10px; }
+    #about-panel h3 { font-size: 13px; color: #c9944a; margin: 14px 0 6px; }
+    #about-panel p { margin: 0 0 10px; }
+    #about-panel ul { margin: 0 0 10px; padding-left: 18px; }
+    #about-panel a { color: #c9944a; }
     #lang-btn {
       background: rgba(201, 148, 74, 0.12); border: 1px solid rgba(201, 148, 74, 0.18);
       color: #c9944a; font-size: 12px; font-weight: 600; padding: 5px 12px;
@@ -64,8 +73,25 @@
 <body>
   <div id="nav-bar">
     <a id="nav-back" href="/">← 返回主页</a>
-    <span id="nav-title">机场数字孪生 · AirportTwin</span>
+    <h1 id="nav-title">机场数字孪生 · AirportTwin</h1>
+    <button id="about-btn" onclick="document.getElementById('about-panel').classList.toggle('open')">ℹ️ 关于</button>
     <button id="lang-btn" onclick="window.__toggleLang && window.__toggleLang()">EN</button>
+  </div>
+  <div id="about-panel">
+    <h2>机场数字孪生 · 数字机场仿真平台</h2>
+    <p>AirportTwin 是一个开源的<strong>机场数字孪生</strong>（<strong>数字机场</strong> / Airport Digital Twin）仿真平台，在浏览器中以三维方式还原机场地面运行全流程，无需安装任何软件。</p>
+    <ul>
+      <li>真实比例的波音 / 空客机型，含起飞、降落、爬升、下滑真实剖面</li>
+      <li>廊桥自动对接与旅客下机动画</li>
+      <li>13 节点航班保障链路：清洁、加油、配餐、行李装卸、饮水、污水等</li>
+      <li>跑道单机排队起降与 DMAN 离场排序（TSAT 机位等待）</li>
+      <li>A-CDM 里程碑全记录，准点率与燃油节省 KPI</li>
+      <li>三层架构：仿真数据层 + 分析优化算法层 + 三维孪生视图层</li>
+      <li>标准 JSON 数据接口，可接入真实机场运行数据，适用于机场孪生技术演示、教学与调度算法验证</li>
+    </ul>
+    <h3>About (English)</h3>
+    <p>AirportTwin is an open-source airport digital twin that simulates complete airport ground operations in your browser: Boeing/Airbus aircraft, jet-bridge docking, a 13-node turnaround workflow, runway sequencing, DMAN departure metering and A-CDM milestones — with a standard JSON API for connecting real airport data.</p>
+    <p><a href="https://github.com/webergithub/airport-digital-twin" target="_blank" rel="noopener">GitHub 源代码</a> · <a href="/">OPC Studio 主页</a></p>
   </div>
   <div id="app">
     <div id="canvas-container"></div>
