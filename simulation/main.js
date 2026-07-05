@@ -113,6 +113,10 @@ const ui = new UIOverlay(document.getElementById('ui-root'), (action, payload) =
       analytics.setAutoOptimize(payload.on);
       ui.log(t(payload.on ? 'log.autoOptOn' : 'log.autoOptOff'), 'info');
       break;
+    case 'toggleMetering':
+      api.setMetering(payload.on);
+      ui.log(t(payload.on ? 'log.meterOn' : 'log.meterOff'), 'info');
+      break;
     case 'exportLog':
       runLog.download();
       ui.log(tf('log.export', { e: runLog.counts().events, s: runLog.counts().snapshots }), 'info');
@@ -145,6 +149,7 @@ const al = a => t('airline.' + a, a);
 api.on('flight_spawned', f => ui.log(tf('log.spawned',  { cs: f.callsign, al: al(f.airline), rwy: f.runway, gate: f.gateId }), 'land'));
 api.on('flight_arrived', f => ui.log(tf('log.arrived',  { cs: f.callsign, gate: f.gateId }), 'gate'));
 api.on('atc_hold',       f => ui.log(tf('log.atcHold',  { cs: f.callsign, rwy: f.runway }), 'atc'));
+api.on('tsat_release',   f => ui.log(tf('log.tsat',     { cs: f.callsign, s: f.heldSec }), 'atc'));
 api.on('flight_takeoff', f => ui.log(tf('log.takeoff',  { cs: f.callsign }), 'depart'));
 api.on('flight_departed',f => ui.log(tf('log.departed', { cs: f.callsign }), 'info'));
 api.on('no_gate', ({ callsign }) => ui.log(tf('log.noGate', { cs: callsign }), 'warn'));

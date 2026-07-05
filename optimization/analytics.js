@@ -10,6 +10,11 @@
  * It reads only the snapshot + event stream (no reaching into internals), and
  * acts back through the public control API (scheduler.setInterval).
  */
+
+// A320-class idle fuel burn, both engines (kg per engines-on second) — used to
+// estimate fuel saved by DMAN gate holds (waiting engines-off instead of in queue).
+const IDLE_BURN_KG_S = 0.2;
+
 export class AnalyticsEngine {
   constructor(api, scheduler, opts = {}) {
     this._api = api;
@@ -27,8 +32,12 @@ export class AnalyticsEngine {
     this._noGateSeen = 0;
     this._timing = new Map();        // flightId → { spawn, gateIn, takeoff }
     this._decisions = [];            // optimization action log
-    this._otp = { onTime: 0, total: 0 }; // A-CDM off-block punctuality (AOBT vs TOBT)
+    this._otp = { onTime: 0, total: 0 }; // A-CDM readiness punctuality (ARDT vs TOBT)
     this._turn = [];                 // actual turnaround durations (AOBT − AIBT)
+    this._taxiOut = [];              // engines-on taxi-out durations (AOBT → ATOT)
+    this._gateHold = [];             // engines-off DMAN holds (ARDT → TSAT), rolling
+    this._holdCount = 0;             // cumulative count of metered holds
+    this._fuelKg = 0;                // estimated fuel saved by metering holds
 
     this._wireEvents();
   }
@@ -45,14 +54,28 @@ export class AnalyticsEngine {
     this._api.on('flight_takeoff', f => {
       const r = this._timing.get(f.id);
       if (r) { r.takeoff = this._simT; if (r.gateIn != null) this._push(this._depWait, r.takeoff - r.gateIn); }
-      // A-CDM punctuality: was the actual off-block within tolerance of target?
+      // A-CDM punctuality: was the flight READY (ARDT) by its target off-block
+      // (TOBT)? Measuring readiness rather than AOBT keeps the KPI about
+      // ground-handling performance — a metered gate hold (controlled delay
+      // between ARDT and TSAT) does not count against punctuality.
       const m = f.milestones;
-      if (m && m.AOBT && m.TOBT && m.AIBT) {
+      if (m && m.ARDT && m.TOBT && m.AIBT) {
         const planned = m.TOBT.sim - m.AIBT.sim;
         const tol = Math.max(6, 0.1 * planned);        // ~10% ≈ 15-min A-CDM window
         this._otp.total++;
-        if (m.AOBT.sim - m.TOBT.sim <= tol) this._otp.onTime++;
-        this._push(this._turn, m.AOBT.sim - m.AIBT.sim);
+        if (m.ARDT.sim - m.TOBT.sim <= tol) this._otp.onTime++;
+      }
+      if (m && m.AOBT && m.AIBT) this._push(this._turn, m.AOBT.sim - m.AIBT.sim);
+      // Surface-metering benefits (ATD-2 style): engines-on taxi-out time and
+      // engines-off gate holds, converted to an idle-burn fuel estimate.
+      if (m && m.AOBT && m.ATOT) this._push(this._taxiOut, m.ATOT.sim - m.AOBT.sim);
+      if (m && m.ARDT && m.TSAT) {
+        const held = m.TSAT.sim - m.ARDT.sim;
+        if (held > 0.5) {
+          this._push(this._gateHold, held);
+          this._holdCount++;
+          this._fuelKg += held * IDLE_BURN_KG_S;
+        }
       }
     });
     this._api.on('flight_departed', f => this._timing.delete(f.id));
@@ -113,6 +136,10 @@ export class AnalyticsEngine {
       otp:        this._otp.total ? this._otp.onTime / this._otp.total : 1,
       otpCount:   this._otp.total,
       avgTurn:    this._avg(this._turn),
+      avgTaxiOut: this._avg(this._taxiOut),
+      gateHold:   this._avg(this._gateHold),
+      meterHolds: this._holdCount,
+      fuelSavedKg: this._fuelKg,
       completed:  { taxiIn: this._taxiIn.length, dep: this._depWait.length },
     };
   }

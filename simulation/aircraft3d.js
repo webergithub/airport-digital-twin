@@ -323,8 +323,10 @@ export class Aircraft3D {
     // Tug visible only while being pushed back
     if (this._tug) this._tug.visible = (this.flight.state === 'PUSHBACK');
 
-    // Update label state text (localized; DONE shows nothing)
-    this._stateDiv.textContent = this.flight.state === 'DONE' ? '' : t('state.' + this.flight.state, '');
+    // Update label state text (localized; DONE shows nothing; DMAN gate hold
+    // shows its own pseudo-state while awaiting TSAT start-up approval)
+    this._stateDiv.textContent = this.flight.state === 'DONE' ? ''
+      : t('state.' + (this.flight.isGateHeld ? 'GATE_HOLD' : this.flight.state), '');
 
     // Strobe blink (wall-clock based double-flash)
     const strobe = this.group.userData.strobe;

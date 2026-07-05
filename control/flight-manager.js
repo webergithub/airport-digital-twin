@@ -153,8 +153,12 @@ export class Flight {
     // Ground-handling plan (created on entering AT_GATE)
     this.turnaround     = null;
 
-    // A-CDM milestones (recorded by AirportAPI): ATA/AIBT/TOBT/AOBT/ATOT
+    // A-CDM milestones (recorded by AirportAPI): ATA/AIBT/TOBT/ARDT/TSAT/AOBT/ATOT
     this.milestones     = {};
+
+    // DMAN departure metering: while true, a turnaround-complete flight waits
+    // at the gate (engines off) for its TSAT start-up approval before pushback.
+    this.gateHold       = false;
 
     const w0 = this._wps[0] ?? { x: 0, z: 0, y: 0 };
     this.x   = w0.x;
@@ -171,7 +175,9 @@ export class Flight {
     if (this.state === FS.AT_GATE) {
       this.currentSpeed = 0;
       if (this.turnaround) this.turnaround.update(dt);
-      if (!this.turnaround || this.turnaround.complete) this._startDeparture();
+      // Depart once turnaround completes AND the DMAN gate hold (departure
+      // metering — awaiting TSAT start-up approval) has been released.
+      if ((!this.turnaround || this.turnaround.complete) && !this.gateHold) this._startDeparture();
       return;
     }
 
@@ -302,6 +308,12 @@ export class Flight {
   }
 
   // ── Status for UI ──────────────────────────────────────────────────────────
+  /** True while a ready (turnaround-complete) flight is metered at the gate. */
+  get isGateHeld() {
+    return this.state === FS.AT_GATE && this.gateHold &&
+           !!(this.turnaround && this.turnaround.complete);
+  }
+
   get turnaroundLive() { return this.turnaround; }
   getTurnaround() { return this.turnaround ? this.turnaround.snapshot() : null; }
 
@@ -315,6 +327,7 @@ export class Flight {
       gateId:   this.gateId,
       runway:   this.runway,
       milestones: this.milestones,
+      holdingAtGate: this.isGateHeld,
       turnaround: this.turnaround ? this.turnaround.snapshot() : null,
     };
   }

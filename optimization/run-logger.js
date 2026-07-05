@@ -32,11 +32,14 @@ export class RunLogger {
       flight_spawned:  f => tf('log.spawned',  { cs: f.callsign, al: al(f.airline), rwy: f.runway, gate: f.gate ?? f.gateId }),
       flight_arrived:  f => tf('log.arrived',  { cs: f.callsign, gate: f.gateId }),
       atc_hold:        f => tf('log.atcHold',  { cs: f.callsign, rwy: f.runway }),
+      tsat_release:    f => tf('log.tsat',     { cs: f.callsign, s: f.heldSec }),
       flight_takeoff:  f => tf('log.takeoff',  { cs: f.callsign }),
       flight_departed: f => tf('log.departed', { cs: f.callsign }),
       no_gate:         f => tf('log.noGate',   { cs: f.callsign }),
       ground_stop:     () => t('log.groundStopCmd'),
       resume:          () => t('log.resume'),
+      metering_on:     () => t('log.meterOn'),
+      metering_off:    () => t('log.meterOff'),
     };
     for (const [type, fmt] of Object.entries(EV)) {
       this._api.on(type, (d) => {
@@ -66,9 +69,11 @@ export class RunLogger {
         gateUtil: +snapshot.stats.gateUtil.toFixed(3),
         onGround: snapshot.stats.onGround,
         arrivals: snapshot.stats.arrivals, departures: snapshot.stats.departures,
+        metering: snapshot.metering,
         flights: snapshot.flights.map(f => ({
           id: f.id, cs: f.callsign, state: f.state, gate: f.gate,
           pos: f.position, spd: f.speedMps, alt: f.altitudeM,
+          held: f.holdingAtGate || undefined,     // omitted from JSON when false
         })),
       });
       if (this._snapshots.length > this._maxSnaps) this._snapshots.shift();

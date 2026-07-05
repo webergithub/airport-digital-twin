@@ -13,6 +13,8 @@ A browser-based **airport ground-operations digital twin** built with Three.js (
 - **Jet bridges** — animated docking to the forward door and retraction before pushback.
 - **Pushback with tug** — aircraft are pushed back tail-first by a tug (no in-place turning).
 - **Runway sequencing** — departures hold-short on the taxiway and line up without overlapping; only one aircraft is on the runway at a time.
+- **A-CDM milestones** — each flight records the standard Airport Collaborative Decision Making timestamps (ATA → AIBT → TOBT → ARDT → TSAT → AOBT → ATOT), shown as a milestone strip in the gate detail view and driving an on-time-performance KPI. Turnaround durations vary with a realistic right-skewed delay distribution.
+- **DMAN departure metering** — as in Eurocontrol A-CDM pre-departure sequencing and NASA ATD-2 surface metering, ready flights are held at the gate (engines off) instead of joining a long runway queue, then released one at a time with a TSAT start-up approval. A toggle turns metering on/off, and the analytics panel estimates fuel saved by the holds.
 - **Movable UI** — every panel can be dragged, minimized to a title bar, and resized.
 - **Bilingual** — full 中文 / English toggle.
 

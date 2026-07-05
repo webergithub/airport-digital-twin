@@ -12,6 +12,10 @@ import { Flight, FS } from './flight-manager.js';
 import { GateManager } from './gate-manager.js';
 import { RunwayController } from './runway-controller.js';
 
+// ── DMAN departure metering (A-CDM TSAT / NASA ATD-2 surface metering) ────────
+const METER_DEPTH = 3;  // hold at gate while runway demand (queue+rolling+pushback) ≥ this
+const RELEASE_GAP = 8;  // min sim-seconds between successive TSAT start-up approvals
+
 export class AirportAPI {
   constructor(config = {}) {
     this._gates    = new GateManager();
@@ -23,6 +27,11 @@ export class AirportAPI {
     // Per-runway departure sequencing
     this._runways = { RWY1: new RunwayController('RWY1'), RWY2: new RunwayController('RWY2') };
     this._clock   = 0;               // monotonic sim-seconds
+
+    // DMAN departure metering: hold ready flights at the gate (engines off)
+    // instead of in the runway queue when departures back up.
+    this._metering = config.metering ?? true;
+    this._meter    = { RWY1: { lastRelease: -Infinity }, RWY2: { lastRelease: -Infinity } };
 
     // Cumulative stats
     this._stats = { arrivals: 0, departures: 0 };
@@ -36,6 +45,14 @@ export class AirportAPI {
 
   /** Apply a new gate layout (already set via setGates) — prune stale occupancy. */
   reconfigureGates() { this._gates.reconfigure(); }
+
+  /** DMAN departure metering on/off. With metering off, _serviceMetering issues
+   *  every ready flight its start-up approval immediately (next tick). */
+  setMetering(on) {
+    this._metering = !!on;
+    this.emit(this._metering ? 'metering_on' : 'metering_off', {});
+  }
+  get metering() { return this._metering; }
 
   // ── A-CDM milestones (Airport Collaborative Decision Making) ────────────────
   // Record a standard milestone timestamp on a flight (sim-sec + wall-clock).
@@ -81,6 +98,9 @@ export class AirportAPI {
               sim: +(this._clock + flight.turnaroundTime).toFixed(1),
               wall: Date.now() + flight.turnaroundTime * 1000,
             };
+            // Every flight awaits a TSAT start-up approval from _serviceMetering
+            // (issued immediately when metering is off) — single release path.
+            flight.gateHold = true;
             this.emit('flight_arrived', flight.getStatus());
             break;
           case FS.PUSHBACK:
@@ -110,6 +130,9 @@ export class AirportAPI {
       }
     }
 
+    // DMAN: issue TSAT start-up approvals before sequencing the runway queues.
+    this._serviceMetering();
+
     // Sequence each runway's departure queue after all flights have advanced.
     this._runways.RWY1.service(this._flights, this._clock);
     this._runways.RWY2.service(this._flights, this._clock);
@@ -117,6 +140,47 @@ export class AirportAPI {
     // Prune old throughput entries (keep last 60 minutes)
     const cutoff = Date.now() - 3600000;
     this._throughputLog = this._throughputLog.filter(t => t > cutoff);
+  }
+
+  // ── DMAN departure metering service ─────────────────────────────────────────
+  // Every ready (turnaround-complete) flight waits at the gate for its TSAT
+  // start-up approval. Metering off → all ready flights approved immediately.
+  // Metering on → while the runway's departure demand is high, approvals are
+  // issued one at a time (FIFO by ready time, RELEASE_GAP pacing), holding the
+  // rest engines-off at the gate. Mirrors NASA ATD-2 / A-CDM pre-departure
+  // sequencing.
+  _serviceMetering() {
+    for (const key of Object.keys(this._runways)) {
+      const rc = this._runways[key];
+      // Demand = queued + rolling + already approved but still pushing back.
+      let demand = rc.queue.length + (rc.rolling ? 1 : 0);
+      const ready = [];
+      for (const f of this._flights.values()) {
+        if (f.runway !== key) continue;
+        if (f.state === FS.PUSHBACK) demand++;
+        else if (f.state === FS.AT_GATE && f.gateHold && f.turnaround && f.turnaround.complete) {
+          if (!f.milestones.ARDT) this._milestone(f, 'ARDT');   // Actual Ready Time
+          ready.push(f);
+        }
+      }
+      if (!ready.length) continue;
+      ready.sort((a, b) => a.milestones.ARDT.sim - b.milestones.ARDT.sim);
+      const m = this._meter[key];
+      if (!this._metering) {
+        for (const f of ready) this._approveStartup(f, m);      // no metering → immediate
+      } else if (demand < METER_DEPTH && this._clock - m.lastRelease >= RELEASE_GAP) {
+        this._approveStartup(ready[0], m);
+      }
+    }
+  }
+
+  /** Issue the TSAT start-up approval that releases a gate-held ready flight. */
+  _approveStartup(f, meterState) {
+    f.gateHold = false;
+    this._milestone(f, 'TSAT');
+    meterState.lastRelease = this._clock;
+    const held = +(f.milestones.TSAT.sim - f.milestones.ARDT.sim).toFixed(1);
+    if (held > 3) this.emit('tsat_release', { ...f.getStatus(), heldSec: held });
   }
 
   // ── Status ─────────────────────────────────────────────────────────────────
@@ -166,7 +230,8 @@ export class AirportAPI {
         headingDeg: +(Math.atan2(dir.x, dir.z) * R2D).toFixed(1),
         speedMps:   +((f.currentSpeed || 0) * UNIT_M).toFixed(1),
         altitudeM:  +((f.y || 0) * UNIT_M).toFixed(1),
-        milestones: f.milestones ?? {},        // A-CDM: ATA/AIBT/TOBT/AOBT/ATOT
+        milestones: f.milestones ?? {},        // A-CDM: ATA/AIBT/TOBT/ARDT/TSAT/AOBT/ATOT
+        holdingAtGate: f.isGateHeld,           // DMAN gate hold (awaiting TSAT)
         turnaround: f.turnaround ? f.turnaround.snapshot() : null,
       };
     });
@@ -176,6 +241,7 @@ export class AirportAPI {
       wallClock: Date.now(),
       activeRunways: this._activeRunways,
       groundStop: this._groundStop,
+      metering: this._metering,
       flights,
       gates: this._gates.getOccupancy().gates,
       runways: [this._runways.RWY1.getStatus(), this._runways.RWY2.getStatus()],

@@ -57,6 +57,7 @@ export class UIOverlay {
           <span><span data-i18n="cfg.next">${t('cfg.next')}</span><span id="atc-next" style="color:var(--text)">—</span> <span data-i18n="cfg.nextUnit">${t('cfg.nextUnit')}</span></span>
           <span><span data-i18n="cfg.onGround">${t('cfg.onGround')}</span><span id="atc-count" style="color:var(--text)">0</span></span>
         </div>
+        <label class="an-auto" style="margin-top:5px"><input type="checkbox" id="cfg-meter" checked> <span data-i18n="cfg.metering">${t('cfg.metering')}</span></label>
       </div>
 
       <!-- Right: Flight board -->
@@ -164,6 +165,9 @@ export class UIOverlay {
     document.getElementById('an-auto').addEventListener('change', e => {
       this._cb('toggleAutoOpt', { on: e.target.checked });
     });
+    document.getElementById('cfg-meter').addEventListener('change', e => {
+      this._cb('toggleMetering', { on: e.target.checked });
+    });
     document.getElementById('an-export').addEventListener('click', () => {
       this._cb('exportLog');
     });
@@ -187,6 +191,9 @@ export class UIOverlay {
         cell(t('an.avgTaxiIn'),  `${(m.avgTaxiIn ?? 0).toFixed(0)}s`) +
         cell(t('an.avgDepWait'), `${(m.avgDepWait ?? 0).toFixed(0)}s`) +
         cell(t('an.avgTurn'),    `${(m.avgTurn ?? 0).toFixed(0)}s`) +
+        cell(t('an.taxiOut'),    `${(m.avgTaxiOut ?? 0).toFixed(0)}s`) +
+        cell(t('an.gateHold'),   m.meterHolds ? `${(m.gateHold ?? 0).toFixed(0)}s ×${m.meterHolds}` : '—') +
+        cell(t('an.fuelSaved'),  `${Math.round(m.fuelSavedKg ?? 0)} kg`, (m.fuelSavedKg ?? 0) > 0 ? 'an-good' : '') +
         cell(t('an.throughput'), `${m.throughput ?? 0}`) +
         cell(t('an.noGate'),     `${m.noGate ?? 0}`);
     }
@@ -212,6 +219,7 @@ export class UIOverlay {
     const STATE_CLASS = {
       TAXIING_IN:  'state-taxiing-in',
       AT_GATE:     'state-at-gate',
+      GATE_HOLD:   'state-holding',   // DMAN gate hold — reuse the amber style
       PUSHBACK:    'state-pushback',
       TAXIING_OUT: 'state-taxiing-out',
       HOLDING:     'state-holding',
@@ -219,8 +227,9 @@ export class UIOverlay {
       DONE:        'state-done',
     };
     container.innerHTML = flights.slice(0, 12).map(f => {
-      const cls = STATE_CLASS[f.state] ?? 'state-done';
-      const txt = t('state.' + f.state, f.state);
+      const key = f.holdingAtGate ? 'GATE_HOLD' : f.state;
+      const cls = STATE_CLASS[key] ?? 'state-done';
+      const txt = t('state.' + key, f.state);
       return `
         <div class="flight-row">
           <span class="fr-callsign">${f.callsign}</span>
@@ -304,7 +313,7 @@ export class UIOverlay {
           return `<span class="acdm-cell${m ? ' set' : ''}"><span class="acdm-code">${code}</span><span class="acdm-t">${val}</span></span>`;
         };
         acdm.innerHTML = `<div class="acdm-head">${t('gd.acdm')}</div>` +
-          ['ATA', 'AIBT', 'TOBT', 'AOBT', 'ATOT'].map(cell).join('');
+          ['ATA', 'AIBT', 'TOBT', 'TSAT', 'AOBT', 'ATOT'].map(cell).join('');
       } else {
         acdm.innerHTML = '';
       }

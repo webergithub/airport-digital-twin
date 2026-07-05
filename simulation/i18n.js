@@ -59,6 +59,7 @@ const DICT = {
   'cfg.next':        { zh: '下一航班：',     en: 'Next flight:' },
   'cfg.nextUnit':    { zh: '秒后',           en: 's' },
   'cfg.onGround':    { zh: '在场航班：',     en: 'On ground:' },
+  'cfg.metering':    { zh: '离港排序（TSAT 放行）', en: 'Departure metering (TSAT)' },
 
   // ── FIDS header ──
   'fids.flight':  { zh: '航班', en: 'Flight' },
@@ -69,6 +70,7 @@ const DICT = {
   // ── Flight states (also 3D labels) ──
   'state.TAXIING_IN':  { zh: '进场', en: 'Inbound' },
   'state.AT_GATE':     { zh: '停靠', en: 'At gate' },
+  'state.GATE_HOLD':   { zh: '待放行', en: 'Hold' },
   'state.PUSHBACK':    { zh: '推出', en: 'Pushback' },
   'state.TAXIING_OUT': { zh: '滑出', en: 'Taxi out' },
   'state.HOLDING':     { zh: '等待', en: 'Holding' },
@@ -108,6 +110,9 @@ const DICT = {
   'gd.acdm':    { zh: 'A-CDM 里程碑',  en: 'A-CDM Milestones' },
   'an.onTime':  { zh: '准点',          en: 'On-time' },
   'an.avgTurn': { zh: '平均过站',      en: 'Avg turnaround' },
+  'an.taxiOut': { zh: '平均滑出',      en: 'Avg taxi-out' },
+  'an.gateHold':{ zh: '机位等待',      en: 'Gate hold' },
+  'an.fuelSaved':{ zh: '估算节油',     en: 'Fuel saved' },
 
   // ── Ground-handling nodes (by node id) ──
   'node.CHOCKS_ON':    { zh: '上轮挡',     en: 'Chocks on' },
@@ -161,5 +166,9 @@ const DICT = {
                      en: '⚠️ Gates {ids} occupied — cannot reduce gate count' },
   'log.autoOptOn': { zh: '已开启自动参数优化', en: 'Auto parameter optimization ON' },
   'log.autoOptOff':{ zh: '已关闭自动参数优化', en: 'Auto parameter optimization OFF' },
+  'log.meterOn':   { zh: '已开启离港排序（TSAT 机位放行）', en: 'Departure metering ON (TSAT gate holds)' },
+  'log.meterOff':  { zh: '已关闭离港排序', en: 'Departure metering OFF' },
+  'log.tsat':      { zh: '{cs} 获 TSAT 放行（机位等待 {s}s，引擎未启动）',
+                     en: '{cs} TSAT approved — held {s}s at gate, engines off' },
   'log.export':    { zh: '导出运行日志（{e} 事件 / {s} 快照）', en: 'Exported run log ({e} events / {s} snapshots)' },
 };
