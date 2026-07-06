@@ -53,6 +53,18 @@ control/                # data layer — airport-api, flight-manager, gate-layou
 optimization/           # algorithm layer — scheduler, analytics, run-logger
 ```
 
+## About OPC Studio
+
+This **airport digital twin / 机场数字孪生（数字机场）** is one of the projects from **[OPC Studio](https://opcstudio.cc/)** — an independent studio building AI-powered tools and interactive 3D experiences in the browser.
+
+Explore more live projects:
+
+- ✈️ **[AirportTwin · 机场数字孪生](https://opcstudio.cc/airport-twin/)** — this project (Boeing/Airbus, jet-bridge docking, A-CDM, runway sequencing)
+- 🛗 **[ElevatorTwin · 电梯数字孪生](https://opcstudio.cc/elevator-twin/)** — elevator dispatch digital twin with AI scheduling
+- 🏠 **[HouseTwin · 3D 住宅设计器](https://opcstudio.cc/house-twin/)** — parametric 3D home & interior designer
+- ♟ **[BattleAI](https://opcstudio.cc/battleai/)** — watch LLMs battle in chess, xiangqi, gomoku and tetris
+- 🌐 **All projects → [opcstudio.cc](https://opcstudio.cc/)**
+
 ## License
 
 MIT
