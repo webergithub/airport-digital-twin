@@ -11,12 +11,13 @@ export class UIOverlay {
     this._cb    = onAction;
     this._log   = [];
     this._root  = this._build(container);
-    this._cfg   = { arrivalInterval: 25, runways: 2, gateCount: 6, bridgeCount: 6 };
+    this._cfg   = { arrivalInterval: 25, runways: 2, gateCount: 6, bridgeCount: 4 };
 
     // Make the overlay panels into movable windows (titles read from each panel).
     this._wm = new WindowManager();
     ['panel-config', 'panel-flights', 'event-log', 'panel-gate-detail', 'panel-analytics', 'panel-turnwall']
       .forEach(id => this._wm.register(document.getElementById(id)));
+    this._wm.register(document.getElementById('panel-standplan'), { collapsed: true });
   }
 
   // ── Build DOM ──────────────────────────────────────────────────────────────
@@ -40,8 +41,8 @@ export class UIOverlay {
         <label class="ctrl-label"><span data-i18n="cfg.gateCount">${t('cfg.gateCount')}</span><span id="val-gates">6</span></label>
         <input type="range" id="sl-gates" min="4" max="12" value="6" step="1">
 
-        <label class="ctrl-label"><span data-i18n="cfg.bridgeCount">${t('cfg.bridgeCount')}</span><span id="val-bridges">6</span></label>
-        <input type="range" id="sl-bridges" min="0" max="6" value="6" step="1">
+        <label class="ctrl-label"><span data-i18n="cfg.bridgeCount">${t('cfg.bridgeCount')}</span><span id="val-bridges">4</span></label>
+        <input type="range" id="sl-bridges" min="0" max="6" value="4" step="1">
 
         <button id="btn-apply" class="btn-primary" data-i18n="cfg.apply">${t('cfg.apply')}</button>
 
@@ -90,6 +91,7 @@ export class UIOverlay {
       <div id="panel-gate-detail" class="panel" style="display:none">
         <div class="panel-title"><span data-i18n="fids.gate">${t('fids.gate')}</span> <span id="gd-gate">—</span> <span data-i18n="gd.suffix">${t('gd.suffix')}</span></div>
         <div id="gd-flight" class="gd-flight" data-i18n="gd.waiting">${t('gd.waiting')}</div>
+        <div id="gd-stand" class="gd-stand"></div>
         <div id="gd-acdm" class="gd-acdm"></div>
         <div class="gd-overall-row">
           <div class="gd-overall-track"><div id="gd-overall-bar"></div></div>
@@ -103,6 +105,12 @@ export class UIOverlay {
         <div class="panel-title" data-i18n="panel.turnwall">${t('panel.turnwall')}</div>
         <div id="tw-head" class="tw-head"></div>
         <div id="tw-cards" class="tw-cards"></div>
+      </div>
+
+      <!-- Stand-plan Gantt: rule-based allocation, RMS-style (collapsed by default) -->
+      <div id="panel-standplan" class="panel">
+        <div class="panel-title" data-i18n="panel.standplan">${t('panel.standplan')}</div>
+        <div id="sp-body" class="sp-body"></div>
       </div>
 
       <!-- Data algorithm layer: analytics + optimization + run log -->
@@ -184,6 +192,14 @@ export class UIOverlay {
       const card = e.target.closest('.tw-card');
       if (card && card.dataset.gate) this._cb('focusGate', { gateId: card.dataset.gate });
     });
+
+    // Stand-plan Gantt — click an occupied row to focus that gate.
+    document.getElementById('sp-body').addEventListener('click', e => {
+      const row = e.target.closest('.sp-row');
+      if (row && row.dataset.gate && row.querySelector('.sp-bar, .sp-inbound')) {
+        this._cb('focusGate', { gateId: row.dataset.gate });
+      }
+    });
   }
 
   // ── Turnaround Control wall (multi-gate POBT watchlist) ──────────────────────
@@ -224,6 +240,42 @@ export class UIOverlay {
     }).join('');
   }
 
+  // ── Stand-plan Gantt (rule-based allocation, gates × rolling time) ───────────
+  updateStandPlan(plan) {
+    const body = document.getElementById('sp-body');
+    if (!body || !plan) return;
+    const span = plan.winEnd - plan.winStart || 1;
+    const clampPct = (v) => Math.max(0, Math.min(100, v));
+    const nowFrac = clampPct(((plan.now - plan.winStart) / span) * 100) / 100;
+
+    const rows = plan.gates.map(g => {
+      const badges =
+        `<span class="sp-b ${g.contact ? 'sp-contact' : 'sp-remote'}">${g.contact ? t('stand.contact') : t('stand.remote')}</span>` +
+        (g.wide ? `<span class="sp-b sp-wide">W</span>` : '');
+      let track = '';
+      if (g.bar) {
+        const s0 = Math.max(g.bar.startSim, plan.winStart);
+        const s1 = Math.min(g.bar.endSim, plan.winEnd);
+        const left = clampPct(((s0 - plan.winStart) / span) * 100);
+        const width = Math.max(3, clampPct(((s1 - s0) / span) * 100));
+        const cls = g.bar.held ? 'sp-bar-held' : g.bar.predicted ? 'sp-bar-plan' : 'sp-bar-done';
+        track = `<div class="sp-bar ${cls}" data-gate="${g.id}" style="left:${left}%;width:${width}%" title="${g.bar.cs}">${g.bar.cs}</div>`;
+      } else if (g.inbound) {
+        const left = clampPct(nowFrac * 100);
+        track = `<div class="sp-inbound" style="left:${left}%">${g.inbound.cs} · ${t('sp.inbound')}</div>`;
+      }
+      return `
+        <div class="sp-row" data-gate="${g.id}">
+          <div class="sp-label">${g.id}${badges}</div>
+          <div class="sp-track">${track}</div>
+        </div>`;
+    }).join('');
+
+    // Single now-line over the track column (62px label + 4px grid gap = 66px).
+    const nowLine = `<div class="sp-now" style="left:calc(66px + (100% - 66px) * ${nowFrac})"></div>`;
+    body.innerHTML = nowLine + rows;
+  }
+
   // ── Analytics / optimization layer panel ─────────────────────────────────────
   updateAnalytics({ metrics, decisions, logCounts }) {
     const m = metrics || {};
@@ -245,6 +297,9 @@ export class UIOverlay {
         cell(t('an.taxiOut'),    `${(m.avgTaxiOut ?? 0).toFixed(0)}s`) +
         cell(t('an.gateHold'),   m.meterHolds ? `${(m.gateHold ?? 0).toFixed(0)}s ×${m.meterHolds}` : '—') +
         cell(t('an.fuelSaved'),  `${Math.round(m.fuelSavedKg ?? 0)} kg`, (m.fuelSavedKg ?? 0) > 0 ? 'an-good' : '') +
+        cell(t('an.contact'),    m.standCount ? `${Math.round((m.standContactPct ?? 1) * 100)}%` : '—') +
+        cell(t('an.standFit'),   m.standCount ? `${Math.round((m.standFitPct ?? 1) * 100)}%` : '—',
+             m.standCount && (m.standFitPct ?? 1) >= 0.9 ? 'an-good' : '') +
         cell(t('an.throughput'), `${m.throughput ?? 0}`) +
         cell(t('an.noGate'),     `${m.noGate ?? 0}`);
     }
@@ -353,6 +408,15 @@ export class UIOverlay {
       fEl.textContent = flight
         ? `${flight.callsign} · ${t('airline.' + flight.airline, flight.airline)} · ${flight.type}`
         : t('gd.waiting');
+    }
+    // Stand-allocation class chips (contact/remote · wide/narrow).
+    const standEl = document.getElementById('gd-stand');
+    if (standEl) {
+      const s = flight && flight.stand;
+      standEl.innerHTML = s
+        ? `<span class="sp-badge ${s.contact ? 'sp-contact' : 'sp-remote'}">${s.contact ? t('stand.contact') : t('stand.remote')}</span>` +
+          `<span class="sp-badge ${s.wide ? 'sp-wide' : 'sp-narrow'}">${s.wide ? t('stand.wide') : t('stand.narrow')}</span>`
+        : '';
     }
     // A-CDM milestone strip (times shown relative to arrival / ATA).
     const acdm = document.getElementById('gd-acdm');

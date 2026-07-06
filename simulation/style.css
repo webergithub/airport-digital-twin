@@ -582,6 +582,48 @@ button:active { transform: scale(0.97); }
 }
 .gd-node-bar { height: 100%; width: 0%; border-radius: 3px; transition: width 0.2s; }
 
+/* ─── Stand-plan Gantt (rule-based allocation, RMS-style) ──────────────── */
+#panel-standplan {
+  bottom: 96px; left: 50%; transform: translateX(-50%);
+  width: min(468px, calc(100vw - 560px));
+  max-height: 264px;
+}
+#panel-standplan .win-body { max-height: 232px; overflow-y: auto; }
+.sp-body { position: relative; display: flex; flex-direction: column; gap: 2px; }
+.sp-row { display: grid; grid-template-columns: 62px 1fr; align-items: center; gap: 4px; height: 15px; }
+.sp-row:has(.sp-bar), .sp-row:has(.sp-inbound) { cursor: pointer; }
+.sp-label {
+  font-size: 9px; font-family: monospace; color: var(--text2);
+  display: flex; align-items: center; gap: 3px; white-space: nowrap; overflow: hidden;
+}
+.sp-b { font-size: 7px; padding: 0 2px; border-radius: 2px; line-height: 1.35; }
+.sp-contact { background: #143a2a; color: #2ecc71; }
+.sp-remote  { background: #3a2a14; color: #e0a060; }
+.sp-wide    { background: #142a3a; color: var(--accent); font-weight: 700; }
+.sp-track { position: relative; height: 12px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+.sp-bar {
+  position: absolute; top: 0; height: 100%; border-radius: 3px;
+  font-size: 8px; line-height: 12px; color: #041018; font-weight: 700;
+  padding: 0 3px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+.sp-bar-plan { background: linear-gradient(90deg, var(--cyan), #2ecc71); }
+.sp-bar-held { background: #f39c12; }
+.sp-bar-done { background: var(--muted); color: var(--text2); }
+.sp-inbound {
+  position: absolute; top: 0; height: 100%; font-size: 8px; line-height: 12px;
+  color: var(--text2); white-space: nowrap; padding-left: 3px; border-left: 2px dashed var(--muted);
+}
+.sp-now { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); opacity: 0.65; pointer-events: none; z-index: 3; }
+
+/* Stand-class chips (gate detail) */
+.gd-stand { display: flex; gap: 5px; }
+.gd-stand:empty { display: none; }
+.sp-badge { font-size: 9px; padding: 1px 6px; border-radius: 4px; font-weight: 700; }
+.sp-badge.sp-contact { background: #143a2a; color: #2ecc71; }
+.sp-badge.sp-remote  { background: #3a2a14; color: #e0a060; }
+.sp-badge.sp-wide    { background: #142a3a; color: var(--accent); }
+.sp-badge.sp-narrow  { background: var(--surface2); color: var(--text2); }
+
 /* ─── Turnaround Control wall (multi-gate POBT watchlist) ──────────────── */
 #panel-turnwall {
   top: 12px; left: 50%; transform: translateX(-50%);

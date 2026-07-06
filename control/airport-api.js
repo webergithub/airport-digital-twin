@@ -62,16 +62,20 @@ export class AirportAPI {
 
   // ── Flight spawning ────────────────────────────────────────────────────────
   spawnArrival({ callsign, airline, type, runway, color }) {
-    const gate = this._gates.assignGate();
+    // Override runway if only one active — allocator scores taxi distance from it.
+    const rwy = this._activeRunways === 1 ? 'RWY1' : (runway ?? 'RWY1');
+
+    const gate = this._gates.assignGate({ type, runway: rwy });
     if (!gate) {
       this.emit('no_gate', { callsign });
       return null;
     }
-
-    // Override runway if only one active
-    const rwy = this._activeRunways === 1 ? 'RWY1' : (runway ?? 'RWY1');
+    const alloc = this._gates.lastAllocation();
 
     const flight = new Flight({ callsign, airline, type, runway: rwy, gateId: gate.id, color });
+    flight.stand = alloc                       // stand-allocation rationale (RMS)
+      ? { contact: alloc.contact, wide: alloc.wide, classMatch: alloc.classMatch, score: alloc.score }
+      : { contact: !!gate.hasBridge, wide: !!gate.wide, classMatch: true, score: 1 };
     this._flights.set(flight.id, flight);
     this._gates.occupy(gate.id, flight.id);
     this._stats.arrivals++;
@@ -253,6 +257,37 @@ export class AirportAPI {
     return { clock: +this._clock.toFixed(1), atRisk: cards.filter(c => c.atRisk).length, cards };
   }
 
+  /** Stand-plan Gantt — every stand with its class and a rolling in-block
+   *  occupancy bar (AIBT → actual/predicted off-block). Amadeus F-RMS style. */
+  getStandPlan() {
+    const now = this._clock;
+    const winStart = now - 30, winEnd = now + 210;        // 4-min rolling window
+    const byGate = new Map();
+    for (const f of this._flightObjects()) if (f.gateId) byGate.set(f.gateId, f);
+
+    const gates = this._gates.getOccupancy().gates.map(g => {
+      const f = byGate.get(g.id);
+      let bar = null, inbound = null;
+      if (f) {
+        const aibt = f.milestones?.AIBT?.sim ?? null;
+        if (aibt == null) {
+          inbound = { cs: f.callsign };                   // reserved; aircraft still inbound
+        } else {
+          const aobt = f.milestones?.AOBT?.sim ?? null;
+          const p = this._pobt(f);
+          const endSim = aobt != null ? aobt : (p ? p.pobtSim : now);
+          bar = {
+            cs: f.callsign, state: f.state, held: f.isGateHeld,
+            startSim: +aibt.toFixed(1), endSim: +endSim.toFixed(1),
+            predicted: aobt == null,                      // end is POBT (predicted) vs AOBT (actual)
+          };
+        }
+      }
+      return { id: g.id, terminal: g.terminal, wide: g.wide, contact: g.hasBridge, bar, inbound };
+    });
+    return { now: +now.toFixed(1), winStart: +winStart.toFixed(1), winEnd: +winEnd.toFixed(1), gates };
+  }
+
   // ── Standard JSON data interface (data contract for UI / analytics / log) ────
   // A complete, serializable snapshot of all running data: aircraft positions,
   // speeds, altitudes, headings, gate/runway state, and per-flight turnaround.
@@ -273,6 +308,7 @@ export class AirportAPI {
         holdingAtGate: f.isGateHeld,           // DMAN gate hold (awaiting TSAT)
         pobtSim:    p ? p.pobtSim : null,      // predicted off-block (turnaround)
         turnAtRisk: p ? p.atRisk : false,      // POBT slips past TOBT tolerance
+        stand:      f.stand ?? null,           // stand-allocation rationale (RMS)
         turnaround: f.turnaround ? f.turnaround.snapshot() : null,
       };
     });

@@ -116,11 +116,22 @@ const DICT = {
   'tw.empty':    { zh: '暂无在站航班', en: 'No aircraft at gates' },
   'tw.pobt':     { zh: '就绪 ~{s}s', en: 'ready ~{s}s' },
   'tw.held':     { zh: '待放行 (TSAT)', en: 'Hold (TSAT)' },
+
+  // ── Stand plan / allocation ──
+  'panel.standplan': { zh: '🅿 机位计划', en: '🅿 Stand Plan' },
+  'stand.contact': { zh: '廊桥',   en: 'Contact' },
+  'stand.remote':  { zh: '远机位', en: 'Remote' },
+  'stand.wide':    { zh: '宽体位', en: 'Wide' },
+  'stand.narrow':  { zh: '窄体位', en: 'Narrow' },
+  'sp.inbound':    { zh: '进港中', en: 'inbound' },
+  'sp.now':        { zh: '现在',   en: 'now' },
   'an.onTime':  { zh: '准点',          en: 'On-time' },
   'an.avgTurn': { zh: '平均过站',      en: 'Avg turnaround' },
   'an.taxiOut': { zh: '平均滑出',      en: 'Avg taxi-out' },
   'an.gateHold':{ zh: '机位等待',      en: 'Gate hold' },
   'an.fuelSaved':{ zh: '估算节油',     en: 'Fuel saved' },
+  'an.contact': { zh: '接驳率',        en: 'Contact %' },
+  'an.standFit':{ zh: '选位匹配',      en: 'Stand fit' },
 
   // ── Ground-handling nodes (by node id) ──
   'node.CHOCKS_ON':    { zh: '上轮挡',     en: 'Chocks on' },

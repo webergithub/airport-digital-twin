@@ -160,6 +160,9 @@ export class Flight {
     // at the gate (engines off) for its TSAT start-up approval before pushback.
     this.gateHold       = false;
 
+    // Stand-allocation rationale (set by AirportAPI): { contact, wide, classMatch, score }.
+    this.stand          = null;
+
     const w0 = this._wps[0] ?? { x: 0, z: 0, y: 0 };
     this.x   = w0.x;
     this.z   = w0.z;
@@ -328,6 +331,7 @@ export class Flight {
       runway:   this.runway,
       milestones: this.milestones,
       holdingAtGate: this.isGateHeld,
+      stand:    this.stand,
       turnaround: this.turnaround ? this.turnaround.snapshot() : null,
     };
   }

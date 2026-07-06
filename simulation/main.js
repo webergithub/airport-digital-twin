@@ -207,6 +207,7 @@ function logicTick() {
     logCounts: runLog.counts(),
   });
   ui.updateTurnWall(api.getTurnaroundWall());
+  ui.updateStandPlan(api.getStandPlan());
 
   if (focusedGateId) {
     const occ    = api.getGateOccupancy().gates.find(g => g.id === focusedGateId);

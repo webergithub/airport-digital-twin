@@ -38,6 +38,7 @@ export class AnalyticsEngine {
     this._gateHold = [];             // engines-off DMAN holds (ARDT → TSAT), rolling
     this._holdCount = 0;             // cumulative count of metered holds
     this._fuelKg = 0;                // estimated fuel saved by metering holds
+    this._alloc = { total: 0, contact: 0, match: 0 }; // stand-allocation quality
 
     this._wireEvents();
   }
@@ -46,7 +47,11 @@ export class AnalyticsEngine {
   get autoOptimize() { return this._autoOpt; }
 
   _wireEvents() {
-    this._api.on('flight_spawned', f => this._timing.set(f.id, { spawn: this._simT }));
+    this._api.on('flight_spawned', f => {
+      this._timing.set(f.id, { spawn: this._simT });
+      const s = f.stand;                         // stand-allocation quality (RMS)
+      if (s) { this._alloc.total++; if (s.contact) this._alloc.contact++; if (s.classMatch) this._alloc.match++; }
+    });
     this._api.on('flight_arrived', f => {
       const r = this._timing.get(f.id);
       if (r) { r.gateIn = this._simT; if (r.spawn != null) this._push(this._taxiIn, r.gateIn - r.spawn); }
@@ -140,6 +145,10 @@ export class AnalyticsEngine {
       gateHold:   this._avg(this._gateHold),
       meterHolds: this._holdCount,
       fuelSavedKg: this._fuelKg,
+      standContactPct: this._alloc.total ? this._alloc.contact / this._alloc.total : 1,
+      standFitPct:     this._alloc.total ? this._alloc.match / this._alloc.total : 1,
+      standRemote:     this._alloc.total - this._alloc.contact,
+      standCount:      this._alloc.total,
       completed:  { taxiIn: this._taxiIn.length, dep: this._depWait.length },
     };
   }
