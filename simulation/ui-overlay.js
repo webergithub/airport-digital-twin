@@ -18,6 +18,7 @@ export class UIOverlay {
     ['panel-config', 'panel-flights', 'event-log', 'panel-gate-detail', 'panel-analytics', 'panel-turnwall']
       .forEach(id => this._wm.register(document.getElementById(id)));
     this._wm.register(document.getElementById('panel-standplan'), { collapsed: true });
+    this._wm.register(document.getElementById('panel-oooi'), { collapsed: true });
   }
 
   // ── Build DOM ──────────────────────────────────────────────────────────────
@@ -111,6 +112,13 @@ export class UIOverlay {
       <div id="panel-standplan" class="panel">
         <div class="panel-title" data-i18n="panel.standplan">${t('panel.standplan')}</div>
         <div id="sp-body" class="sp-body"></div>
+      </div>
+
+      <!-- OOOI wire feed + ASPM taxi-time stats (collapsed by default) -->
+      <div id="panel-oooi" class="panel">
+        <div class="panel-title" data-i18n="panel.oooi">${t('panel.oooi')}</div>
+        <div id="oooi-aspm" class="oooi-aspm"></div>
+        <div id="oooi-ticker" class="oooi-ticker"></div>
       </div>
 
       <!-- Data algorithm layer: analytics + optimization + run log -->
@@ -274,6 +282,31 @@ export class UIOverlay {
     // Single now-line over the track column (62px label + 4px grid gap = 66px).
     const nowLine = `<div class="sp-now" style="left:calc(66px + (100% - 66px) * ${nowFrac})"></div>`;
     body.innerHTML = nowLine + rows;
+  }
+
+  // ── OOOI wire feed + ASPM taxi-time stats ────────────────────────────────────
+  updateOOOI(events, aspm) {
+    const tbl = document.getElementById('oooi-aspm');
+    if (tbl && aspm) {
+      const cell = (s) => s && s.n ? `${s.med}/${s.p90}` : '—';
+      const rows = Object.keys(aspm).map(rwy =>
+        `<div class="oooi-arow"><span class="oooi-rwy">${rwy}</span>` +
+        `<span>${t('aspm.out')} <b>${cell(aspm[rwy].taxiOut)}</b></span>` +
+        `<span>${t('aspm.in')} <b>${cell(aspm[rwy].taxiIn)}</b></span></div>`).join('');
+      tbl.innerHTML = `<div class="oooi-ahead">${t('aspm.head')}</div>${rows}`;
+    }
+    const feed = document.getElementById('oooi-ticker');
+    if (feed) {
+      const evs = events || [];
+      if (!evs.length) { feed.innerHTML = `<div class="oooi-empty">${t('oooi.wait')}</div>`; return; }
+      feed.innerHTML = evs.map(e => {
+        const d = new Date(e.wall);
+        const p2 = (n) => String(n).padStart(2, '0');
+        const z = `${p2(d.getUTCHours())}${p2(d.getUTCMinutes())}${p2(d.getUTCSeconds())}Z`;
+        return `<div class="oooi-line"><span class="oooi-code oooi-${e.code}">${e.code.padEnd(4)}</span>` +
+               `<span class="oooi-z">${z}</span> ${e.cs} <span class="oooi-loc">${e.gate ?? '—'}·${e.rwy}</span></div>`;
+      }).join('');
+    }
   }
 
   // ── Analytics / optimization layer panel ─────────────────────────────────────

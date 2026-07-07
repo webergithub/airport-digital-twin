@@ -145,6 +145,7 @@ export class Flight {
     this._spd           = FAST;
     this.currentSpeed   = 0;   // actual speed this tick (world units/s)
     this.done           = false;
+    this.touchedDown    = false; // set at the touchdown waypoint (wheels-on / ALDT)
 
     // Departure-queue state
     this.slot           = 0;
@@ -223,6 +224,9 @@ export class Flight {
 
   _onWaypoint(wp) {
     switch (wp.tag) {
+      case 'land_start':
+        this.touchedDown = true;    // wheels-on (touchdown) → ALDT / OOOI 'ON'
+        break;
       case 'at_gate':
         this.state      = FS.AT_GATE;
         this.stateTimer = 0;

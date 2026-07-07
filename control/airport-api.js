@@ -60,6 +60,16 @@ export class AirportAPI {
     (flight.milestones ??= {})[key] = { sim: +simSec.toFixed(1), wall: Date.now() };
   }
 
+  // Emit an ACARS-style OOOI event (Gate OUT / wheels OFF / wheels ON / gate IN),
+  // the universal airline wire format the A-CDM milestones map onto:
+  //   ON = ALDT (touchdown), IN = AIBT (in-block), OUT = AOBT (off-block), OFF = ATOT.
+  _oooi(flight, code) {
+    this.emit('oooi', {
+      code, callsign: flight.callsign, gate: flight.gateId,
+      runway: flight.runway, sim: +this._clock.toFixed(1), wall: Date.now(),
+    });
+  }
+
   // ── Flight spawning ────────────────────────────────────────────────────────
   spawnArrival({ callsign, airline, type, runway, color }) {
     // Override runway if only one active — allocator scores taxi distance from it.
@@ -92,6 +102,14 @@ export class AirportAPI {
       const prevState = flight.state;
       flight.update(dt);
 
+      // Wheels-on (touchdown): stamp ALDT (Actual Landing Time) and emit the
+      // OOOI 'ON' event. Kept distinct from ATA (stamped on final) so ASPM
+      // taxi-in is a true wheels-on → in-block measurement.
+      if (flight.touchedDown && !(flight.milestones && flight.milestones.ALDT)) {
+        this._milestone(flight, 'ALDT');
+        this._oooi(flight, 'ON');
+      }
+
       // State transition events
       if (flight.state !== prevState) {
         switch (flight.state) {
@@ -105,10 +123,12 @@ export class AirportAPI {
             // Every flight awaits a TSAT start-up approval from _serviceMetering
             // (issued immediately when metering is off) — single release path.
             flight.gateHold = true;
+            this._oooi(flight, 'IN');           // gate IN (on blocks)
             this.emit('flight_arrived', flight.getStatus());
             break;
           case FS.PUSHBACK:
             this._milestone(flight, 'AOBT');    // Actual Off-Block Time (pushback)
+            this._oooi(flight, 'OUT');          // gate OUT (off blocks)
             break;
           case FS.TAXIING_OUT:
             // Left the gate apron → join its runway's departure queue (once).
@@ -119,6 +139,7 @@ export class AirportAPI {
             break;
           case FS.TAKEOFF:
             this._milestone(flight, 'ATOT');    // Actual Take-Off Time
+            this._oooi(flight, 'OFF');          // wheels OFF (takeoff)
             this.emit('flight_takeoff', flight.getStatus());
             break;
           case FS.DONE:

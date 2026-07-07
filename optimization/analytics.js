@@ -39,6 +39,9 @@ export class AnalyticsEngine {
     this._holdCount = 0;             // cumulative count of metered holds
     this._fuelKg = 0;                // estimated fuel saved by metering holds
     this._alloc = { total: 0, contact: 0, match: 0 }; // stand-allocation quality
+    // FAA ASPM-style per-runway taxi times: taxi-out (OUT→OFF, AOBT→ATOT) and
+    // taxi-in (ON→IN, ALDT→AIBT — wheels-on to in-block), for median/P90.
+    this._aspm = { RWY1: { out: [], in: [] }, RWY2: { out: [], in: [] } };
 
     this._wireEvents();
   }
@@ -55,6 +58,8 @@ export class AnalyticsEngine {
     this._api.on('flight_arrived', f => {
       const r = this._timing.get(f.id);
       if (r) { r.gateIn = this._simT; if (r.spawn != null) this._push(this._taxiIn, r.gateIn - r.spawn); }
+      const m = f.milestones, a = this._aspm[f.runway];   // ASPM taxi-in (ON→IN)
+      if (m && m.ALDT && m.AIBT && a) this._push(a.in, m.AIBT.sim - m.ALDT.sim);
     });
     this._api.on('flight_takeoff', f => {
       const r = this._timing.get(f.id);
@@ -73,7 +78,11 @@ export class AnalyticsEngine {
       if (m && m.AOBT && m.AIBT) this._push(this._turn, m.AOBT.sim - m.AIBT.sim);
       // Surface-metering benefits (ATD-2 style): engines-on taxi-out time and
       // engines-off gate holds, converted to an idle-burn fuel estimate.
-      if (m && m.AOBT && m.ATOT) this._push(this._taxiOut, m.ATOT.sim - m.AOBT.sim);
+      if (m && m.AOBT && m.ATOT) {
+        this._push(this._taxiOut, m.ATOT.sim - m.AOBT.sim);
+        const a = this._aspm[f.runway];                  // ASPM taxi-out (OUT→OFF)
+        if (a) this._push(a.out, m.ATOT.sim - m.AOBT.sim);
+      }
       if (m && m.ARDT && m.TSAT) {
         const held = m.TSAT.sim - m.ARDT.sim;
         if (held > 0.5) {
@@ -90,6 +99,24 @@ export class AnalyticsEngine {
   _push(arr, v) { if (v >= 0 && isFinite(v)) { arr.push(v); if (arr.length > 80) arr.shift(); } }
   _avg(a) { return a.length ? a.reduce((s, x) => s + x, 0) / a.length : 0; }
   _recentAvg(a, n) { const s = a.slice(-n); return s.length ? s.reduce((x, y) => x + y, 0) / s.length : 0; }
+  // Nearest-rank percentile (p in 0..1) over a numeric array.
+  _pct(a, p) {
+    if (!a.length) return 0;
+    const s = [...a].sort((x, y) => x - y);
+    return s[Math.min(s.length - 1, Math.round(p * (s.length - 1)))];
+  }
+
+  /** FAA ASPM-style taxi-time table: per-runway taxi-out/taxi-in median + P90. */
+  getAspm() {
+    const stat = (arr) => ({
+      med: +this._pct(arr, 0.5).toFixed(0), p90: +this._pct(arr, 0.9).toFixed(0), n: arr.length,
+    });
+    const out = {};
+    for (const rwy of Object.keys(this._aspm)) {
+      out[rwy] = { taxiOut: stat(this._aspm[rwy].out), taxiIn: stat(this._aspm[rwy].in) };
+    }
+    return out;
+  }
 
   /** Ingest one snapshot (called each logic tick). */
   update(snapshot, dt) {

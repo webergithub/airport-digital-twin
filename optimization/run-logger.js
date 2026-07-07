@@ -17,6 +17,7 @@ export class RunLogger {
     this._events = [];
     this._snapshots = [];
     this._turnarounds = [];
+    this._oooi = [];                             // raw ACARS-style OOOI stream
     this._simT = 0;
     this._snapEvery = opts.snapshotEverySec ?? 5;
     this._snapTimer = this._snapEvery;          // capture one immediately
@@ -51,6 +52,12 @@ export class RunLogger {
         }
       });
     }
+
+    // Raw ACARS-style OOOI stream (Gate OUT / wheels OFF / wheels ON / gate IN).
+    this._api.on('oooi', (e) => {
+      this._oooi.push({ code: e.code, cs: e.callsign, gate: e.gate, rwy: e.runway, sim: e.sim, wall: e.wall });
+      if (this._oooi.length > 2000) this._oooi.shift();
+    });
   }
 
   event(type, text) {
@@ -86,6 +93,8 @@ export class RunLogger {
     return { events: this._events.length, snapshots: this._snapshots.length, turnarounds: this._turnarounds.length };
   }
 
+  recentOOOI(n = 24) { return this._oooi.slice(-n).reverse(); }
+
   recentEvents(n = 20) { return this._events.slice(-n).reverse(); }
   recentTurnarounds(n = 5) { return this._turnarounds.slice(-n).reverse(); }
 
@@ -95,6 +104,7 @@ export class RunLogger {
       events: this._events,
       snapshots: this._snapshots,
       turnarounds: this._turnarounds,
+      oooi: this._oooi,
     };
   }
 

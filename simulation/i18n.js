@@ -125,6 +125,13 @@ const DICT = {
   'stand.narrow':  { zh: '窄体位', en: 'Narrow' },
   'sp.inbound':    { zh: '进港中', en: 'inbound' },
   'sp.now':        { zh: '现在',   en: 'now' },
+
+  // ── OOOI wire feed + ASPM taxi-time stats ──
+  'panel.oooi':  { zh: '📻 OOOI / ASPM', en: '📻 OOOI / ASPM' },
+  'aspm.head':   { zh: '滑行时间 · 中位/P90（秒）', en: 'Taxi time · median/P90 (s)' },
+  'aspm.out':    { zh: '滑出', en: 'out' },
+  'aspm.in':     { zh: '滑入', en: 'in' },
+  'oooi.wait':   { zh: '等待 OOOI 事件…', en: 'Awaiting OOOI events…' },
   'an.onTime':  { zh: '准点',          en: 'On-time' },
   'an.avgTurn': { zh: '平均过站',      en: 'Avg turnaround' },
   'an.taxiOut': { zh: '平均滑出',      en: 'Avg taxi-out' },

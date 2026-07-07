@@ -624,6 +624,28 @@ button:active { transform: scale(0.97); }
 .sp-badge.sp-wide    { background: #142a3a; color: var(--accent); }
 .sp-badge.sp-narrow  { background: var(--surface2); color: var(--text2); }
 
+/* ─── OOOI wire feed + ASPM taxi-time stats ──────────────── */
+#panel-oooi {
+  top: 224px; left: 50%; transform: translateX(-50%);
+  width: min(340px, calc(100vw - 560px));
+  max-height: 232px;
+}
+#panel-oooi .win-body { max-height: 200px; overflow-y: auto; }
+.oooi-ahead { font-size: 9px; color: var(--text2); margin-bottom: 3px; letter-spacing: 0.3px; }
+.oooi-arow { display: flex; gap: 8px; align-items: center; font-size: 10px; color: var(--text2); font-family: monospace; padding: 1px 0; }
+.oooi-arow .oooi-rwy { color: var(--cyan); font-weight: 700; min-width: 42px; }
+.oooi-arow b { color: var(--text); }
+.oooi-ticker { margin-top: 5px; border-top: 1px solid var(--border); padding-top: 4px; display: flex; flex-direction: column; gap: 1px; }
+.oooi-line { font-family: monospace; font-size: 10px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.oooi-code { font-weight: 700; white-space: pre; }
+.oooi-ON  { color: #4aa8ff; }
+.oooi-IN  { color: #1abc9c; }
+.oooi-OUT { color: #f39c12; }
+.oooi-OFF { color: #2ecc71; }
+.oooi-z   { color: var(--muted); }
+.oooi-loc { color: var(--cyan); }
+.oooi-empty { font-size: 10px; color: var(--muted); padding: 4px 0; }
+
 /* ─── Turnaround Control wall (multi-gate POBT watchlist) ──────────────── */
 #panel-turnwall {
   top: 12px; left: 50%; transform: translateX(-50%);

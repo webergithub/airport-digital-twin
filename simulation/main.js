@@ -208,6 +208,7 @@ function logicTick() {
   });
   ui.updateTurnWall(api.getTurnaroundWall());
   ui.updateStandPlan(api.getStandPlan());
+  ui.updateOOOI(runLog.recentOOOI(24), analytics.getAspm());
 
   if (focusedGateId) {
     const occ    = api.getGateOccupancy().gates.find(g => g.id === focusedGateId);
