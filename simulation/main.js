@@ -161,7 +161,7 @@ const ui = new UIOverlay(document.getElementById('ui-root'), (action, payload) =
       toggleLang();
       break;
   }
-});
+}, runLog);   // 3rd arg → RECALL replay panel reads recorded snapshots
 
 // ── Gate click → camera focus ─────────────────────────────────────────────────────
 const gi = new GateInteraction({
@@ -279,6 +279,9 @@ function renderFrame(frameDt) {
 
   // Follow-the-Greens taxi guidance lights (reads live flight ground routes).
   guidance.update(api);
+
+  // RECALL surface replay (independent clock; only draws when its panel is open).
+  ui.updateReplay(frameDt);
 
   if (focusedGateId && serviceVehicles) {
     const occ    = api.getGateOccupancy().gates.find(g => g.id === focusedGateId);

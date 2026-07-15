@@ -144,6 +144,10 @@ const DICT = {
   // ── ASDE-X surface surveillance radar ──
   'panel.radar': { zh: '🛰 场面监视雷达', en: '🛰 Surface Radar' },
 
+  // ── RECALL surface replay ──
+  'panel.replay':  { zh: '🎞 场面回放', en: '🎞 Surface Replay' },
+  'rp.recording':  { zh: '记录中…',    en: 'recording…' },
+
   // ── A-SMGCS runway safety net (RIMCAS) ──
   'panel.safetynet': { zh: '🚨 A-SMGCS 安全网', en: '🚨 A-SMGCS Safety Nets' },
   'sn.clear':    { zh: '畅通',     en: 'CLEAR' },

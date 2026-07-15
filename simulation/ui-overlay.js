@@ -8,9 +8,10 @@ import { SurfaceRadar } from './surface-radar.js';
 import { t, tf } from './i18n.js';
 
 export class UIOverlay {
-  constructor(container, onAction) {
+  constructor(container, onAction, runLog = null) {
     this._cb    = onAction;
     this._log   = [];
+    this._runLog = runLog;                 // for the RECALL replay panel
     this._root  = this._build(container);
     this._cfg   = { arrivalInterval: 25, runways: 2, gateCount: 6, bridgeCount: 4 };
 
@@ -24,7 +25,105 @@ export class UIOverlay {
     this._wm.register(document.getElementById('panel-radar'), { collapsed: true });
     this._wm.register(document.getElementById('panel-whatif'), { collapsed: true });
     this._wm.register(document.getElementById('panel-aman'), { collapsed: true });
+    this._wm.register(document.getElementById('panel-replay'), { collapsed: true });
     this._radar = new SurfaceRadar(document.getElementById('radar-canvas'));
+    this._replayRadar = new SurfaceRadar(document.getElementById('replay-canvas'));
+    this._rp = { t: 0, playing: false, speed: 1, dragging: false, span: null, railKey: '' };
+    this._bindReplay();
+  }
+
+  // ── RECALL surface replay ────────────────────────────────────────────────────
+  _bindReplay() {
+    const rp = this._rp;
+    const scrub = document.getElementById('rp-scrub');
+    document.getElementById('rp-play').addEventListener('click', e => {
+      rp.playing = !rp.playing;
+      if (rp.playing && rp.span && rp.t >= rp.span.max - 0.05) {   // replay from start
+        rp.t = rp.span.min; this._replayRadar.resetTrails();
+      }
+      e.target.textContent = rp.playing ? '⏸' : '▶';
+    });
+    document.getElementById('rp-speed').addEventListener('click', e => {
+      rp.speed = rp.speed === 1 ? 4 : rp.speed === 4 ? 8 : 1;
+      e.target.textContent = `${rp.speed}×`;
+    });
+    document.getElementById('rp-prev').addEventListener('click', () => this._seekIncident(-1));
+    document.getElementById('rp-next').addEventListener('click', () => this._seekIncident(1));
+    scrub.addEventListener('input', () => {
+      if (!rp.span) return;
+      rp.dragging = true; rp.playing = false;
+      document.getElementById('rp-play').textContent = '▶';
+      rp.t = rp.span.min + (scrub.value / 1000) * (rp.span.max - rp.span.min);
+      this._replayRadar.resetTrails();
+    });
+    scrub.addEventListener('change', () => { rp.dragging = false; });
+  }
+
+  _seekIncident(dir) {
+    const rp = this._rp;
+    if (!this._runLog || !rp.span) return;
+    const inc = this._runLog.getIncidents();
+    if (!inc.length) return;
+    let target = null;
+    if (dir > 0) { for (const e of inc) if (e.simT > rp.t + 0.2) { target = e.simT; break; } }
+    else { for (let i = inc.length - 1; i >= 0; i--) if (inc[i].simT < rp.t - 0.2) { target = inc[i].simT; break; } }
+    if (target != null) {
+      rp.t = Math.max(rp.span.min, Math.min(rp.span.max, target));
+      rp.playing = false; document.getElementById('rp-play').textContent = '▶';
+      this._replayRadar.resetTrails();
+    }
+  }
+
+  /** Advance + draw the replay each render frame (frameDt seconds). */
+  updateReplay(frameDt) {
+    const canvas = document.getElementById('replay-canvas');
+    if (!canvas || !canvas.clientWidth || !this._runLog) return;   // collapsed / no data
+    const rp = this._rp;
+    const span = this._runLog.span();
+    if (!span) return;
+    const first = !rp.span;
+    rp.span = span;
+    if (first) rp.t = span.min;
+    if (rp.t < span.min) rp.t = span.min;
+
+    if (rp.playing) {
+      rp.t += frameDt * rp.speed;
+      if (rp.t >= span.max) { rp.t = span.max; rp.playing = false; document.getElementById('rp-play').textContent = '▶'; }
+    }
+    // Incidents change slowly — recompute the list only when the event count
+    // moves, and reuse it for both the flash and the rail (not twice/frame).
+    const nEvents = this._runLog.counts().events;
+    if (!rp.incCache || rp.incCache.n !== nEvents) rp.incCache = { n: nEvents, list: this._runLog.getIncidents() };
+    const inc = rp.incCache.list;
+
+    // Incident flash: red runway if the replay time is within 3s of a conflict.
+    const stages = {};
+    for (const e of inc) {
+      if (e.type === 'rimcas_alert' && Math.abs(e.simT - rp.t) < 3) {
+        const m = (e.text || '').match(/RWY[12]/);
+        if (m) stages[m[0]] = 2;
+      }
+    }
+    const frame = this._runLog.frameAt(rp.t);
+    if (frame) this._replayRadar.update(frame, stages);
+
+    if (!rp.dragging) {
+      const denom = (span.max - span.min) || 1;
+      document.getElementById('rp-scrub').value = Math.round(((rp.t - span.min) / denom) * 1000);
+    }
+    const rd = document.getElementById('rp-time');
+    if (rd) rd.textContent = `T ${Math.round(rp.t)}s / ${Math.round(span.max)}s`;
+
+    // Incident rail (rebuild only when the incident set changes).
+    const key = span.min + '|' + span.max + '|' + inc.length;
+    if (key !== rp.railKey) {
+      rp.railKey = key;
+      const denom = (span.max - span.min) || 1;
+      const KC = { conflict: '#ff3b3b', closed: '#f39c12', stop: '#e0b040', hold: '#4aa8ff' };
+      document.getElementById('rp-rail').innerHTML = inc.map(e =>
+        `<span class="rp-mark" style="left:${((e.simT - span.min) / denom) * 100}%;background:${KC[e.kind] || '#888'}"></span>`
+      ).join('');
+    }
   }
 
   // ── Build DOM ──────────────────────────────────────────────────────────────
@@ -150,6 +249,21 @@ export class UIOverlay {
         </div>
         <div class="wi-lbl" data-i18n="wi.delta">${t('wi.delta')}</div>
         <div id="wi-delta" class="wi-delta"></div>
+      </div>
+
+      <!-- RECALL surface replay + time-scrubber (collapsed by default) -->
+      <div id="panel-replay" class="panel">
+        <div class="panel-title" data-i18n="panel.replay">${t('panel.replay')}</div>
+        <canvas id="replay-canvas" class="radar-canvas"></canvas>
+        <div class="rp-railwrap"><div id="rp-rail" class="rp-rail"></div>
+          <input type="range" id="rp-scrub" class="rp-scrub" min="0" max="1000" value="0"></div>
+        <div class="rp-ctrls">
+          <button id="rp-play" class="rp-btn">▶</button>
+          <button id="rp-prev" class="rp-btn" title="prev incident">⏮</button>
+          <button id="rp-next" class="rp-btn" title="next incident">⏭</button>
+          <button id="rp-speed" class="rp-btn rp-speed">1×</button>
+          <span id="rp-time" class="rp-time" data-i18n="rp.recording">${t('rp.recording')}</span>
+        </div>
       </div>
 
       <!-- ASDE-X surface surveillance radar (collapsed by default) -->

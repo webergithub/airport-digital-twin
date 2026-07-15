@@ -84,6 +84,7 @@ export class RunLogger {
         turnAtRisk: snapshot.flights.filter(f => f.turnAtRisk).length,
         flights: snapshot.flights.map(f => ({
           id: f.id, cs: f.callsign, state: f.state, gate: f.gate,
+          rwy: f.runway, hdg: f.headingDeg, type: f.type,   // for the replay radar
           pos: f.position, spd: f.speedMps, alt: f.altitudeM,
           held: f.holdingAtGate || undefined,     // omitted from JSON when false
           pobt: f.pobtSim ?? undefined,           // predicted off-block (at gate)
@@ -101,6 +102,67 @@ export class RunLogger {
 
   recentEvents(n = 20) { return this._events.slice(-n).reverse(); }
   recentTurnarounds(n = 5) { return this._turnarounds.slice(-n).reverse(); }
+
+  // ── Surface replay (RECALL) ──────────────────────────────────────────────────
+  /** Recorded sim-time span [min, max] of the snapshot buffer (null if empty). */
+  span() {
+    const s = this._snapshots;
+    return s.length ? { min: s[0].simT, max: s[s.length - 1].simT } : null;
+  }
+
+  /** Notable events for the replay scrubber's incident rail (sim-time + runway). */
+  getIncidents() {
+    const KIND = { rimcas_alert: 'conflict', runway_closed: 'closed', ground_stop: 'stop', atc_hold: 'hold' };
+    // rimcas/closed/stop are logged as events; derive their runway from the text if present.
+    return this._events
+      .filter(e => KIND[e.type])
+      .map(e => ({ simT: e.simT, kind: KIND[e.type], type: e.type, text: e.text }));
+  }
+
+  /** Map a compact recorded snapshot to the standard radar/snapshot shape. */
+  _toFrame(s) {
+    return {
+      simTimeSec: s.simT,
+      flights: s.flights.map(f => ({
+        id: f.id, callsign: f.cs, state: f.state, gate: f.gate, runway: f.rwy,
+        type: f.type || 'MEDIUM', headingDeg: f.hdg || 0,
+        position: f.pos, speedMps: f.spd, altitudeM: f.alt,
+        holdingAtGate: !!f.held,
+      })),
+      gates: [],
+    };
+  }
+
+  /**
+   * Reconstruct a radar-shaped frame at an arbitrary sim-time by interpolating
+   * between the two bracketing 5-second snapshots (positions lerped by id).
+   */
+  frameAt(simT) {
+    const s = this._snapshots;
+    if (!s.length) return null;
+    if (simT <= s[0].simT) return this._toFrame(s[0]);
+    if (simT >= s[s.length - 1].simT) return this._toFrame(s[s.length - 1]);
+    let i = 0;
+    while (i < s.length - 1 && s[i + 1].simT <= simT) i++;
+    const a = s[i], b = s[i + 1];
+    const u = (simT - a.simT) / ((b.simT - a.simT) || 1);
+    const bById = new Map(b.flights.map(f => [f.id, f]));
+    const frame = this._toFrame(b);           // states/headings from the later snapshot
+    // Lerp positions for flights present in both bracketing snapshots.
+    const aById = new Map(a.flights.map(f => [f.id, f]));
+    for (const ff of frame.flights) {
+      const fa = aById.get(ff.id), fb = bById.get(ff.id);
+      if (fa && fb) {
+        ff.position = {
+          x: fa.pos.x + (fb.pos.x - fa.pos.x) * u,
+          y: (fa.pos.y || 0) + ((fb.pos.y || 0) - (fa.pos.y || 0)) * u,
+          z: fa.pos.z + (fb.pos.z - fa.pos.z) * u,
+        };
+      }
+    }
+    frame.simTimeSec = +simT.toFixed(1);
+    return frame;
+  }
 
   toJSON() {
     return {

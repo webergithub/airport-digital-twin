@@ -33,6 +33,9 @@ export class SurfaceRadar {
     this.trails = new Map();      // flightId → [{x,z}, …]
   }
 
+  /** Clear all track-history trails (used on a backward seek during replay). */
+  resetTrails() { this.trails.clear(); }
+
   _fit() {
     const dpr = window.devicePixelRatio || 1;
     const w = this.canvas.clientWidth, h = this.canvas.clientHeight;

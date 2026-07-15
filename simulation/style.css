@@ -667,6 +667,19 @@ button:active { transform: scale(0.97); }
 .wi-drow span.wi-bad  { color: #e74c3c; }
 .wi-empty { font-size: 10px; color: var(--muted); }
 
+/* ─── RECALL surface replay ──────────────────────────────── */
+#panel-replay { left: 284px; bottom: 300px; width: 320px; }
+.rp-railwrap { position: relative; margin-top: 6px; }
+.rp-rail { position: absolute; left: 0; right: 0; top: -3px; height: 4px; pointer-events: none; }
+.rp-mark { position: absolute; top: 0; width: 2px; height: 8px; border-radius: 1px; transform: translateX(-1px); }
+.rp-scrub { width: 100%; accent-color: var(--accent); cursor: pointer; }
+.rp-ctrls { display: flex; align-items: center; gap: 5px; margin-top: 5px; }
+.rp-btn { font-size: 11px; font-family: monospace; color: var(--text); background: var(--surface2);
+  border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; cursor: pointer; }
+.rp-btn:hover { border-color: var(--accent); }
+.rp-speed { min-width: 30px; }
+.rp-time { margin-left: auto; font-size: 10px; font-family: monospace; color: var(--text2); }
+
 /* ─── ASDE-X surface surveillance radar ──────────────────── */
 #panel-radar {
   left: 284px; bottom: 110px;   /* clear of the analytics panel (left column) */
