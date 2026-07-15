@@ -624,6 +624,48 @@ button:active { transform: scale(0.97); }
 .sp-badge.sp-wide    { background: #142a3a; color: var(--accent); }
 .sp-badge.sp-narrow  { background: var(--surface2); color: var(--text2); }
 
+/* ─── A-SMGCS runway safety net (RIMCAS) ─────────────────── */
+#panel-safetynet {
+  top: 224px; right: 16px;
+  width: 210px;
+}
+.sn-runways { display: flex; flex-direction: column; gap: 4px; }
+.sn-rwy {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 4px 8px; border-radius: 5px; border: 1px solid var(--border);
+  background: var(--surface2); font-family: monospace;
+}
+.sn-rwy-id { font-size: 11px; font-weight: 700; color: var(--cyan); }
+.sn-rwy-stat { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; }
+.sn-rwy.sn-clear   .sn-rwy-stat { color: #2ecc71; }
+.sn-rwy.sn-caution { border-color: #f39c12; background: rgba(243,156,18,0.14); }
+.sn-rwy.sn-caution .sn-rwy-stat { color: #f39c12; }
+.sn-rwy.sn-alarm   { border-color: #e74c3c; background: rgba(231,76,60,0.20); animation: sn-flash 0.7s steps(1) infinite; }
+.sn-rwy.sn-alarm   .sn-rwy-stat { color: #ff5a48; }
+@keyframes sn-flash { 50% { background: rgba(231,76,60,0.42); } }
+.sn-kpis { display: flex; gap: 5px; margin-top: 6px; }
+.sn-kpi { flex: 1; display: flex; flex-direction: column; gap: 1px; align-items: center;
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 5px; padding: 3px 2px; }
+.sn-k { font-size: 8px; color: var(--text2); }
+.sn-v { font-size: 13px; font-weight: 700; font-family: monospace; color: var(--text); }
+.sn-v.sn-good { color: #2ecc71; }
+.sn-v.sn-bad  { color: #e74c3c; }
+.sn-loghead { font-size: 9px; color: var(--text2); margin: 7px 0 3px; letter-spacing: 0.3px; }
+.sn-log { display: flex; flex-direction: column; gap: 2px; max-height: 90px; overflow-y: auto; }
+.sn-logline { font-family: monospace; font-size: 10px; padding: 1px 4px; border-radius: 3px; }
+.sn-logline.sn-caution { color: #f39c12; }
+.sn-logline.sn-alarm   { color: #ff5a48; }
+.sn-empty { font-size: 10px; color: var(--muted); padding: 3px 0; }
+
+/* 3D runway conflict warning label */
+.rwy-alert-label {
+  font-family: monospace; font-size: 12px; font-weight: 700; letter-spacing: 0.5px;
+  padding: 2px 8px; border-radius: 4px; white-space: nowrap;
+  color: #fff; pointer-events: none; text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+}
+.rwy-alert-label.caution { background: rgba(243,156,18,0.85); }
+.rwy-alert-label.alarm   { background: rgba(231,76,60,0.9); }
+
 /* ─── OOOI wire feed + ASPM taxi-time stats ──────────────── */
 #panel-oooi {
   top: 224px; left: 50%; transform: translateX(-50%);

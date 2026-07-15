@@ -19,6 +19,7 @@ export class UIOverlay {
       .forEach(id => this._wm.register(document.getElementById(id)));
     this._wm.register(document.getElementById('panel-standplan'), { collapsed: true });
     this._wm.register(document.getElementById('panel-oooi'), { collapsed: true });
+    this._wm.register(document.getElementById('panel-safetynet'), { collapsed: true });
   }
 
   // ── Build DOM ──────────────────────────────────────────────────────────────
@@ -119,6 +120,15 @@ export class UIOverlay {
         <div class="panel-title" data-i18n="panel.oooi">${t('panel.oooi')}</div>
         <div id="oooi-aspm" class="oooi-aspm"></div>
         <div id="oooi-ticker" class="oooi-ticker"></div>
+      </div>
+
+      <!-- A-SMGCS runway safety net / RIMCAS (collapsed by default) -->
+      <div id="panel-safetynet" class="panel">
+        <div class="panel-title" data-i18n="panel.safetynet">${t('panel.safetynet')}</div>
+        <div id="sn-runways" class="sn-runways"></div>
+        <div id="sn-kpis" class="sn-kpis"></div>
+        <div class="sn-loghead" data-i18n="sn.logHead">${t('sn.logHead')}</div>
+        <div id="sn-log" class="sn-log"></div>
       </div>
 
       <!-- Data algorithm layer: analytics + optimization + run log -->
@@ -282,6 +292,40 @@ export class UIOverlay {
     // Single now-line over the track column (62px label + 4px grid gap = 66px).
     const nowLine = `<div class="sp-now" style="left:calc(66px + (100% - 66px) * ${nowFrac})"></div>`;
     body.innerHTML = nowLine + rows;
+  }
+
+  // ── A-SMGCS runway safety net (RIMCAS) ───────────────────────────────────────
+  updateSafetyNets(st) {
+    if (!st) return;
+    const KIND = { 0: 'clear', 1: 'caution', 2: 'alarm' };
+    const rw = document.getElementById('sn-runways');
+    if (rw) {
+      rw.innerHTML = Object.keys(st.runways).map(k => {
+        const stage = st.runways[k].stage;
+        const kind = KIND[stage];
+        return `<div class="sn-rwy sn-${kind}"><span class="sn-rwy-id">${k}</span>` +
+               `<span class="sn-rwy-stat">${t('sn.' + kind)}</span></div>`;
+      }).join('');
+    }
+    const kp = document.getElementById('sn-kpis');
+    if (kp) {
+      const mm = Math.floor(st.streakSec / 60), ss = Math.round(st.streakSec % 60);
+      const streak = `${mm}:${String(ss).padStart(2, '0')}`;
+      kp.innerHTML =
+        `<div class="sn-kpi"><span class="sn-k">${t('sn.streak')}</span><span class="sn-v${st.everAlarmed ? '' : ' sn-good'}">${streak}</span></div>` +
+        `<div class="sn-kpi"><span class="sn-k">${t('sn.alarms')}</span><span class="sn-v${st.alarms ? ' sn-bad' : ''}">${st.alarms}</span></div>` +
+        `<div class="sn-kpi"><span class="sn-k">${t('sn.cautions')}</span><span class="sn-v">${st.cautions}</span></div>`;
+    }
+    const lg = document.getElementById('sn-log');
+    if (lg) {
+      lg.innerHTML = st.log.length
+        ? st.log.map(e => {
+            const kind = e.peak === 2 ? t('sn.alarm') : t('sn.caution');
+            return `<div class="sn-logline sn-${e.peak === 2 ? 'alarm' : 'caution'}">` +
+                   `${tf('sn.episode', { rwy: e.runway, kind, dur: Math.round(e.durSec) })}</div>`;
+          }).join('')
+        : `<div class="sn-empty">${t('sn.noAlerts')}</div>`;
+    }
   }
 
   // ── OOOI wire feed + ASPM taxi-time stats ────────────────────────────────────

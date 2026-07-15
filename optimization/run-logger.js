@@ -34,6 +34,7 @@ export class RunLogger {
       flight_arrived:  f => tf('log.arrived',  { cs: f.callsign, gate: f.gateId }),
       atc_hold:        f => tf('log.atcHold',  { cs: f.callsign, rwy: f.runway }),
       tsat_release:    f => tf('log.tsat',     { cs: f.callsign, s: f.heldSec }),
+      rimcas_alert:    d => tf('log.rimcas',   { rwy: d.runway, kind: d.stage === 2 ? t('sn.alarm') : t('sn.caution') }),
       flight_takeoff:  f => tf('log.takeoff',  { cs: f.callsign }),
       flight_departed: f => tf('log.departed', { cs: f.callsign }),
       no_gate:         f => tf('log.noGate',   { cs: f.callsign }),

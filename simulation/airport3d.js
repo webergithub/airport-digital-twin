@@ -61,6 +61,47 @@ export class Airport3D {
     this._buildControlTower();
     this._buildEdgeLights();
     this._buildLabels();
+    this._buildSafetyOverlays();
+  }
+
+  // ── A-SMGCS runway conflict overlays (RIMCAS) ───────────────────────────────
+  // A translucent strip + CSS2D warning label per runway, hidden until the
+  // RunwaySafetyNet flags a caution (amber) or alarm (red).
+  _buildSafetyOverlays() {
+    this._rwyOverlays = {};
+    for (const [key, rz] of [['RWY1', -25], ['RWY2', -42]]) {
+      const mat  = new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0, depthWrite: false });
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(148, 0.5, 7), mat);
+      mesh.position.set(0, 0.32, rz);
+      mesh.visible = false;
+      this._add(mesh);
+
+      const div = document.createElement('div');
+      div.className = 'rwy-alert-label';
+      div.style.display = 'none';
+      const lbl = new CSS2DObject(div);
+      lbl.position.set(0, 4, rz);
+      this._add(lbl);
+
+      this._rwyOverlays[key] = { mesh, mat, div, lbl };
+    }
+  }
+
+  /** stage: 0 clear · 1 caution (amber) · 2 alarm (red). Pulses via wall-clock. */
+  setRunwayAlert(key, stage) {
+    const o = this._rwyOverlays && this._rwyOverlays[key];
+    if (!o) return;
+    if (!stage) {
+      if (o.mesh.visible) { o.mesh.visible = false; o.div.style.display = 'none'; }
+      return;
+    }
+    const pulse = 0.5 + 0.5 * Math.sin(performance.now() / (stage === 2 ? 110 : 260));
+    o.mat.color.setHex(stage === 2 ? 0xff2626 : 0xffb020);
+    o.mat.opacity = (stage === 2 ? 0.34 : 0.20) * (0.45 + 0.55 * pulse);
+    o.mesh.visible = true;
+    o.div.style.display = 'block';
+    o.div.textContent = t(stage === 2 ? 'sn.alarmLabel' : 'sn.cautionLabel');
+    o.div.className = 'rwy-alert-label ' + (stage === 2 ? 'alarm' : 'caution');
   }
 
   getGateDef(id) { return getGateDef(id); }

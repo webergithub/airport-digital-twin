@@ -25,6 +25,7 @@ import { buildGateLayout, setGates, getGateConfig } from '../control/gate-layout
 import { Scheduler }      from '../optimization/scheduler.js';
 import { AnalyticsEngine } from '../optimization/analytics.js';
 import { RunLogger }      from '../optimization/run-logger.js';
+import { RunwaySafetyNet } from '../optimization/safety-nets.js';
 import { t, tf, onLangChange, toggleLang, getLang } from './i18n.js';
 
 // ── Init scene ─────────────────────────────────────────────────────────────────
@@ -41,6 +42,7 @@ const api = new AirportAPI({ runways: 2 });
 const scheduler = new Scheduler(api, { arrivalInterval: 25 });
 const analytics = new AnalyticsEngine(api, scheduler, { targetUtil: 0.6 });
 const runLog    = new RunLogger(api, { snapshotEverySec: 5 });
+const safetyNet = new RunwaySafetyNet(api);   // A-SMGCS RIMCAS runway monitor
 
 // ── 3D aircraft + jet bridges ─────────────────────────────────────────────────────
 const aircraft3dMap = new Map(); // flightId → Aircraft3D
@@ -153,6 +155,7 @@ api.on('flight_spawned', f => ui.log(tf('log.spawned',  { cs: f.callsign, al: al
 api.on('flight_arrived', f => ui.log(tf('log.arrived',  { cs: f.callsign, gate: f.gateId }), 'gate'));
 api.on('atc_hold',       f => ui.log(tf('log.atcHold',  { cs: f.callsign, rwy: f.runway }), 'atc'));
 api.on('tsat_release',   f => ui.log(tf('log.tsat',     { cs: f.callsign, s: f.heldSec }), 'atc'));
+api.on('rimcas_alert',   d => ui.log(tf('log.rimcas',   { rwy: d.runway, kind: t(d.stage === 2 ? 'sn.alarm' : 'sn.caution') }), 'warn'));
 api.on('flight_takeoff', f => ui.log(tf('log.takeoff',  { cs: f.callsign }), 'depart'));
 api.on('flight_departed',f => ui.log(tf('log.departed', { cs: f.callsign }), 'info'));
 api.on('no_gate', ({ callsign }) => ui.log(tf('log.noGate', { cs: callsign }), 'warn'));
@@ -192,6 +195,7 @@ function logicTick() {
 
   // ── Algorithm layer: ingest snapshot → metrics + auto-optimization + logging ─
   analytics.update(snapshot, dt);
+  safetyNet.update(snapshot);        // A-SMGCS runway conflict monitor
   runLog.tick(snapshot, dt);
 
   // ── UI layer: render panels from the snapshot ──────────────────────────────
@@ -209,6 +213,7 @@ function logicTick() {
   ui.updateTurnWall(api.getTurnaroundWall());
   ui.updateStandPlan(api.getStandPlan());
   ui.updateOOOI(runLog.recentOOOI(24), analytics.getAspm());
+  ui.updateSafetyNets(safetyNet.getStatus());
 
   if (focusedGateId) {
     const occ    = api.getGateOccupancy().gates.find(g => g.id === focusedGateId);
@@ -233,6 +238,10 @@ function renderFrame(frameDt) {
 
   bridges.update(frameDt, api, aircraft3dMap);
   gi.update(frameDt);
+
+  // Pulse the runway conflict overlays smoothly at frame rate.
+  airport.setRunwayAlert('RWY1', safetyNet.stage('RWY1'));
+  airport.setRunwayAlert('RWY2', safetyNet.stage('RWY2'));
 
   if (focusedGateId && serviceVehicles) {
     const occ    = api.getGateOccupancy().gates.find(g => g.id === focusedGateId);
@@ -293,12 +302,14 @@ window.__bridges = bridges;
 window.__pump = (n = 30, dt = 0.1) => { for (let i = 0; i < n; i++) renderFrame(dt); };
 // Fast-forward the whole pipeline in lock-step (keeps all layer clocks in sync).
 window.__analytics = analytics;
+window.__safetynet = safetyNet;
 window.__step = (n = 200, dt = 0.5) => {
   for (let i = 0; i < n; i++) {
     api.update(dt);
     scheduler.update(dt);
     const s = api.getSnapshot();
     analytics.update(s, dt);
+    safetyNet.update(s);
     runLog.tick(s, dt);
   }
   return analytics.getMetrics();

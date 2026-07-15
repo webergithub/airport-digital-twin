@@ -126,6 +126,21 @@ const DICT = {
   'sp.inbound':    { zh: '进港中', en: 'inbound' },
   'sp.now':        { zh: '现在',   en: 'now' },
 
+  // ── A-SMGCS runway safety net (RIMCAS) ──
+  'panel.safetynet': { zh: '🚨 A-SMGCS 安全网', en: '🚨 A-SMGCS Safety Nets' },
+  'sn.clear':    { zh: '畅通',     en: 'CLEAR' },
+  'sn.caution':  { zh: '警戒',     en: 'CAUTION' },
+  'sn.alarm':    { zh: '冲突',     en: 'ALARM' },
+  'sn.streak':   { zh: '无冲突时长', en: 'Conflict-free' },
+  'sn.alarms':   { zh: '冲突',     en: 'Alarms' },
+  'sn.cautions': { zh: '警戒',     en: 'Cautions' },
+  'sn.cautionLabel': { zh: '⚠ 跑道占用', en: '⚠ RWY OCCUPIED' },
+  'sn.alarmLabel':   { zh: '⛔ 跑道冲突', en: '⛔ RWY CONFLICT' },
+  'sn.logHead':  { zh: '冲突记录',  en: 'Conflict log' },
+  'sn.noAlerts': { zh: '暂无冲突',  en: 'No conflicts' },
+  'sn.episode':  { zh: '{rwy} {kind} {dur}s', en: '{rwy} {kind} {dur}s' },
+  'log.rimcas':  { zh: '⚠️ {rwy} 跑道{kind}告警', en: '⚠️ {rwy} runway {kind}' },
+
   // ── OOOI wire feed + ASPM taxi-time stats ──
   'panel.oooi':  { zh: '📻 OOOI / ASPM', en: '📻 OOOI / ASPM' },
   'aspm.head':   { zh: '滑行时间 · 中位/P90（秒）', en: 'Taxi time · median/P90 (s)' },
