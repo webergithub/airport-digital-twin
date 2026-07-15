@@ -26,6 +26,7 @@ import { Scheduler }      from '../optimization/scheduler.js';
 import { AnalyticsEngine } from '../optimization/analytics.js';
 import { RunLogger }      from '../optimization/run-logger.js';
 import { RunwaySafetyNet } from '../optimization/safety-nets.js';
+import { TaxiGuidance }    from './guidance-lights.js';
 import { t, tf, onLangChange, toggleLang, getLang } from './i18n.js';
 
 // ── Init scene ─────────────────────────────────────────────────────────────────
@@ -34,6 +35,7 @@ const { scene, camera, renderer, labelRenderer, controls } = createScene(contain
 
 // ── Airport geometry ────────────────────────────────────────────────────────────
 const airport = new Airport3D(scene);
+const guidance = new TaxiGuidance(scene);   // A-SMGCS Follow-the-Greens taxi lights
 
 // ── Control layer ───────────────────────────────────────────────────────────────
 const api = new AirportAPI({ runways: 2 });
@@ -132,6 +134,10 @@ const ui = new UIOverlay(document.getElementById('ui-root'), (action, payload) =
     case 'toggleSET':
       analytics.setSingleEngineTaxi(payload.on);
       ui.log(t(payload.on ? 'log.setOn' : 'log.setOff'), 'info');
+      break;
+    case 'toggleGuidance':
+      guidance.setEnabled(payload.on);
+      ui.log(t(payload.on ? 'log.aglOn' : 'log.aglOff'), 'info');
       break;
     case 'setWeather': {
       const w = api.setWeather(payload.level);
@@ -271,6 +277,9 @@ function renderFrame(frameDt) {
   airport.setRunwayAlert('RWY1', safetyNet.stage('RWY1'));
   airport.setRunwayAlert('RWY2', safetyNet.stage('RWY2'));
 
+  // Follow-the-Greens taxi guidance lights (reads live flight ground routes).
+  guidance.update(api);
+
   if (focusedGateId && serviceVehicles) {
     const occ    = api.getGateOccupancy().gates.find(g => g.id === focusedGateId);
     const flight = occ && occ.flightId ? api.getActiveFlight(occ.flightId) : null;
@@ -325,6 +334,7 @@ requestAnimationFrame(animate);
 // Expose for debugging
 window.__api = api;
 window.__ui = ui;
+window.__guidance = guidance;
 window.__scheduler = scheduler;
 window.__gi = gi;
 window.__bridges = bridges;

@@ -326,6 +326,27 @@ export class Flight {
     return { x: 1, z: 0 };
   }
 
+  /**
+   * Remaining GROUND route from the current position — the taxi path the
+   * Follow-the-Greens guidance lights lead the aircraft along. Returns [] while
+   * airborne; stops at the runway hold (never routes onto the runway itself).
+   */
+  getGroundRoute() {
+    if ((this.y ?? 0) > 2) return [];
+    // z between the taxiway (-10) and the runways (-25/-42): on a runway. Guidance
+    // never lights the runway — for a landing aircraft the green carpet only
+    // begins once it has turned off onto the taxiway.
+    const onRunway = z => z < -18;
+    if (onRunway(this.z)) return [];
+    const pts = [{ x: this.x, z: this.z }];
+    for (let i = this._wi + 1; i < this._wps.length; i++) {
+      const w = this._wps[i];
+      if ((w.y ?? 0) > 2 || w.tag === 'takeoff' || onRunway(w.z)) break;  // climb / runway
+      pts.push({ x: w.x, z: w.z });
+    }
+    return pts;
+  }
+
   // ── Status for UI ──────────────────────────────────────────────────────────
   /** True while a ready (turnaround-complete) flight is metered at the gate. */
   get isGateHeld() {

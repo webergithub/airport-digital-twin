@@ -62,6 +62,7 @@ const DICT = {
   'cfg.onGround':    { zh: '在场航班：',     en: 'On ground:' },
   'cfg.metering':    { zh: '离港排序（TSAT 放行）', en: 'Departure metering (TSAT)' },
   'cfg.set':         { zh: '单发滑行（省油）',     en: 'Single-engine taxi' },
+  'cfg.agl':         { zh: '滑行引导（随行绿灯）', en: 'Taxi guidance (greens)' },
 
   // ── FIDS header ──
   'fids.flight':  { zh: '航班', en: 'Flight' },
@@ -230,6 +231,8 @@ const DICT = {
   'log.meterOff':  { zh: '已关闭离港排序', en: 'Departure metering OFF' },
   'log.setOn':     { zh: '已开启单发滑行（滑行省油）', en: 'Single-engine taxi ON (taxi fuel savings)' },
   'log.setOff':    { zh: '已关闭单发滑行', en: 'Single-engine taxi OFF' },
+  'log.aglOn':     { zh: '已开启滑行引导绿灯', en: 'Follow-the-Greens taxi guidance ON' },
+  'log.aglOff':    { zh: '已关闭滑行引导绿灯', en: 'Follow-the-Greens taxi guidance OFF' },
   'log.weather':   { zh: '天气变更：{w}', en: 'Weather set: {w}' },
   'log.rwyClosed': { zh: '⚠️ {r} 跑道关闭', en: '⚠️ Runway {r} closed' },
   'log.rwyOpened': { zh: '{r} 跑道恢复运行', en: 'Runway {r} reopened' },

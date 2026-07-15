@@ -67,6 +67,7 @@ export class UIOverlay {
         </div>
         <label class="an-auto" style="margin-top:5px"><input type="checkbox" id="cfg-meter" checked> <span data-i18n="cfg.metering">${t('cfg.metering')}</span></label>
         <label class="an-auto" style="margin-top:4px"><input type="checkbox" id="cfg-set"> <span data-i18n="cfg.set">${t('cfg.set')}</span></label>
+        <label class="an-auto" style="margin-top:4px"><input type="checkbox" id="cfg-agl" checked> <span data-i18n="cfg.agl">${t('cfg.agl')}</span></label>
       </div>
 
       <!-- Right: Flight board -->
@@ -238,6 +239,9 @@ export class UIOverlay {
     });
     document.getElementById('cfg-set').addEventListener('change', e => {
       this._cb('toggleSET', { on: e.target.checked });
+    });
+    document.getElementById('cfg-agl').addEventListener('change', e => {
+      this._cb('toggleGuidance', { on: e.target.checked });
     });
     document.getElementById('wi-weather').addEventListener('click', e => {
       const b = e.target.closest('.wi-wx');
