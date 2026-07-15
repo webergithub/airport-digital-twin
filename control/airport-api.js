@@ -16,6 +16,17 @@ import { RunwayController } from './runway-controller.js';
 const METER_DEPTH = 3;  // hold at gate while runway demand (queue+rolling+pushback) ≥ this
 const RELEASE_GAP = 8;  // min sim-seconds between successive TSAT start-up approvals
 
+// ── Disruption / what-if (weather + closures) ────────────────────────────────
+// Weather → capacity model (FAA AAR / ICAO LVP): each level widens runway
+// separation (sep×), floors the arrival interval (aar = min seconds between
+// arrivals, i.e. reduced Airport Acceptance Rate), and thickens scene fog.
+const WEATHER = [
+  { key: 'VMC',  sep: 1.0, aar: 0,  fog: 0.006 },   // 0 visual
+  { key: 'MVMC', sep: 1.5, aar: 18, fog: 0.013 },   // 1 marginal
+  { key: 'IMC',  sep: 2.2, aar: 30, fog: 0.021 },   // 2 instrument
+  { key: 'LVP',  sep: 3.2, aar: 45, fog: 0.030 },   // 3 low-visibility procedures
+];
+
 export class AirportAPI {
   constructor(config = {}) {
     this._gates    = new GateManager();
@@ -33,10 +44,43 @@ export class AirportAPI {
     this._metering = config.metering ?? true;
     this._meter    = { RWY1: { lastRelease: -Infinity }, RWY2: { lastRelease: -Infinity } };
 
+    // Disruption / what-if state
+    this._weather = 0;
+    this._runwayClosed = { RWY1: false, RWY2: false };
+
     // Cumulative stats
     this._stats = { arrivals: 0, departures: 0 };
     this._throughputLog = [];        // timestamps of completed movements
   }
+
+  // ── Disruption / what-if console ─────────────────────────────────────────────
+  /** Set weather level 0–3; applies runway separation and returns the params
+   *  { key, sep, aar, fog } so the caller can floor the scheduler + set fog. */
+  setWeather(level) {
+    this._weather = Math.max(0, Math.min(WEATHER.length - 1, level | 0));
+    const w = WEATHER[this._weather];
+    this._runways.RWY1.sepFactor = w.sep;
+    this._runways.RWY2.sepFactor = w.sep;
+    this.emit('weather_set', { level: this._weather, ...w });
+    return w;
+  }
+  get weather() { return this._weather; }
+
+  closeRunway(key) {
+    if (!this._runways[key] || this._runwayClosed[key]) return;
+    this._runwayClosed[key] = true;
+    this._runways[key].closed = true;
+    this.emit('runway_closed', { runway: key });
+  }
+  openRunway(key) {
+    if (!this._runways[key] || !this._runwayClosed[key]) return;
+    this._runwayClosed[key] = false;
+    this._runways[key].closed = false;
+    this.emit('runway_opened', { runway: key });
+  }
+  get runwaysClosed() { return { ...this._runwayClosed }; }
+  hasDisruption() { return this._weather > 0 || this._runwayClosed.RWY1 || this._runwayClosed.RWY2; }
+  weatherParams() { return WEATHER[this._weather]; }
 
   // ── Config ─────────────────────────────────────────────────────────────────
   setRunways(n) { this._activeRunways = Math.max(1, Math.min(2, n)); }
@@ -73,7 +117,10 @@ export class AirportAPI {
   // ── Flight spawning ────────────────────────────────────────────────────────
   spawnArrival({ callsign, airline, type, runway, color }) {
     // Override runway if only one active — allocator scores taxi distance from it.
-    const rwy = this._activeRunways === 1 ? 'RWY1' : (runway ?? 'RWY1');
+    let rwy = this._activeRunways === 1 ? 'RWY1' : (runway ?? 'RWY1');
+    // Reroute arrivals off a closed runway to the open one (dual-runway ops).
+    const other = rwy === 'RWY1' ? 'RWY2' : 'RWY1';
+    if (this._activeRunways > 1 && this._runwayClosed[rwy] && !this._runwayClosed[other]) rwy = other;
 
     const gate = this._gates.assignGate({ type, runway: rwy });
     if (!gate) {
@@ -340,6 +387,13 @@ export class AirportAPI {
       activeRunways: this._activeRunways,
       groundStop: this._groundStop,
       metering: this._metering,
+      disruptions: {
+        weather:       this._weather,
+        weatherKey:    WEATHER[this._weather].key,
+        runwaysClosed: { ...this._runwayClosed },
+        sepFactor:     WEATHER[this._weather].sep,
+        active:        this.hasDisruption(),
+      },
       flights,
       gates: this._gates.getOccupancy().gates,
       runways: [this._runways.RWY1.getStatus(), this._runways.RWY2.getStatus()],

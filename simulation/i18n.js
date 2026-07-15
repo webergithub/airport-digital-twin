@@ -127,6 +127,15 @@ const DICT = {
   'sp.inbound':    { zh: '进港中', en: 'inbound' },
   'sp.now':        { zh: '现在',   en: 'now' },
 
+  // ── Disruption / what-if console ──
+  'panel.whatif':   { zh: '🌩 情景推演', en: '🌩 What-If Console' },
+  'wi.weather':     { zh: '天气 (容量)', en: 'Weather (capacity)' },
+  'wi.runways':     { zh: '跑道关闭',    en: 'Runway closure' },
+  'wi.delta':       { zh: '相对基线',    en: 'Δ vs baseline' },
+  'wi.noBaseline':  { zh: '触发中断后对比基线', en: 'Arm a disruption to compare' },
+  'wi.activeBanner':{ zh: '⚠ 中断生效：{s}', en: '⚠ Disruption active: {s}' },
+  'wi.closed':      { zh: '{r} 关闭', en: '{r} closed' },
+
   // ── ASDE-X surface surveillance radar ──
   'panel.radar': { zh: '🛰 场面监视雷达', en: '🛰 Surface Radar' },
 
@@ -217,6 +226,9 @@ const DICT = {
   'log.meterOff':  { zh: '已关闭离港排序', en: 'Departure metering OFF' },
   'log.setOn':     { zh: '已开启单发滑行（滑行省油）', en: 'Single-engine taxi ON (taxi fuel savings)' },
   'log.setOff':    { zh: '已关闭单发滑行', en: 'Single-engine taxi OFF' },
+  'log.weather':   { zh: '天气变更：{w}', en: 'Weather set: {w}' },
+  'log.rwyClosed': { zh: '⚠️ {r} 跑道关闭', en: '⚠️ Runway {r} closed' },
+  'log.rwyOpened': { zh: '{r} 跑道恢复运行', en: 'Runway {r} reopened' },
   'log.tsat':      { zh: '{cs} 获 TSAT 放行（机位等待 {s}s，引擎未启动）',
                      en: '{cs} TSAT approved — held {s}s at gate, engines off' },
   'log.export':    { zh: '导出运行日志（{e} 事件 / {s} 快照）', en: 'Exported run log ({e} events / {s} snapshots)' },

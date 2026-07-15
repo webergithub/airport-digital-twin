@@ -624,6 +624,30 @@ button:active { transform: scale(0.97); }
 .sp-badge.sp-wide    { background: #142a3a; color: var(--accent); }
 .sp-badge.sp-narrow  { background: var(--surface2); color: var(--text2); }
 
+/* ─── Disruption / what-if console ───────────────────────── */
+#panel-whatif { left: 284px; top: 224px; width: 234px; }
+.wi-banner {
+  background: rgba(231,76,60,0.2); border: 1px solid #e74c3c; color: #ff6a56;
+  font-size: 10px; font-weight: 700; border-radius: 5px; padding: 4px 7px; margin-bottom: 6px;
+}
+.wi-lbl { font-size: 9px; color: var(--text2); margin: 5px 0 3px; letter-spacing: 0.3px; }
+.wi-seg { display: flex; gap: 4px; }
+.wi-seg button {
+  flex: 1; font-family: monospace; font-size: 10px; font-weight: 700; color: var(--text2);
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 4px;
+  padding: 4px 2px; cursor: pointer; transition: background 0.12s, color 0.12s;
+}
+.wi-seg button:hover { border-color: var(--accent); }
+.wi-wx.wi-on { background: var(--accent); color: #06111f; border-color: var(--accent); }
+.wi-rwy.wi-closed { background: rgba(231,76,60,0.22); color: #ff6a56; border-color: #e74c3c; }
+.wi-delta { margin-top: 3px; display: flex; flex-direction: column; gap: 2px; }
+.wi-drow { display: flex; justify-content: space-between; font-size: 10px; font-family: monospace; color: var(--text2); }
+.wi-drow span:last-child { color: var(--text); font-weight: 700; }
+/* span.<class> matches the last-child specificity (0,2,1) and wins on source order */
+.wi-drow span.wi-good { color: #2ecc71; }
+.wi-drow span.wi-bad  { color: #e74c3c; }
+.wi-empty { font-size: 10px; color: var(--muted); }
+
 /* ─── ASDE-X surface surveillance radar ──────────────────── */
 #panel-radar {
   left: 284px; bottom: 110px;   /* clear of the analytics panel (left column) */

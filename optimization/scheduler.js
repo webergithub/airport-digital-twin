@@ -23,11 +23,18 @@ export class Scheduler {
     this._timer    = Math.random() * this._interval * 0.5; // stagger first spawn
     this._flightNo = 1000 + Math.floor(Math.random() * 500);
     this._paused   = false;
+    this._floor    = 0;    // weather AAR floor: arrivals no faster than this (s)
   }
 
   setInterval(seconds) {
     this._interval = Math.max(5, seconds);
   }
+
+  /** Weather-imposed minimum arrival interval (reduced Airport Acceptance Rate). */
+  setFloor(seconds) { this._floor = Math.max(0, seconds || 0); }
+
+  /** Effective spawn interval = the larger of the tuned interval and AAR floor. */
+  _eff() { return Math.max(this._interval, this._floor); }
 
   pause()  { this._paused = true;  }
   resume() { this._paused = false; }
@@ -35,7 +42,7 @@ export class Scheduler {
   update(dt) {
     if (this._paused) return;
     this._timer += dt;
-    if (this._timer >= this._interval) {
+    if (this._timer >= this._eff()) {
       this._timer = 0;
       this._spawn();
     }
@@ -60,8 +67,9 @@ export class Scheduler {
 
   getStats() {
     return {
-      nextIn:   Math.max(0, Math.round(this._interval - this._timer)),
+      nextIn:   Math.max(0, Math.round(this._eff() - this._timer)),
       interval: this._interval,
+      floor:    this._floor,
     };
   }
 }

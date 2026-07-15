@@ -22,6 +22,7 @@ export class UIOverlay {
     this._wm.register(document.getElementById('panel-oooi'), { collapsed: true });
     this._wm.register(document.getElementById('panel-safetynet'), { collapsed: true });
     this._wm.register(document.getElementById('panel-radar'), { collapsed: true });
+    this._wm.register(document.getElementById('panel-whatif'), { collapsed: true });
     this._radar = new SurfaceRadar(document.getElementById('radar-canvas'));
   }
 
@@ -126,6 +127,23 @@ export class UIOverlay {
         <div id="oooi-ticker" class="oooi-ticker"></div>
       </div>
 
+      <!-- Disruption / what-if console (collapsed by default) -->
+      <div id="panel-whatif" class="panel">
+        <div class="panel-title" data-i18n="panel.whatif">${t('panel.whatif')}</div>
+        <div id="wi-banner" class="wi-banner" style="display:none"></div>
+        <div class="wi-lbl" data-i18n="wi.weather">${t('wi.weather')}</div>
+        <div id="wi-weather" class="wi-seg">
+          ${['VMC', 'MVMC', 'IMC', 'LVP'].map((k, i) => `<button class="wi-wx" data-level="${i}">${k}</button>`).join('')}
+        </div>
+        <div class="wi-lbl" data-i18n="wi.runways">${t('wi.runways')}</div>
+        <div id="wi-runways" class="wi-seg">
+          <button class="wi-rwy" data-rwy="RWY1">RWY1</button>
+          <button class="wi-rwy" data-rwy="RWY2">RWY2</button>
+        </div>
+        <div class="wi-lbl" data-i18n="wi.delta">${t('wi.delta')}</div>
+        <div id="wi-delta" class="wi-delta"></div>
+      </div>
+
       <!-- ASDE-X surface surveillance radar (collapsed by default) -->
       <div id="panel-radar" class="panel">
         <div class="panel-title" data-i18n="panel.radar">${t('panel.radar')}</div>
@@ -213,6 +231,14 @@ export class UIOverlay {
     });
     document.getElementById('cfg-set').addEventListener('change', e => {
       this._cb('toggleSET', { on: e.target.checked });
+    });
+    document.getElementById('wi-weather').addEventListener('click', e => {
+      const b = e.target.closest('.wi-wx');
+      if (b) this._cb('setWeather', { level: +b.dataset.level });
+    });
+    document.getElementById('wi-runways').addEventListener('click', e => {
+      const b = e.target.closest('.wi-rwy');
+      if (b) this._cb('toggleRunway', { runway: b.dataset.rwy, closed: !b.classList.contains('wi-closed') });
     });
     document.getElementById('an-export').addEventListener('click', () => {
       this._cb('exportLog');
@@ -310,6 +336,48 @@ export class UIOverlay {
   // ── ASDE-X surface surveillance radar ────────────────────────────────────────
   updateSurfaceRadar(snapshot, stages) {
     if (this._radar) this._radar.update(snapshot, stages);
+  }
+
+  // ── Disruption / what-if console ─────────────────────────────────────────────
+  updateDisruption(d, delta) {
+    if (!d) return;
+    document.querySelectorAll('#wi-weather .wi-wx').forEach(b => {
+      b.classList.toggle('wi-on', +b.dataset.level === d.weather);
+    });
+    document.querySelectorAll('#wi-runways .wi-rwy').forEach(b => {
+      b.classList.toggle('wi-closed', !!d.runwaysClosed[b.dataset.rwy]);
+    });
+    const banner = document.getElementById('wi-banner');
+    if (banner) {
+      if (d.active) {
+        const closed = Object.keys(d.runwaysClosed).filter(k => d.runwaysClosed[k]);
+        const bits = [];
+        if (d.weather > 0) bits.push(`${d.weatherKey}`);
+        if (closed.length) bits.push(tf('wi.closed', { r: closed.join('/') }));
+        banner.textContent = tf('wi.activeBanner', { s: bits.join(' · ') });
+        banner.style.display = 'block';
+      } else {
+        banner.style.display = 'none';
+      }
+    }
+    const dEl = document.getElementById('wi-delta');
+    if (dEl) {
+      if (!delta) { dEl.innerHTML = `<span class="wi-empty">${t('wi.noBaseline')}</span>`; return; }
+      // Down-is-bad for util; up-is-bad for taxi-out/dep-wait. A null delta
+      // means the metric had no baseline data yet → shown as "—" (unknown).
+      const row = (label, val, unit, goodWhenNeg) => {
+        if (val == null) return `<div class="wi-drow"><span>${label}</span><span>—</span></div>`;
+        const cls = Math.abs(val) < 0.05 ? '' : ((val < 0) === goodWhenNeg ? 'wi-good' : 'wi-bad');
+        const sign = val > 0 ? '+' : '';
+        return `<div class="wi-drow"><span>${label}</span><span class="${cls}">${sign}${val.toFixed(unit === '%' ? 0 : 1)}${unit}</span></div>`;
+      };
+      // Sim-time outcome metrics only (throughput is wall-clock-based and would
+      // not reflect a sim-time scenario cleanly).
+      dEl.innerHTML =
+        row(t('an.gateUtil'),   delta.gateUtil == null ? null : delta.gateUtil * 100, '%', false) +
+        row(t('an.taxiOut'),    delta.avgTaxiOut, 's', true) +
+        row(t('an.avgDepWait'), delta.avgDepWait, 's', true);
+    }
   }
 
   // ── A-SMGCS runway safety net (RIMCAS) ───────────────────────────────────────

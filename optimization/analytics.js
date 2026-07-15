@@ -52,6 +52,7 @@ export class AnalyticsEngine {
     // taxi fuel, and the fuel single-engine taxi has trimmed off it when enabled.
     this._env = { taxiFuel: 0, setSaved: 0 };
     this._setEnabled = false;         // single-engine-taxi policy toggle
+    this._baseline = null;            // what-if: frozen KPI vector at disruption onset
     // FAA ASPM-style per-runway taxi times: taxi-out (OUT→OFF, AOBT→ATOT) and
     // taxi-in (ON→IN, ALDT→AIBT — wheels-on to in-block), for median/P90.
     this._aspm = { RWY1: { out: [], in: [] }, RWY2: { out: [], in: [] } };
@@ -65,6 +66,30 @@ export class AnalyticsEngine {
   /** Single-engine-taxi policy (analytics-only counterfactual). */
   setSingleEngineTaxi(on) { this._setEnabled = !!on; }
   get singleEngineTaxi() { return this._setEnabled; }
+
+  // ── What-if baseline / scenario delta ────────────────────────────────────────
+  get hasBaseline() { return !!this._baseline; }
+  /** Freeze the current KPI vector as the pre-disruption baseline. */
+  freezeBaseline() {
+    const m = this.getMetrics();
+    this._baseline = { throughput: m.throughput, avgTaxiOut: m.avgTaxiOut,
+                       gateUtil: m.gateUtil, avgDepWait: m.avgDepWait };
+  }
+  clearBaseline() { this._baseline = null; }
+  /** Live-minus-baseline deltas, or null if no scenario is armed. A baseline
+   *  component of 0 means its rolling buffer was empty at freeze (e.g. a
+   *  cold-start arm before any departure), so its delta is null (unknown) to
+   *  avoid attributing warm-up to the scenario. */
+  getScenarioDelta() {
+    if (!this._baseline) return null;
+    const m = this.getMetrics(), b = this._baseline;
+    const d = (cur, base) => base === 0 ? null : cur - base;
+    return {
+      gateUtil:   d(m.gateUtil, b.gateUtil),
+      avgTaxiOut: d(m.avgTaxiOut, b.avgTaxiOut),
+      avgDepWait: d(m.avgDepWait, b.avgDepWait),
+    };
+  }
 
   /** Accrue one taxi phase into the ground-emissions ledger. */
   _accrueTaxi(type, sec) {

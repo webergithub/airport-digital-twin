@@ -68,6 +68,13 @@ function onExitGate() {
   ui.exitGateDetail();
 }
 
+// What-if: freeze a KPI baseline when the first disruption is armed, clear it
+// once all disruptions are lifted, so the panel shows scenario-vs-baseline deltas.
+function syncScenarioBaseline() {
+  if (api.hasDisruption()) { if (!analytics.hasBaseline) analytics.freezeBaseline(); }
+  else analytics.clearBaseline();
+}
+
 // ── UI ──────────────────────────────────────────────────────────────────────────
 const ui = new UIOverlay(document.getElementById('ui-root'), (action, payload) => {
   switch (action) {
@@ -126,6 +133,20 @@ const ui = new UIOverlay(document.getElementById('ui-root'), (action, payload) =
       analytics.setSingleEngineTaxi(payload.on);
       ui.log(t(payload.on ? 'log.setOn' : 'log.setOff'), 'info');
       break;
+    case 'setWeather': {
+      const w = api.setWeather(payload.level);
+      scheduler.setFloor(w.aar);
+      if (scene.fog) scene.fog.density = w.fog;
+      ui.log(tf('log.weather', { w: w.key }), w.key === 'VMC' ? 'info' : 'warn');
+      syncScenarioBaseline();
+      break;
+    }
+    case 'toggleRunway': {
+      if (payload.closed) api.closeRunway(payload.runway); else api.openRunway(payload.runway);
+      ui.log(tf(payload.closed ? 'log.rwyClosed' : 'log.rwyOpened', { r: payload.runway }), payload.closed ? 'warn' : 'info');
+      syncScenarioBaseline();
+      break;
+    }
     case 'exportLog':
       runLog.download();
       ui.log(tf('log.export', { e: runLog.counts().events, s: runLog.counts().snapshots }), 'info');
@@ -219,6 +240,7 @@ function logicTick() {
   ui.updateOOOI(runLog.recentOOOI(24), analytics.getAspm());
   ui.updateSafetyNets(safetyNet.getStatus());
   ui.updateSurfaceRadar(snapshot, { RWY1: safetyNet.stage('RWY1'), RWY2: safetyNet.stage('RWY2') });
+  ui.updateDisruption(snapshot.disruptions, analytics.getScenarioDelta());
 
   if (focusedGateId) {
     const occ    = api.getGateOccupancy().gates.find(g => g.id === focusedGateId);

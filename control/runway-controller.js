@@ -23,6 +23,8 @@ export class RunwayController {
     this.queue = [];               // ordered flight ids, index === slot
     this.rolling = null;           // flight id currently rolling, or null
     this.lastReleaseT = -Infinity; // sim-clock seconds of last clearance
+    this.sepFactor = 1;            // weather: multiplies the min separation gap
+    this.closed = false;           // disruption: runway closed → no releases
   }
 
   enqueue(flight) {
@@ -54,11 +56,12 @@ export class RunwayController {
       if (f && f.slot !== i) f.retargetSlot(i);
     });
 
-    // 4. Release the front flight if runway is clear and separation elapsed.
-    if (this.queue.length && !this.rolling) {
+    // 4. Release the front flight if runway is open, clear, and separation
+    //    (widened by weather) has elapsed. A closed runway holds its queue.
+    if (!this.closed && this.queue.length && !this.rolling) {
       const front = flights.get(this.queue[0]);
       if (front && front.state === FS.HOLDING && front.slot === 0 &&
-          (clock - this.lastReleaseT) >= MIN_SEP_SEC) {
+          (clock - this.lastReleaseT) >= MIN_SEP_SEC * this.sepFactor) {
         front.clearForTakeoff();
         this.rolling = front.id;
         this.lastReleaseT = clock;
@@ -69,7 +72,8 @@ export class RunwayController {
 
   /** Diagnostics for UI. */
   getStatus() {
-    return { runway: this.runway, waiting: this.queue.length, rolling: this.rolling };
+    return { runway: this.runway, waiting: this.queue.length, rolling: this.rolling,
+             closed: this.closed, sepFactor: this.sepFactor };
   }
 }
 
