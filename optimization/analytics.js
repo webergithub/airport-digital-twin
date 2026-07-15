@@ -15,6 +15,15 @@
 // estimate fuel saved by DMAN gate holds (waiting engines-off instead of in queue).
 const IDLE_BURN_KG_S = 0.2;
 
+// Per-type taxi/idle fuel flow, BOTH engines (kg/s), from ICAO Doc 9889 (taxi =
+// 7% thrust) + the ICAO engine emissions databank. MEDIUM (A320/CFM56) ≈ 0.20
+// matches IDLE_BURN_KG_S above; SMALL = regional narrow-body, LARGE = wide-body.
+const TAXI_BURN = { SMALL: 0.15, MEDIUM: 0.20, LARGE: 0.36 };
+const CO2_PER_KG = 3.16;               // ICAO Jet A-1 carbon factor (kg CO₂ / kg fuel)
+// Single-engine taxi shuts one engine down but still needs both for a warm-up /
+// cool-down window either side; below this taxi duration SET yields no saving.
+const SET_ALLOWANCE_S = 10;            // sim-sec of unavoidable both-engine taxi
+
 export class AnalyticsEngine {
   constructor(api, scheduler, opts = {}) {
     this._api = api;
@@ -39,6 +48,10 @@ export class AnalyticsEngine {
     this._holdCount = 0;             // cumulative count of metered holds
     this._fuelKg = 0;                // estimated fuel saved by metering holds
     this._alloc = { total: 0, contact: 0, match: 0 }; // stand-allocation quality
+    // Ground emissions ledger (airport Scope-3): cumulative two-engine-baseline
+    // taxi fuel, and the fuel single-engine taxi has trimmed off it when enabled.
+    this._env = { taxiFuel: 0, setSaved: 0 };
+    this._setEnabled = false;         // single-engine-taxi policy toggle
     // FAA ASPM-style per-runway taxi times: taxi-out (OUT→OFF, AOBT→ATOT) and
     // taxi-in (ON→IN, ALDT→AIBT — wheels-on to in-block), for median/P90.
     this._aspm = { RWY1: { out: [], in: [] }, RWY2: { out: [], in: [] } };
@@ -48,6 +61,18 @@ export class AnalyticsEngine {
 
   setAutoOptimize(on) { this._autoOpt = !!on; }
   get autoOptimize() { return this._autoOpt; }
+
+  /** Single-engine-taxi policy (analytics-only counterfactual). */
+  setSingleEngineTaxi(on) { this._setEnabled = !!on; }
+  get singleEngineTaxi() { return this._setEnabled; }
+
+  /** Accrue one taxi phase into the ground-emissions ledger. */
+  _accrueTaxi(type, sec) {
+    if (!(sec > 0)) return;
+    const burn = TAXI_BURN[type] || IDLE_BURN_KG_S;    // both-engine idle flow
+    this._env.taxiFuel += burn * sec;                  // two-engine baseline burn
+    if (this._setEnabled) this._env.setSaved += (burn / 2) * Math.max(0, sec - SET_ALLOWANCE_S);
+  }
 
   _wireEvents() {
     this._api.on('flight_spawned', f => {
@@ -60,6 +85,7 @@ export class AnalyticsEngine {
       if (r) { r.gateIn = this._simT; if (r.spawn != null) this._push(this._taxiIn, r.gateIn - r.spawn); }
       const m = f.milestones, a = this._aspm[f.runway];   // ASPM taxi-in (ON→IN)
       if (m && m.ALDT && m.AIBT && a) this._push(a.in, m.AIBT.sim - m.ALDT.sim);
+      if (m && m.ALDT && m.AIBT) this._accrueTaxi(f.type, m.AIBT.sim - m.ALDT.sim);
     });
     this._api.on('flight_takeoff', f => {
       const r = this._timing.get(f.id);
@@ -82,6 +108,7 @@ export class AnalyticsEngine {
         this._push(this._taxiOut, m.ATOT.sim - m.AOBT.sim);
         const a = this._aspm[f.runway];                  // ASPM taxi-out (OUT→OFF)
         if (a) this._push(a.out, m.ATOT.sim - m.AOBT.sim);
+        this._accrueTaxi(f.type, m.ATOT.sim - m.AOBT.sim);
       }
       if (m && m.ARDT && m.TSAT) {
         const held = m.TSAT.sim - m.ARDT.sim;
@@ -176,6 +203,12 @@ export class AnalyticsEngine {
       standFitPct:     this._alloc.total ? this._alloc.match / this._alloc.total : 1,
       standRemote:     this._alloc.total - this._alloc.contact,
       standCount:      this._alloc.total,
+      taxiFuelKg:  this._env.taxiFuel,
+      taxiCO2Kg:   this._env.taxiFuel * CO2_PER_KG,
+      setSavedKg:  this._env.setSaved,
+      setCO2Kg:    this._env.setSaved * CO2_PER_KG,
+      setCutPct:   this._env.taxiFuel ? this._env.setSaved / this._env.taxiFuel : 0,
+      setEnabled:  this._setEnabled,
       completed:  { taxiIn: this._taxiIn.length, dep: this._depWait.length },
     };
   }

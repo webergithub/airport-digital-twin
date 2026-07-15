@@ -61,6 +61,7 @@ const DICT = {
   'cfg.nextUnit':    { zh: '秒后',           en: 's' },
   'cfg.onGround':    { zh: '在场航班：',     en: 'On ground:' },
   'cfg.metering':    { zh: '离港排序（TSAT 放行）', en: 'Departure metering (TSAT)' },
+  'cfg.set':         { zh: '单发滑行（省油）',     en: 'Single-engine taxi' },
 
   // ── FIDS header ──
   'fids.flight':  { zh: '航班', en: 'Flight' },
@@ -157,6 +158,8 @@ const DICT = {
   'an.fuelSaved':{ zh: '估算节油',     en: 'Fuel saved' },
   'an.contact': { zh: '接驳率',        en: 'Contact %' },
   'an.standFit':{ zh: '选位匹配',      en: 'Stand fit' },
+  'an.taxiCO2': { zh: '滑行碳排',      en: 'Taxi CO₂' },
+  'an.setSaved':{ zh: '单发减排',      en: 'SET cut' },
 
   // ── Ground-handling nodes (by node id) ──
   'node.CHOCKS_ON':    { zh: '上轮挡',     en: 'Chocks on' },
@@ -212,6 +215,8 @@ const DICT = {
   'log.autoOptOff':{ zh: '已关闭自动参数优化', en: 'Auto parameter optimization OFF' },
   'log.meterOn':   { zh: '已开启离港排序（TSAT 机位放行）', en: 'Departure metering ON (TSAT gate holds)' },
   'log.meterOff':  { zh: '已关闭离港排序', en: 'Departure metering OFF' },
+  'log.setOn':     { zh: '已开启单发滑行（滑行省油）', en: 'Single-engine taxi ON (taxi fuel savings)' },
+  'log.setOff':    { zh: '已关闭单发滑行', en: 'Single-engine taxi OFF' },
   'log.tsat':      { zh: '{cs} 获 TSAT 放行（机位等待 {s}s，引擎未启动）',
                      en: '{cs} TSAT approved — held {s}s at gate, engines off' },
   'log.export':    { zh: '导出运行日志（{e} 事件 / {s} 快照）', en: 'Exported run log ({e} events / {s} snapshots)' },

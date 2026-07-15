@@ -64,6 +64,7 @@ export class UIOverlay {
           <span><span data-i18n="cfg.onGround">${t('cfg.onGround')}</span><span id="atc-count" style="color:var(--text)">0</span></span>
         </div>
         <label class="an-auto" style="margin-top:5px"><input type="checkbox" id="cfg-meter" checked> <span data-i18n="cfg.metering">${t('cfg.metering')}</span></label>
+        <label class="an-auto" style="margin-top:4px"><input type="checkbox" id="cfg-set"> <span data-i18n="cfg.set">${t('cfg.set')}</span></label>
       </div>
 
       <!-- Right: Flight board -->
@@ -209,6 +210,9 @@ export class UIOverlay {
     });
     document.getElementById('cfg-meter').addEventListener('change', e => {
       this._cb('toggleMetering', { on: e.target.checked });
+    });
+    document.getElementById('cfg-set').addEventListener('change', e => {
+      this._cb('toggleSET', { on: e.target.checked });
     });
     document.getElementById('an-export').addEventListener('click', () => {
       this._cb('exportLog');
@@ -372,6 +376,7 @@ export class UIOverlay {
     const m = metrics || {};
     const cell = (label, val, cls = '') =>
       `<div class="an-cell${cls ? ' ' + cls : ''}"><span class="an-k">${label}</span><span class="an-v">${val}</span></div>`;
+    const fmtKg = kg => kg >= 999.5 ? `${(kg / 1000).toFixed(1)} t` : `${Math.round(kg)} kg`;
     const grid = document.getElementById('an-metrics');
     if (grid) {
       // A-CDM on-time performance — color-coded KPI (green ≥85%, amber ≥70%, red below).
@@ -391,6 +396,9 @@ export class UIOverlay {
         cell(t('an.contact'),    m.standCount ? `${Math.round((m.standContactPct ?? 1) * 100)}%` : '—') +
         cell(t('an.standFit'),   m.standCount ? `${Math.round((m.standFitPct ?? 1) * 100)}%` : '—',
              m.standCount && (m.standFitPct ?? 1) >= 0.9 ? 'an-good' : '') +
+        cell(t('an.taxiCO2'),    `${fmtKg(m.taxiCO2Kg ?? 0)}`) +
+        cell(t('an.setSaved'),   m.setSavedKg ? `${fmtKg(m.setCO2Kg ?? 0)}·${Math.round((m.setCutPct ?? 0) * 100)}%` : '—',
+             (m.setSavedKg ?? 0) > 0 ? 'an-good' : '') +
         cell(t('an.throughput'), `${m.throughput ?? 0}`) +
         cell(t('an.noGate'),     `${m.noGate ?? 0}`);
     }

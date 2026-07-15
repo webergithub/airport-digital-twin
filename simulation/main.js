@@ -122,6 +122,10 @@ const ui = new UIOverlay(document.getElementById('ui-root'), (action, payload) =
       api.setMetering(payload.on);
       ui.log(t(payload.on ? 'log.meterOn' : 'log.meterOff'), 'info');
       break;
+    case 'toggleSET':
+      analytics.setSingleEngineTaxi(payload.on);
+      ui.log(t(payload.on ? 'log.setOn' : 'log.setOff'), 'info');
+      break;
     case 'exportLog':
       runLog.download();
       ui.log(tf('log.export', { e: runLog.counts().events, s: runLog.counts().snapshots }), 'info');
