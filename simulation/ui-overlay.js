@@ -23,6 +23,7 @@ export class UIOverlay {
     this._wm.register(document.getElementById('panel-safetynet'), { collapsed: true });
     this._wm.register(document.getElementById('panel-radar'), { collapsed: true });
     this._wm.register(document.getElementById('panel-whatif'), { collapsed: true });
+    this._wm.register(document.getElementById('panel-aman'), { collapsed: true });
     this._radar = new SurfaceRadar(document.getElementById('radar-canvas'));
   }
 
@@ -125,6 +126,12 @@ export class UIOverlay {
         <div class="panel-title" data-i18n="panel.oooi">${t('panel.oooi')}</div>
         <div id="oooi-aspm" class="oooi-aspm"></div>
         <div id="oooi-ticker" class="oooi-ticker"></div>
+      </div>
+
+      <!-- AMAN arrival ladder (collapsed by default) -->
+      <div id="panel-aman" class="panel">
+        <div class="panel-title" data-i18n="panel.aman">${t('panel.aman')}</div>
+        <div id="aman-cols" class="aman-cols"></div>
       </div>
 
       <!-- Disruption / what-if console (collapsed by default) -->
@@ -336,6 +343,27 @@ export class UIOverlay {
   // ── ASDE-X surface surveillance radar ────────────────────────────────────────
   updateSurfaceRadar(snapshot, stages) {
     if (this._radar) this._radar.update(snapshot, stages);
+  }
+
+  // ── AMAN arrival ladder ──────────────────────────────────────────────────────
+  updateAman(ladder) {
+    const host = document.getElementById('aman-cols');
+    if (!host || !ladder) return;
+    const CATCLS = { H: 'wake-h', M: 'wake-m', S: 'wake-s' };
+    const col = (key) => {
+      const rungs = ladder[key] || [];
+      const body = rungs.length
+        ? rungs.map(r => {
+            const ttl = r.ttl > 0.5 ? `<span class="aman-ttl">−${Math.round(r.ttl)}s</span>` : '';
+            return `<div class="aman-rung"><span class="aman-seq">${r.seq}</span>` +
+                   `<span class="aman-cs">${r.cs}</span>` +
+                   `<span class="aman-cat ${CATCLS[r.cat] || ''}">${r.cat}</span>` +
+                   `<span class="aman-sta">${Math.round(r.sta - ladder.clock)}s</span>${ttl}</div>`;
+          }).join('')
+        : `<div class="aman-empty">${t('aman.none')}</div>`;
+      return `<div class="aman-col"><div class="aman-rwy">${key}</div>${body}</div>`;
+    };
+    host.innerHTML = col('RWY1') + col('RWY2');
   }
 
   // ── Disruption / what-if console ─────────────────────────────────────────────

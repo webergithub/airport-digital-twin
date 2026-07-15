@@ -25,8 +25,10 @@ export const FS = {
 
 // Speeds in world-units per second
 const TAXI     = 3.2;
-const FAST     = 14.0;  // landing deceleration start / takeoff end
+export const FAST = 14.0;  // landing deceleration start / takeoff end (also nominal approach)
 const SLOT_GAP = 9;     // departure queue slot spacing (center-to-center)
+export const THRESHOLD_X = -72;      // touchdown x (arrivals cross the threshold here)
+const MIN_APPROACH = 6.5;            // slowest metered approach speed (AMAN absorption floor)
 
 // Right-skewed turnaround multiplier: ~60% near-target, ~25% minor overrun,
 // ~15% significant overrun — mirrors real ground-handling delay distributions.
@@ -58,8 +60,9 @@ function buildArrivalPath(runway, gateId) {
   // ground (0 = on the ground). Arrivals exit at x=45/55 and never go west of
   // cx (max -25), clear of the departure queue west of holdX.
   return [
+    { x: -260,   z: rz, y: 44, speed: FAST, tag: 'meter_fix'  }, // AMAN metering fix (sequencing horizon)
     { x: -130,   z: rz, y: 16, speed: FAST, tag: 'approach'   }, // on final, high
-    { x: -72,    z: rz, y: 0,  speed: FAST, tag: 'land_start' }, // touchdown
+    { x: -72,    z: rz, y: 0,  speed: FAST, tag: 'land_start' }, // touchdown (threshold)
     { x: exitX,  z: rz, y: 0,  speed: TAXI, tag: 'land_end'   }, // roll out / brake
     { x: exitX,  z: -10, y: 0                                  },
     { x: cx,     z: -10, y: 0                                  },
@@ -147,6 +150,11 @@ export class Flight {
     this.done           = false;
     this.touchedDown    = false; // set at the touchdown waypoint (wheels-on / ALDT)
 
+    // AMAN arrival management (set by ArrivalManager each tick while on approach)
+    this.wakeCat    = { SMALL: 'S', MEDIUM: 'M', LARGE: 'H' }[this.type] || 'M';
+    this.eta = null; this.sta = null; this.timeToLose = null; this.seqIdx = null;
+    this._amanSpeed = 0;       // metered approach speed to hit the STA (0 = unmetered)
+
     // Departure-queue state
     this.slot           = 0;
     this._queued        = false;
@@ -202,6 +210,10 @@ export class Flight {
     if (this.state === FS.TAKEOFF) {
       const roll = Math.abs(this.x - this._takeoffX0);
       spd = TAXI + (FAST - TAXI) * Math.min(1, roll / 55);
+    } else if (this.state === FS.TAXIING_IN && this.y > 1 && this._amanSpeed > 0) {
+      // AMAN: fly the metered approach speed to absorb the assigned delay and
+      // hit the Scheduled Time of Arrival, spacing arrivals on final.
+      spd = Math.max(MIN_APPROACH, Math.min(FAST, this._amanSpeed));
     }
 
     this.currentSpeed = spd;
@@ -336,6 +348,8 @@ export class Flight {
       milestones: this.milestones,
       holdingAtGate: this.isGateHeld,
       stand:    this.stand,
+      wakeCat:  this.wakeCat,
+      eta:      this.eta, sta: this.sta, timeToLose: this.timeToLose, seqIdx: this.seqIdx,
       turnaround: this.turnaround ? this.turnaround.snapshot() : null,
     };
   }

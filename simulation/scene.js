@@ -64,7 +64,9 @@ export function createScene(container) {
   scene.add(bounce);
 
   // ── Ground plane (grass) ────────────────────────────────────────────────────
-  const groundGeo = new THREE.PlaneGeometry(400, 400);
+  // 560 wide so the AMAN metering fix (arrivals spawn at x=-260) sits on grass,
+  // not over a void west of the airfield.
+  const groundGeo = new THREE.PlaneGeometry(560, 560);
   const groundMat = new THREE.MeshLambertMaterial({ color: 0x0a1a0c });
   const ground    = new THREE.Mesh(groundGeo, groundMat);
   ground.rotation.x  = -Math.PI / 2;

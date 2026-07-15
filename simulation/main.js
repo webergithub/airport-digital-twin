@@ -241,6 +241,7 @@ function logicTick() {
   ui.updateSafetyNets(safetyNet.getStatus());
   ui.updateSurfaceRadar(snapshot, { RWY1: safetyNet.stage('RWY1'), RWY2: safetyNet.stage('RWY2') });
   ui.updateDisruption(snapshot.disruptions, analytics.getScenarioDelta());
+  ui.updateAman(api.getArrivalLadder());
 
   if (focusedGateId) {
     const occ    = api.getGateOccupancy().gates.find(g => g.id === focusedGateId);

@@ -624,6 +624,25 @@ button:active { transform: scale(0.97); }
 .sp-badge.sp-wide    { background: #142a3a; color: var(--accent); }
 .sp-badge.sp-narrow  { background: var(--surface2); color: var(--text2); }
 
+/* ─── AMAN arrival ladder ────────────────────────────────── */
+#panel-aman { right: 16px; top: 300px; width: 250px; }
+.aman-cols { display: flex; gap: 8px; }
+.aman-col { flex: 1; }
+.aman-rwy { font-size: 10px; font-weight: 700; color: var(--cyan); font-family: monospace;
+  border-bottom: 1px solid var(--border); padding-bottom: 2px; margin-bottom: 3px; }
+.aman-rung { display: flex; align-items: center; gap: 4px; font-family: monospace; font-size: 10px;
+  padding: 2px 0; color: var(--text2); }
+.aman-seq { width: 13px; height: 13px; line-height: 13px; text-align: center; border-radius: 50%;
+  background: var(--surface2); color: var(--text); font-size: 8px; font-weight: 700; flex: none; }
+.aman-cs { color: var(--text); font-weight: 700; flex: 1; }
+.aman-cat { width: 12px; text-align: center; font-weight: 700; border-radius: 2px; flex: none; }
+.aman-cat.wake-h { color: #ff6a56; }
+.aman-cat.wake-m { color: #f39c12; }
+.aman-cat.wake-s { color: #2ecc71; }
+.aman-sta { color: var(--accent); font-weight: 700; min-width: 26px; text-align: right; }
+.aman-ttl { color: #e0b040; min-width: 26px; text-align: right; }
+.aman-empty { font-size: 10px; color: var(--muted); padding: 3px 0; }
+
 /* ─── Disruption / what-if console ───────────────────────── */
 #panel-whatif { left: 284px; top: 224px; width: 234px; }
 .wi-banner {

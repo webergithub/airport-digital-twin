@@ -127,6 +127,10 @@ const DICT = {
   'sp.inbound':    { zh: '进港中', en: 'inbound' },
   'sp.now':        { zh: '现在',   en: 'now' },
 
+  // ── AMAN arrival ladder ──
+  'panel.aman': { zh: '🛬 到港排序 (AMAN)', en: '🛬 Arrival Ladder (AMAN)' },
+  'aman.none':  { zh: '无进港航班', en: 'No inbounds' },
+
   // ── Disruption / what-if console ──
   'panel.whatif':   { zh: '🌩 情景推演', en: '🌩 What-If Console' },
   'wi.weather':     { zh: '天气 (容量)', en: 'Weather (capacity)' },

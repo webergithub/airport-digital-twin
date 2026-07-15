@@ -11,6 +11,7 @@
 import { Flight, FS } from './flight-manager.js';
 import { GateManager } from './gate-manager.js';
 import { RunwayController } from './runway-controller.js';
+import { ArrivalManager } from './arrival-manager.js';
 
 // ── DMAN departure metering (A-CDM TSAT / NASA ATD-2 surface metering) ────────
 const METER_DEPTH = 3;  // hold at gate while runway demand (queue+rolling+pushback) ≥ this
@@ -35,8 +36,9 @@ export class AirportAPI {
     this._groundStop   = false;
     this._activeRunways = config.runways ?? 2;
 
-    // Per-runway departure sequencing
+    // Per-runway departure sequencing + AMAN arrival sequencing
     this._runways = { RWY1: new RunwayController('RWY1'), RWY2: new RunwayController('RWY2') };
+    this._arrivals = new ArrivalManager();
     this._clock   = 0;               // monotonic sim-seconds
 
     // DMAN departure metering: hold ready flights at the gate (engines off)
@@ -202,12 +204,16 @@ export class AirportAPI {
       }
     }
 
+    // AMAN: sequence inbound traffic and meter approach speeds first.
+    this._arrivals.service(this._flights, this._clock);
+
     // DMAN: issue TSAT start-up approvals before sequencing the runway queues.
     this._serviceMetering();
 
     // Sequence each runway's departure queue after all flights have advanced.
-    this._runways.RWY1.service(this._flights, this._clock);
-    this._runways.RWY2.service(this._flights, this._clock);
+    // Departures hold while an arrival occupies the shared runway (AMAN coupling).
+    this._runways.RWY1.service(this._flights, this._clock, this._arrivals.runwayBusy('RWY1'));
+    this._runways.RWY2.service(this._flights, this._clock, this._arrivals.runwayBusy('RWY2'));
 
     // Prune old throughput entries (keep last 60 minutes)
     const cutoff = Date.now() - 3600000;
@@ -377,6 +383,8 @@ export class AirportAPI {
         pobtSim:    p ? p.pobtSim : null,      // predicted off-block (turnaround)
         turnAtRisk: p ? p.atRisk : false,      // POBT slips past TOBT tolerance
         stand:      f.stand ?? null,           // stand-allocation rationale (RMS)
+        wakeCat:    f.wakeCat,                 // AMAN wake category (H/M/S)
+        eta: f.eta, sta: f.sta, timeToLose: f.timeToLose, seqIdx: f.seqIdx,
         turnaround: f.turnaround ? f.turnaround.snapshot() : null,
       };
     });
@@ -400,6 +408,9 @@ export class AirportAPI {
       stats: this.getStats(),
     };
   }
+
+  /** AMAN arrival ladder — per-runway inbound landing sequence (soonest first). */
+  getArrivalLadder() { return this._arrivals.getLadder(); }
 
   /** Completed-flight turnaround timelines (node start/end timestamps). */
   getTurnaroundTimeline(id) {

@@ -37,7 +37,7 @@ export class RunwayController {
 
   onAirborneDone(id) { if (this.rolling === id) this.rolling = null; }
 
-  service(flights, clock) {
+  service(flights, clock, arrivalBusy = false) {
     // 1. Prune flights that have left the queue (rolling / done / gone).
     this.queue = this.queue.filter(id => {
       const f = flights.get(id);
@@ -56,9 +56,10 @@ export class RunwayController {
       if (f && f.slot !== i) f.retargetSlot(i);
     });
 
-    // 4. Release the front flight if runway is open, clear, and separation
-    //    (widened by weather) has elapsed. A closed runway holds its queue.
-    if (!this.closed && this.queue.length && !this.rolling) {
+    // 4. Release the front flight if runway is open, clear of arrivals (AMAN
+    //    coupling on the shared runway), and separation (widened by weather)
+    //    has elapsed. A closed runway holds its queue.
+    if (!this.closed && !arrivalBusy && this.queue.length && !this.rolling) {
       const front = flights.get(this.queue[0]);
       if (front && front.state === FS.HOLDING && front.slot === 0 &&
           (clock - this.lastReleaseT) >= MIN_SEP_SEC * this.sepFactor) {
