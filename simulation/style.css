@@ -624,6 +624,17 @@ button:active { transform: scale(0.97); }
 .sp-badge.sp-wide    { background: #142a3a; color: var(--accent); }
 .sp-badge.sp-narrow  { background: var(--surface2); color: var(--text2); }
 
+/* ─── ASDE-X surface surveillance radar ──────────────────── */
+#panel-radar {
+  left: 284px; bottom: 110px;   /* clear of the analytics panel (left column) */
+  width: 320px;
+}
+.radar-canvas {
+  display: block; width: 100%; height: 140px;
+  border-radius: 5px; border: 1px solid var(--border);
+  background: #0a0e14;
+}
+
 /* ─── A-SMGCS runway safety net (RIMCAS) ─────────────────── */
 #panel-safetynet {
   top: 224px; right: 16px;

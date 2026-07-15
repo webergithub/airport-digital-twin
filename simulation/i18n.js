@@ -126,6 +126,9 @@ const DICT = {
   'sp.inbound':    { zh: '进港中', en: 'inbound' },
   'sp.now':        { zh: '现在',   en: 'now' },
 
+  // ── ASDE-X surface surveillance radar ──
+  'panel.radar': { zh: '🛰 场面监视雷达', en: '🛰 Surface Radar' },
+
   // ── A-SMGCS runway safety net (RIMCAS) ──
   'panel.safetynet': { zh: '🚨 A-SMGCS 安全网', en: '🚨 A-SMGCS Safety Nets' },
   'sn.clear':    { zh: '畅通',     en: 'CLEAR' },

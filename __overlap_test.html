@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="/simulation/style.css">
+</head><body>
+<div id="app"><div id="ui-root">
+  <div id="ui-overlay">
+    <!-- radar -->
+    <div id="panel-radar" class="panel">
+      <div class="panel-title">RADAR</div>
+      <canvas id="radar-canvas" class="radar-canvas"></canvas>
+    </div>
+    <!-- standplan -->
+    <div id="panel-standplan" class="panel">
+      <div class="panel-title">STAND PLAN</div>
+      <div class="win-body-content">stand plan body</div>
+    </div>
+    <!-- analytics (not collapsed) -->
+    <div id="panel-analytics" class="panel">
+      <div class="panel-title">ANALYTICS</div>
+      <div>analytics body row<br>row<br>row<br>row</div>
+    </div>
+  </div>
+</div></div>
+<pre id="out" style="position:fixed;top:4px;left:4px;z-index:9999;background:#fff;color:#000;font:11px monospace;padding:6px;white-space:pre-wrap"></pre>
+<script type="module">
+  import { WindowManager } from '/simulation/window-manager.js';
+  const wm = new WindowManager();
+  wm.register(document.getElementById('panel-analytics'));
+  wm.register(document.getElementById('panel-standplan'), { collapsed: true });
+  wm.register(document.getElementById('panel-radar'), { collapsed: true });
+  function rects() {
+    const g = id => { const r = document.getElementById(id).getBoundingClientRect();
+      return { l:Math.round(r.left), r:Math.round(r.right), t:Math.round(r.top), b:Math.round(r.bottom) }; };
+    const radar = g('panel-radar'), sp = g('panel-standplan'), an = g('panel-analytics');
+    const overlaps = (a,b)=> a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b;
+    return { W: window.innerWidth, radar, standplan: sp, analytics: an,
+      radar_x_standplan: overlaps(radar, sp), radar_x_analytics: overlaps(radar, an) };
+  }
+  window.__rects = rects;
+  document.getElementById('out').textContent = JSON.stringify(rects(), null, 1);
+</script>
+</body></html>

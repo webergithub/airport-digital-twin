@@ -4,6 +4,7 @@
  */
 
 import { WindowManager } from './window-manager.js';
+import { SurfaceRadar } from './surface-radar.js';
 import { t, tf } from './i18n.js';
 
 export class UIOverlay {
@@ -20,6 +21,8 @@ export class UIOverlay {
     this._wm.register(document.getElementById('panel-standplan'), { collapsed: true });
     this._wm.register(document.getElementById('panel-oooi'), { collapsed: true });
     this._wm.register(document.getElementById('panel-safetynet'), { collapsed: true });
+    this._wm.register(document.getElementById('panel-radar'), { collapsed: true });
+    this._radar = new SurfaceRadar(document.getElementById('radar-canvas'));
   }
 
   // ── Build DOM ──────────────────────────────────────────────────────────────
@@ -120,6 +123,12 @@ export class UIOverlay {
         <div class="panel-title" data-i18n="panel.oooi">${t('panel.oooi')}</div>
         <div id="oooi-aspm" class="oooi-aspm"></div>
         <div id="oooi-ticker" class="oooi-ticker"></div>
+      </div>
+
+      <!-- ASDE-X surface surveillance radar (collapsed by default) -->
+      <div id="panel-radar" class="panel">
+        <div class="panel-title" data-i18n="panel.radar">${t('panel.radar')}</div>
+        <canvas id="radar-canvas" class="radar-canvas"></canvas>
       </div>
 
       <!-- A-SMGCS runway safety net / RIMCAS (collapsed by default) -->
@@ -292,6 +301,11 @@ export class UIOverlay {
     // Single now-line over the track column (62px label + 4px grid gap = 66px).
     const nowLine = `<div class="sp-now" style="left:calc(66px + (100% - 66px) * ${nowFrac})"></div>`;
     body.innerHTML = nowLine + rows;
+  }
+
+  // ── ASDE-X surface surveillance radar ────────────────────────────────────────
+  updateSurfaceRadar(snapshot, stages) {
+    if (this._radar) this._radar.update(snapshot, stages);
   }
 
   // ── A-SMGCS runway safety net (RIMCAS) ───────────────────────────────────────
