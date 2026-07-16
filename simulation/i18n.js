@@ -132,6 +132,12 @@ const DICT = {
   'panel.aman': { zh: '🛬 到港排序 (AMAN)', en: '🛬 Arrival Ladder (AMAN)' },
   'aman.none':  { zh: '无进港航班', en: 'No inbounds' },
 
+  // ── Demand-Capacity Balancing forecast ──
+  'panel.dcb':  { zh: '📈 需求-容量预测', en: '📈 Demand-Capacity (DCB)' },
+  'dcb.next':   { zh: '⚠ 预计 ~{s}s 后出现容量热点', en: '⚠ Capacity hotspot in ~{s}s' },
+  'dcb.clear':  { zh: '✓ 未来窗口容量充足', en: '✓ Within capacity' },
+  'dcb.closed': { zh: '关闭', en: 'closed' },
+
   // ── Disruption / what-if console ──
   'panel.whatif':   { zh: '🌩 情景推演', en: '🌩 What-If Console' },
   'wi.weather':     { zh: '天气 (容量)', en: 'Weather (capacity)' },

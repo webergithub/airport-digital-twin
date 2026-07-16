@@ -25,6 +25,7 @@ export class UIOverlay {
     this._wm.register(document.getElementById('panel-radar'), { collapsed: true });
     this._wm.register(document.getElementById('panel-whatif'), { collapsed: true });
     this._wm.register(document.getElementById('panel-aman'), { collapsed: true });
+    this._wm.register(document.getElementById('panel-dcb'), { collapsed: true });
     this._wm.register(document.getElementById('panel-replay'), { collapsed: true });
     this._radar = new SurfaceRadar(document.getElementById('radar-canvas'));
     this._replayRadar = new SurfaceRadar(document.getElementById('replay-canvas'));
@@ -226,6 +227,13 @@ export class UIOverlay {
         <div class="panel-title" data-i18n="panel.oooi">${t('panel.oooi')}</div>
         <div id="oooi-aspm" class="oooi-aspm"></div>
         <div id="oooi-ticker" class="oooi-ticker"></div>
+      </div>
+
+      <!-- Demand-Capacity Balancing hotspot forecast (collapsed by default) -->
+      <div id="panel-dcb" class="panel">
+        <div class="panel-title" data-i18n="panel.dcb">${t('panel.dcb')}</div>
+        <div id="dcb-head" class="dcb-head"></div>
+        <div id="dcb-body" class="dcb-body"></div>
       </div>
 
       <!-- AMAN arrival ladder (collapsed by default) -->
@@ -461,6 +469,42 @@ export class UIOverlay {
   // ── ASDE-X surface surveillance radar ────────────────────────────────────────
   updateSurfaceRadar(snapshot, stages) {
     if (this._radar) this._radar.update(snapshot, stages);
+  }
+
+  // ── Demand-Capacity Balancing hotspot forecast ───────────────────────────────
+  updateDCB(fc) {
+    if (!fc) return;
+    const head = document.getElementById('dcb-head');
+    if (head) {
+      if (fc.nextHotspotSec != null) {
+        head.className = 'dcb-head dcb-hot';
+        head.textContent = tf('dcb.next', { s: fc.nextHotspotSec });
+      } else {
+        head.className = 'dcb-head dcb-ok';
+        head.textContent = t('dcb.clear');
+      }
+    }
+    const body = document.getElementById('dcb-body');
+    if (!body) return;
+    const CHART_H = 40;
+    body.innerHTML = ['RWY1', 'RWY2'].map(key => {
+      const r = fc.runways[key];
+      const scale = Math.max(r.closed ? 1 : r.bins[0].cap, 2,
+        ...r.bins.map(b => b.arr + b.dep));
+      const bars = r.bins.map(b => {
+        const depH = (b.dep / scale) * CHART_H;
+        const arrH = (b.arr / scale) * CHART_H;
+        const capY = r.closed ? CHART_H : CHART_H - (b.cap / scale) * CHART_H;
+        return `<div class="dcb-col${b.hot ? ' dcb-colhot' : ''}" style="height:${CHART_H}px">` +
+               `<div class="dcb-arr" style="height:${arrH}px"></div>` +
+               `<div class="dcb-dep" style="height:${depH}px"></div>` +
+               (r.closed ? '' : `<div class="dcb-cap" style="top:${capY}px"></div>`) +
+               `</div>`;
+      }).join('');
+      const label = r.closed ? `${key} <span class="dcb-closed">${t('dcb.closed')}</span>`
+                             : `${key} <span class="dcb-cap-n">${r.effSep}s</span>`;
+      return `<div class="dcb-rwy"><div class="dcb-rlabel">${label}</div><div class="dcb-chart">${bars}</div></div>`;
+    }).join('');
   }
 
   // ── AMAN arrival ladder ──────────────────────────────────────────────────────

@@ -26,6 +26,7 @@ import { Scheduler }      from '../optimization/scheduler.js';
 import { AnalyticsEngine } from '../optimization/analytics.js';
 import { RunLogger }      from '../optimization/run-logger.js';
 import { RunwaySafetyNet } from '../optimization/safety-nets.js';
+import { DCBForecaster }   from '../optimization/dcb-forecaster.js';
 import { TaxiGuidance }    from './guidance-lights.js';
 import { t, tf, onLangChange, toggleLang, getLang } from './i18n.js';
 
@@ -45,6 +46,7 @@ const scheduler = new Scheduler(api, { arrivalInterval: 25 });
 const analytics = new AnalyticsEngine(api, scheduler, { targetUtil: 0.6 });
 const runLog    = new RunLogger(api, { snapshotEverySec: 5 });
 const safetyNet = new RunwaySafetyNet(api);   // A-SMGCS RIMCAS runway monitor
+const dcb       = new DCBForecaster(api, scheduler);  // rolling demand-capacity forecast
 
 // ── 3D aircraft + jet bridges ─────────────────────────────────────────────────────
 const aircraft3dMap = new Map(); // flightId → Aircraft3D
@@ -227,6 +229,7 @@ function logicTick() {
   // ── Algorithm layer: ingest snapshot → metrics + auto-optimization + logging ─
   analytics.update(snapshot, dt);
   safetyNet.update(snapshot);        // A-SMGCS runway conflict monitor
+  dcb.update(snapshot);              // rolling demand-capacity hotspot forecast
   runLog.tick(snapshot, dt);
 
   // ── UI layer: render panels from the snapshot ──────────────────────────────
@@ -248,6 +251,7 @@ function logicTick() {
   ui.updateSurfaceRadar(snapshot, { RWY1: safetyNet.stage('RWY1'), RWY2: safetyNet.stage('RWY2') });
   ui.updateDisruption(snapshot.disruptions, analytics.getScenarioDelta());
   ui.updateAman(api.getArrivalLadder());
+  ui.updateDCB(dcb.getForecast());
 
   if (focusedGateId) {
     const occ    = api.getGateOccupancy().gates.find(g => g.id === focusedGateId);
@@ -352,7 +356,9 @@ window.__step = (n = 200, dt = 0.5) => {
     const s = api.getSnapshot();
     analytics.update(s, dt);
     safetyNet.update(s);
+    dcb.update(s);
     runLog.tick(s, dt);
   }
   return analytics.getMetrics();
 };
+window.__dcb = dcb;

@@ -624,6 +624,24 @@ button:active { transform: scale(0.97); }
 .sp-badge.sp-wide    { background: #142a3a; color: var(--accent); }
 .sp-badge.sp-narrow  { background: var(--surface2); color: var(--text2); }
 
+/* ─── Demand-Capacity Balancing forecast ─────────────────── */
+#panel-dcb { left: 284px; top: 300px; width: 250px; }
+.dcb-head { font-size: 10px; font-weight: 700; border-radius: 4px; padding: 3px 6px; margin-bottom: 6px; }
+.dcb-head.dcb-ok  { color: #2ecc71; background: rgba(46,204,113,0.12); }
+.dcb-head.dcb-hot { color: #ff6a56; background: rgba(231,76,60,0.16); }
+.dcb-body { display: flex; flex-direction: column; gap: 8px; }
+.dcb-rwy { display: flex; align-items: flex-end; gap: 7px; }
+.dcb-rlabel { font-size: 9px; font-family: monospace; color: var(--cyan); font-weight: 700; width: 54px; }
+.dcb-cap-n { color: var(--text2); font-weight: 400; }
+.dcb-closed { color: #ff6a56; }
+.dcb-chart { display: flex; align-items: flex-end; gap: 3px; flex: 1; }
+.dcb-col { position: relative; flex: 1; display: flex; flex-direction: column-reverse;
+  background: var(--surface2); border-radius: 2px; overflow: hidden; }
+.dcb-col.dcb-colhot { outline: 1px solid #e74c3c; }
+.dcb-dep { width: 100%; background: #f39c12; }         /* departures (amber) */
+.dcb-arr { width: 100%; background: #4aa8ff; }         /* arrivals (blue) */
+.dcb-cap { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed #cfd8e3; }
+
 /* ─── AMAN arrival ladder ────────────────────────────────── */
 #panel-aman { right: 16px; top: 300px; width: 250px; }
 .aman-cols { display: flex; gap: 8px; }
