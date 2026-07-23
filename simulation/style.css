@@ -132,13 +132,21 @@ html, body {
   text-transform: uppercase; padding: 1px 4px; }
 #dock-root.dock-expanded .dock-head { display: block; }
 .dock-left .dock-head, .dock-right .dock-head { writing-mode: initial; }
-.dock-btn { display: flex; align-items: center; gap: 5px; background: transparent; border: 1px solid transparent;
-  border-radius: 6px; color: var(--text2); cursor: pointer; padding: 4px 6px; white-space: nowrap; max-width: 100%; }
+.dock-btn { display: flex; align-items: center; justify-content: center; gap: 5px; background: transparent;
+  border: 1px solid transparent; border-radius: 8px; color: var(--text2); cursor: pointer; padding: 5px 7px;
+  white-space: nowrap; max-width: 100%; }
 .dock-btn:hover { background: var(--surface2); color: var(--text); }
 .dock-btn.dock-active { background: rgba(74,168,255,0.16); border-color: var(--accent); color: var(--accent); }
-.dock-ic { font-size: 13px; line-height: 1; flex: none; }
+.dock-ic { font-size: 21px; line-height: 1.15; flex: none; }
 .dock-lbl { display: none; overflow: hidden; text-overflow: ellipsis; }
-#dock-root.dock-expanded .dock-lbl { display: inline; }
+.dock-dsc { display: none; }
+/* Detailed card view: big icon on top, window name + core function below */
+#dock-root.dock-expanded .dock-btn { flex-direction: column; align-items: center; gap: 3px;
+  width: 92px; padding: 7px 5px; white-space: normal; text-align: center; }
+#dock-root.dock-expanded .dock-lbl { display: block; font-size: 10px; font-weight: 700; line-height: 1.25;
+  color: inherit; }
+#dock-root.dock-expanded .dock-dsc { display: block; font-size: 8.5px; line-height: 1.3; color: var(--text2); }
+#dock-root.dock-expanded .dock-btn.dock-active .dock-dsc { color: var(--accent); opacity: 0.75; }
 .dock-spacer { flex: none; width: 6px; }
 .dock-left .dock-spacer, .dock-right .dock-spacer { width: auto; height: 6px; }
 .dock-util { color: var(--muted); }
@@ -146,6 +154,16 @@ html, body {
   background: var(--surface); border: 1px solid var(--accent); border-radius: 8px; padding: 9px 11px;
   box-shadow: 0 6px 22px rgba(0,0,0,0.5); }
 .dock-set-row { display: flex; gap: 7px; align-items: flex-start; font-size: 11px; color: var(--text); max-width: 240px; cursor: pointer; }
+
+/* Detail-card rails are ~104px wide — edge panels slide outward to clear them
+   (body.dock-wide is kept in sync by dock.js). */
+body.dock-wide #panel-config    { left: 110px; }
+body.dock-wide #panel-analytics { left: 110px; }
+body.dock-wide #panel-flights   { right: 110px; }
+body.dock-wide #event-log       { right: 110px; }
+body.dock-wide #panel-aman      { right: 110px; }
+body.dock-wide #panel-safetynet { right: 110px; }
+body.dock-wide #dock-settings   { top: 148px; }
 
 /* ─── 底部运行控制按钮 ─────────────────────────────────────── */
 .stat-sep { width: 1px; align-self: stretch; background: var(--border); margin: 0 4px; }

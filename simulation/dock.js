@@ -14,26 +14,31 @@ const LS_SOLO = 'airporttwin_dock_solo';
 const LS_LABELS = 'airporttwin_dock_labels';
 const LS_OPEN = 'airporttwin_dock_open';   // remembered window layout (which panels are open)
 
-// Window → { side, icon, i18n title key }. Order defines rail order.
-// gate-detail is contextual (opened by clicking a gate) and intentionally absent.
+// Window → { side, icon, i18n title key, i18n core-function key }. Order
+// defines rail order. gate-detail is contextual (opened by clicking a gate)
+// and intentionally absent.
 export const DOCK_ITEMS = [
   // Top rail — Control（改变仿真的控制面板）
-  { id: 'panel-config',    side: 'top',   icon: '✈', key: 'panel.config' },
-  { id: 'panel-whatif',    side: 'top',   icon: '🌩', key: 'panel.whatif' },
+  { id: 'panel-config',    side: 'top',   icon: '✈', key: 'panel.config',    d: 'dock.d.config' },
+  { id: 'panel-whatif',    side: 'top',   icon: '🌩', key: 'panel.whatif',    d: 'dock.d.whatif' },
   // Left rail — Operations（运行监控）
-  { id: 'panel-flights',   side: 'left',  icon: '🛬', key: 'panel.flights' },
-  { id: 'panel-aman',      side: 'left',  icon: '🛫', key: 'panel.aman' },
-  { id: 'panel-turnwall',  side: 'left',  icon: '🕑', key: 'panel.turnwall' },
-  { id: 'panel-standplan', side: 'left',  icon: '🅿', key: 'panel.standplan' },
-  { id: 'panel-radar',     side: 'left',  icon: '🛰', key: 'panel.radar' },
-  { id: 'event-log',       side: 'left',  icon: '📝', key: 'panel.log' },
+  { id: 'panel-flights',   side: 'left',  icon: '🛬', key: 'panel.flights',   d: 'dock.d.flights' },
+  { id: 'panel-aman',      side: 'left',  icon: '🛫', key: 'panel.aman',      d: 'dock.d.aman' },
+  { id: 'panel-turnwall',  side: 'left',  icon: '🕑', key: 'panel.turnwall',  d: 'dock.d.turnwall' },
+  { id: 'panel-standplan', side: 'left',  icon: '🅿', key: 'panel.standplan', d: 'dock.d.standplan' },
+  { id: 'panel-radar',     side: 'left',  icon: '🛰', key: 'panel.radar',     d: 'dock.d.radar' },
+  { id: 'event-log',       side: 'left',  icon: '📝', key: 'panel.log',       d: 'dock.d.log' },
   // Right rail — Analysis & Safety（分析与安全）
-  { id: 'panel-analytics', side: 'right', icon: '📈', key: 'panel.analytics' },
-  { id: 'panel-dcb',       side: 'right', icon: '📊', key: 'panel.dcb' },
-  { id: 'panel-safetynet', side: 'right', icon: '🚨', key: 'panel.safetynet' },
-  { id: 'panel-oooi',      side: 'right', icon: '📻', key: 'panel.oooi' },
-  { id: 'panel-replay',    side: 'right', icon: '🎞', key: 'panel.replay' },
+  { id: 'panel-analytics', side: 'right', icon: '📈', key: 'panel.analytics', d: 'dock.d.analytics' },
+  { id: 'panel-dcb',       side: 'right', icon: '📊', key: 'panel.dcb',       d: 'dock.d.dcb' },
+  { id: 'panel-safetynet', side: 'right', icon: '🚨', key: 'panel.safetynet', d: 'dock.d.safetynet' },
+  { id: 'panel-oooi',      side: 'right', icon: '📻', key: 'panel.oooi',      d: 'dock.d.oooi' },
+  { id: 'panel-replay',    side: 'right', icon: '🎞', key: 'panel.replay',    d: 'dock.d.replay' },
 ];
+
+// Panel titles carry a leading emoji (window bars reuse them); the dock button
+// already shows the icon, so strip it from the label to avoid doubling up.
+const clean = (s) => s.replace(/^[^\p{L}\p{N}]+\s*/u, '');
 
 const SIDE_TITLE = { top: 'dock.control', left: 'dock.ops', right: 'dock.analysis' };
 
@@ -42,10 +47,10 @@ export class Dock {
     this._wm = wm;
     this._btns = new Map();   // id → button element
     this._solo = false;
-    this._expanded = false;   // default: compact icon rails; user expands to show names
+    this._expanded = true;    // default: detail cards (big icon + name + core function); ⇔ collapses to icons
     try {
       this._solo = localStorage.getItem(LS_SOLO) === '1';
-      this._expanded = localStorage.getItem(LS_LABELS) === '1';
+      this._expanded = localStorage.getItem(LS_LABELS) !== '0';
     } catch (e) {}
     this._build();
     this._applySavedLayout();
@@ -79,6 +84,8 @@ export class Dock {
     const root = document.createElement('div');
     root.id = 'dock-root';
     root.className = this._expanded ? 'dock-expanded' : '';
+    // Edge panels shift outward to clear the wider detail-card rails.
+    document.body.classList.toggle('dock-wide', this._expanded);
 
     for (const side of ['top', 'left', 'right']) {
       const rail = document.createElement('div');
@@ -95,8 +102,11 @@ export class Dock {
         const b = document.createElement('button');
         b.className = 'dock-btn';
         b.dataset.win = it.id;
-        b.innerHTML = `<span class="dock-ic">${it.icon}</span><span class="dock-lbl" data-i18n="${it.key}">${t(it.key)}</span>`;
-        b.title = t(it.key);
+        b.innerHTML =
+          `<span class="dock-ic">${it.icon}</span>` +
+          `<span class="dock-lbl">${clean(t(it.key))}</span>` +
+          `<span class="dock-dsc">${t(it.d)}</span>`;
+        b.title = `${clean(t(it.key))} — ${t(it.d)}`;
         b.addEventListener('click', () => this._toggleWin(it.id, side));
         rail.appendChild(b);
         this._btns.set(it.id, b);
@@ -166,6 +176,7 @@ export class Dock {
   _toggleExpand() {
     this._expanded = !this._expanded;
     this._root.classList.toggle('dock-expanded', this._expanded);
+    document.body.classList.toggle('dock-wide', this._expanded);
     try { localStorage.setItem(LS_LABELS, this._expanded ? '1' : '0'); } catch (e) {}
   }
 
@@ -184,9 +195,16 @@ export class Dock {
     this._root.querySelectorAll('[data-i18n]').forEach(el => {
       el.textContent = t(el.dataset.i18n);
     });
+    const exp = this._root.querySelector('#dock-expand');
+    if (exp) exp.title = t('dock.expand');
+    const gear = this._root.querySelector('#dock-gear');
+    if (gear) gear.title = t('dock.settings');
     this._btns.forEach((b, id) => {
       const it = DOCK_ITEMS.find(x => x.id === id);
-      if (it) b.title = t(it.key);
+      if (!it) return;
+      b.querySelector('.dock-lbl').textContent = clean(t(it.key));
+      b.querySelector('.dock-dsc').textContent = t(it.d);
+      b.title = `${clean(t(it.key))} — ${t(it.d)}`;
     });
   }
 }
