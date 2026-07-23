@@ -47,8 +47,20 @@ export class WindowManager {
     el.addEventListener('pointerdown', () => this._raise(el), true);
 
     if (opts.collapsed) el.classList.add('win-collapsed');
+    if (opts.hidden) el.classList.add('win-hidden');
     return el;
   }
+
+  /** Show / hide a registered window (dock entry point). */
+  setVisible(el, on) {
+    if (!el) return;
+    el.classList.toggle('win-hidden', !on);
+    if (on) { el.classList.remove('win-collapsed'); this._raise(el); }
+    this._onVis && this._onVis(el, !!on);
+  }
+  isVisible(el) { return !!el && !el.classList.contains('win-hidden'); }
+  /** Single visibility-change hook (the dock refreshes its active states here). */
+  onVisibility(cb) { this._onVis = cb; }
 
   _raise(el) { el.style.zIndex = String(++this._z); }
 

@@ -5,6 +5,7 @@
 
 import { WindowManager } from './window-manager.js';
 import { SurfaceRadar } from './surface-radar.js';
+import { Dock, DOCK_ITEMS } from './dock.js';
 import { t, tf } from './i18n.js';
 
 export class UIOverlay {
@@ -16,22 +17,53 @@ export class UIOverlay {
     this._cfg   = { arrivalInterval: 25, runways: 2, gateCount: 6, bridgeCount: 4 };
 
     // Make the overlay panels into movable windows (titles read from each panel).
+    // Windows are grouped by role and toggled from the three-sided Dock. Only a
+    // small default set opens on first load; the rest are one dock-click away.
     this._wm = new WindowManager();
-    ['panel-config', 'panel-flights', 'event-log', 'panel-gate-detail', 'panel-analytics', 'panel-turnwall']
-      .forEach(id => this._wm.register(document.getElementById(id)));
-    this._wm.register(document.getElementById('panel-standplan'), { collapsed: true });
-    this._wm.register(document.getElementById('panel-oooi'), { collapsed: true });
-    this._wm.register(document.getElementById('panel-safetynet'), { collapsed: true });
-    this._wm.register(document.getElementById('panel-radar'), { collapsed: true });
-    this._wm.register(document.getElementById('panel-whatif'), { collapsed: true });
-    this._wm.register(document.getElementById('panel-aman'), { collapsed: true });
-    this._wm.register(document.getElementById('panel-dcb'), { collapsed: true });
-    this._wm.register(document.getElementById('panel-replay'), { collapsed: true });
+    this._wm.register(document.getElementById('panel-gate-detail'), { hidden: true });   // contextual (gate focus)
+    const DEFAULT_OPEN = new Set(['panel-config', 'panel-flights', 'panel-analytics', 'panel-radar']);
+    DOCK_ITEMS.forEach(it =>
+      this._wm.register(document.getElementById(it.id), { hidden: !DEFAULT_OPEN.has(it.id) }));
+    this._dock = new Dock(this._wm);
     this._radar = new SurfaceRadar(document.getElementById('radar-canvas'));
     this._replayRadar = new SurfaceRadar(document.getElementById('replay-canvas'));
     this._rp = { t: 0, playing: false, speed: 1, dragging: false, span: null, railKey: '' };
     this._bindReplay();
+    this._bindActions();
   }
+
+  // ── Bottom action bar + live dialog + restore prompt ─────────────────────────
+  _bindActions() {
+    const on = (id, ev, fn) => { const e = document.getElementById(id); if (e) e.addEventListener(ev, fn); };
+    on('act-pause', 'click', () => this._cb('togglePause'));
+    on('act-live', 'click', () => { const d = document.getElementById('live-dialog'); if (d) d.style.display = 'flex'; });
+    on('act-save', 'click', () => this._cb('saveState'));
+    on('live-close', 'click', () => { const d = document.getElementById('live-dialog'); if (d) d.style.display = 'none'; });
+    on('live-connect', 'click', () => this._cb('liveConnect', { url: (document.getElementById('live-url') || {}).value || '' }));
+    on('live-disconnect', 'click', () => this._cb('liveDisconnect'));
+    on('restore-yes', 'click', () => { this.hideRestore(); this._cb('restoreYes'); });
+    on('restore-no', 'click', () => { this.hideRestore(); this._cb('restoreNo'); });
+  }
+
+  setPauseLabel(paused) {
+    const b = document.getElementById('act-pause');
+    if (b) { b.dataset.i18n = paused ? 'act.resume' : 'act.pause'; b.textContent = t(b.dataset.i18n); b.classList.toggle('act-on', paused); }
+  }
+  setLiveState(on) {
+    const b = document.getElementById('act-live');
+    if (b) b.classList.toggle('act-on', !!on);
+  }
+  setLiveStatus(key, params) {
+    const e = document.getElementById('live-status');
+    if (e) { e.dataset.i18n = key; e.textContent = params ? tf(key, params) : t(key); }
+  }
+  showRestorePrompt(text) {
+    const bar = document.getElementById('restore-bar');
+    const msg = document.getElementById('restore-msg');
+    if (msg) msg.textContent = text;
+    if (bar) bar.style.display = 'flex';
+  }
+  hideRestore() { const bar = document.getElementById('restore-bar'); if (bar) bar.style.display = 'none'; }
 
   // ── RECALL surface replay ────────────────────────────────────────────────────
   _bindReplay() {
@@ -186,6 +218,32 @@ export class UIOverlay {
         <div class="stat-item"><span class="stat-lbl" data-i18n="stat.onGround">${t('stat.onGround')}</span><span id="s-onground" class="stat-val">0</span></div>
         <div class="stat-item"><span class="stat-lbl" data-i18n="stat.gateUtil">${t('stat.gateUtil')}</span><span id="s-gateutil" class="stat-val">0%</span></div>
         <div class="stat-item"><span class="stat-lbl" data-i18n="stat.throughput">${t('stat.throughput')}</span><span id="s-throughput" class="stat-val">0</span></div>
+        <div class="stat-sep"></div>
+        <button id="act-pause" class="act-btn" data-i18n="act.pause">${t('act.pause')}</button>
+        <button id="act-live" class="act-btn" data-i18n="act.live">${t('act.live')}</button>
+        <button id="act-save" class="act-btn" data-i18n="act.save">${t('act.save')}</button>
+      </div>
+
+      <!-- LIVE 数据源对接对话框 -->
+      <div id="live-dialog" style="display:none">
+        <div class="live-card">
+          <div class="live-h" data-i18n="live.title">${t('live.title')}</div>
+          <div class="live-desc" data-i18n="live.desc">${t('live.desc')}</div>
+          <input id="live-url" class="live-url" type="text" placeholder="wss://…/airport-feed" value="wss://">
+          <div class="live-status" id="live-status" data-i18n="live.st.idle">${t('live.st.idle')}</div>
+          <div class="live-btns">
+            <button id="live-connect" class="act-btn" data-i18n="live.connect">${t('live.connect')}</button>
+            <button id="live-disconnect" class="btn-secondary" data-i18n="live.disconnect">${t('live.disconnect')}</button>
+            <button id="live-close" class="btn-secondary" data-i18n="live.close">${t('live.close')}</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 恢复上次运行状态提示条 -->
+      <div id="restore-bar" style="display:none">
+        <span id="restore-msg"></span>
+        <button id="restore-yes" class="act-btn" data-i18n="save.restore">${t('save.restore')}</button>
+        <button id="restore-no" class="btn-secondary" data-i18n="save.discard">${t('save.discard')}</button>
       </div>
 
       <!-- Event log -->
@@ -742,19 +800,15 @@ export class UIOverlay {
   hideExitButton() { const e = document.getElementById('btn-exit-gate'); if (e) e.style.display = 'none'; }
 
   enterGateDetail(gateId) {
-    const set = (id, disp) => { const e = document.getElementById(id); if (e) e.style.display = disp; };
     const gd = document.getElementById('gd-gate'); if (gd) gd.textContent = gateId;
-    set('panel-gate-detail', 'flex');   // .win uses flex layout
-    set('panel-config', 'none');
-    set('panel-turnwall', 'none');      // wall shares the top-center zone with ← exit
+    const el = document.getElementById('panel-gate-detail');
+    if (el) { el.style.display = ''; this._wm.setVisible(el, true); }   // dock-managed visibility
     this.showExitButton();
   }
 
   exitGateDetail() {
-    const set = (id, disp) => { const e = document.getElementById(id); if (e) e.style.display = disp; };
-    set('panel-gate-detail', 'none');
-    set('panel-config', 'flex');
-    set('panel-turnwall', '');          // restore stylesheet default
+    const el = document.getElementById('panel-gate-detail');
+    if (el) this._wm.setVisible(el, false);
     this.hideExitButton();
   }
 

@@ -421,6 +421,56 @@ export class AirportAPI {
   /** AMAN arrival ladder — per-runway inbound landing sequence (soonest first). */
   getArrivalLadder() { return this._arrivals.getLadder(); }
 
+  // ── Save / restore（保存机场运行状态，下次打开继续） ─────────────────────────
+  /** Plain-JSON control-layer state (flights + clock + disruptions + stats). */
+  exportState() {
+    return {
+      clock: +this._clock.toFixed(2),
+      stats: { ...this._stats },
+      throughputLog: this._throughputLog.slice(-200),
+      weather: this._weather,
+      runwaysClosed: { ...this._runwayClosed },
+      metering: this._metering,
+      activeRunways: this._activeRunways,
+      groundStop: this._groundStop,
+      flights: this._flightObjects().filter(f => f.state !== FS.DONE).map(f => f.serialize()),
+    };
+  }
+
+  /** Restore a previously exported state. Gate layout must already be set
+   *  (setGates) before calling — flights re-occupy their saved gates. */
+  importState(s) {
+    if (!s) return;
+    this._clock = s.clock || 0;
+    this._stats = { arrivals: 0, departures: 0, ...s.stats };
+    this._throughputLog = Array.isArray(s.throughputLog) ? s.throughputLog.slice() : [];
+    this._activeRunways = s.activeRunways || 2;
+    this._groundStop = !!s.groundStop;
+    this._metering = s.metering !== false;
+    this.setWeather(s.weather || 0);
+    for (const key of ['RWY1', 'RWY2']) {
+      this._runwayClosed[key] = false; this._runways[key].closed = false;
+      if (s.runwaysClosed && s.runwaysClosed[key]) this.closeRunway(key);
+    }
+    // Rebuild flights, gate occupancy and the departure queues.
+    this._flights = new Map();
+    this._gates.reconfigure();
+    const queued = { RWY1: [], RWY2: [] };
+    for (const d of (s.flights || [])) {
+      try {
+        const f = Flight.restore(d);
+        this._flights.set(f.id, f);
+        if (f.gateId) this._gates.occupy(f.gateId, f.id);
+        if (f.state === FS.TAXIING_OUT || f.state === FS.HOLDING) queued[f.runway]?.push(f);
+      } catch (e) { /* skip one corrupt flight rather than fail the whole restore */ }
+    }
+    for (const key of ['RWY1', 'RWY2']) {
+      queued[key].sort((a, b) => (a.slot || 0) - (b.slot || 0));
+      for (const f of queued[key]) { f._queued = false; this._runways[key].enqueue(f); }
+    }
+    this.emit('state_restored', { flights: this._flights.size, clock: this._clock });
+  }
+
   /** Completed-flight turnaround timelines (node start/end timestamps). */
   getTurnaroundTimeline(id) {
     const f = this._flights.get(id);

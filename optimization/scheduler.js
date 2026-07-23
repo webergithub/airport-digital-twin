@@ -72,4 +72,18 @@ export class Scheduler {
       floor:    this._floor,
     };
   }
+
+  // ── Save / restore ──────────────────────────────────────────────────────────
+  getState() {
+    return { interval: this._interval, floor: this._floor,
+             timer: +this._timer.toFixed(1), flightNo: this._flightNo, paused: this._paused };
+  }
+  setState(s) {
+    if (!s) return;
+    if (s.interval) this._interval = s.interval;
+    this._floor = s.floor || 0;
+    this._timer = s.timer || 0;
+    if (s.flightNo) this._flightNo = s.flightNo;
+    this._paused = !!s.paused;
+  }
 }

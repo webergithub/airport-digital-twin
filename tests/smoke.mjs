@@ -19,6 +19,17 @@ import { RunwaySafetyNet } from '../optimization/safety-nets.js';
 import { DCBForecaster } from '../optimization/dcb-forecaster.js';
 import { RunLogger } from '../optimization/run-logger.js';
 
+// Deterministic PRNG (mulberry32) so the smoke run is reproducible — a flaky
+// CI check is worse than none. Overrides the RNG the sim uses (spawn timing,
+// aircraft type, runway pick, turnaround variance) before any of it runs.
+let _seed = 0x1a2b3c4d;
+Math.random = () => {
+  _seed |= 0; _seed = (_seed + 0x6D2B79F5) | 0;
+  let t = Math.imul(_seed ^ (_seed >>> 15), 1 | _seed);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+};
+
 let failed = 0;
 const check = (name, cond, detail = '') => {
   if (cond) console.log(`  ✓ ${name}`);
@@ -114,8 +125,14 @@ check('sim-hour window < total (run is 1.5 sim-hours)',
 console.log('DONE pruning:');
 scheduler.pause();
 for (let i = 0; i < 20; i++) { api.update(0.5); }   // +10 sim-s, no new spawns
-const lingering = api.getRawFlights().filter(f => f.state === 'DONE');
-check('no DONE flight lingers past 3 sim-s', lingering.length === 0, `lingering=${lingering.length}`);
+const nowSim = api.getSnapshot().simTimeSec;
+// A flight may legitimately sit in DONE for up to the 3-sim-s FIDS grace; the
+// mechanism is correct iff NOTHING overstays that grace (a wall-clock setTimeout
+// would keep them for 3 wall-seconds and here overstay by many sim-seconds).
+const overstayed = api.getRawFlights().filter(f => f.state === 'DONE' &&
+  f._doneAtSim != null && (nowSim - f._doneAtSim) > 3.5);
+check('no DONE flight overstays the 3 sim-s grace', overstayed.length === 0,
+  `overstayed=${overstayed.length}`);
 
 // ── 6. Module output shapes ───────────────────────────────────────────────────
 console.log('module shapes:');

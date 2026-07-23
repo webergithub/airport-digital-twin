@@ -28,6 +28,7 @@ import { RunLogger }      from '../optimization/run-logger.js';
 import { RunwaySafetyNet } from '../optimization/safety-nets.js';
 import { DCBForecaster }   from '../optimization/dcb-forecaster.js';
 import { TaxiGuidance }    from './guidance-lights.js';
+import { LiveSource }      from './live-source.js';
 import { t, tf, onLangChange, toggleLang, getLang } from './i18n.js';
 
 // ── Init scene ─────────────────────────────────────────────────────────────────
@@ -47,6 +48,10 @@ const analytics = new AnalyticsEngine(api, scheduler, { targetUtil: 0.6 });
 const runLog    = new RunLogger(api, { snapshotEverySec: 5 });
 const safetyNet = new RunwaySafetyNet(api);   // A-SMGCS RIMCAS runway monitor
 const dcb       = new DCBForecaster(api, scheduler);  // rolling demand-capacity forecast
+const liveSource = new LiveSource();                  // 对接真实机场（WS 数据源）
+let simPaused   = false;                              // 暂停/启动模拟
+let liveSnapshot = null;                              // 最近一帧外部数据源快照
+const SAVE_KEY  = 'airporttwin_savestate';
 
 // ── 3D aircraft + jet bridges ─────────────────────────────────────────────────────
 const aircraft3dMap = new Map(); // flightId → Aircraft3D
@@ -162,6 +167,28 @@ const ui = new UIOverlay(document.getElementById('ui-root'), (action, payload) =
     case 'toggleLang':
       toggleLang();
       break;
+
+    // ── 底部运行控制 ──
+    case 'togglePause':
+      simPaused = !simPaused;
+      ui.setPauseLabel(simPaused);
+      ui.log(t(simPaused ? 'log.simPaused' : 'log.simResumed'), simPaused ? 'warn' : 'info');
+      break;
+    case 'saveState':
+      saveRunState();
+      break;
+    case 'liveConnect':
+      connectLive(payload.url);
+      break;
+    case 'liveDisconnect':
+      liveSource.disconnect();
+      break;
+    case 'restoreYes':
+      restoreRunState();
+      break;
+    case 'restoreNo':
+      try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+      break;
   }
 }, runLog);   // 3rd arg → RECALL replay panel reads recorded snapshots
 
@@ -218,16 +245,22 @@ function logicTick() {
   const dt  = Math.min((now - lastLogicTime) / 1000, 1.0);
   lastLogicTime = now;
 
-  // ── Data layer: advance the simulation, then publish the standard snapshot ──
-  api.update(dt);
-  scheduler.update(dt);
+  // ── Data layer: advance the local sim (unless paused or driven by live data),
+  //    then publish the standard snapshot ──
+  let snapshot;
+  if (liveSource.connected && liveSnapshot) {
+    snapshot = liveSnapshot;                 // external feed drives the views
+  } else {
+    if (!simPaused) { api.update(dt); scheduler.update(dt); }
+    snapshot = api.getSnapshot();
+  }
   syncAircraft();
-
-  const snapshot = api.getSnapshot();        // JSON data contract
   window.__snapshot = snapshot;              // exposed for external/API consumers
 
   // ── Algorithm layer: ingest snapshot → metrics + auto-optimization + logging ─
-  analytics.update(snapshot, dt);
+  // Analytics is event-driven off the LOCAL api, so it is skipped under a live
+  // feed; the pure snapshot consumers (safety net, DCB, logger) run regardless.
+  if (!liveSource.connected) analytics.update(snapshot, dt);
   safetyNet.update(snapshot);        // A-SMGCS runway conflict monitor
   dcb.update(snapshot);              // rolling demand-capacity hotspot forecast
   runLog.tick(snapshot, dt);
@@ -308,6 +341,49 @@ function animate() {
   renderFrame(frameDt);
 }
 
+// ── 保存 / 恢复运行状态 + 对接真实机场 ──────────────────────────────────────────────
+function saveRunState() {
+  try {
+    const state = { v: 1, savedWall: Date.now(),
+      gate: getGateConfig(), api: api.exportState(), scheduler: scheduler.getState() };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+    ui.log(tf('save.saved', { n: state.api.flights.length, t: Math.round(state.api.clock) }), 'info');
+  } catch (e) { ui.log('save failed: ' + e.message, 'warn'); }
+}
+
+function restoreRunState() {
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (e) {}
+  if (!s || !s.api) return;
+  if (s.gate) {
+    setGates(buildGateLayout(s.gate.gateCount, s.gate.bridgeCount));
+    airport.rebuildGates(); bridges.rebuild(); ui.setGateConfig(getGateConfig());
+  }
+  api.importState(s.api);
+  scheduler.setState(s.scheduler);
+  scheduler.setFloor(api.weatherParams().aar);
+  if (scene.fog) scene.fog.density = api.weatherParams().fog;
+  for (const [, ac] of aircraft3dMap) ac.remove();     // rebuild 3D from restored flights
+  aircraft3dMap.clear();
+  simPaused = false; ui.setPauseLabel(false);
+  ui.log(tf('log.restored', { n: (s.api.flights || []).length }), 'info');
+}
+
+function connectLive(url) {
+  if (!url || !/^wss?:\/\//.test(url)) { ui.setLiveStatus('live.st.error'); return; }
+  liveSource.connect(url, {
+    onSnapshot: (snap) => { liveSnapshot = snap; },
+    onStatus: (kind, detail) => {
+      const map = { connecting: 'live.st.connecting', open: 'live.st.open', data: 'live.st.data',
+        badframe: 'live.st.badframe', error: 'live.st.error', closed: 'live.st.closed' };
+      ui.setLiveStatus(map[kind] || 'live.st.idle',
+        kind === 'data' ? { n: detail } : (kind === 'badframe' ? { e: detail } : null));
+      if (kind === 'open') { ui.setLiveState(true); ui.log(t('log.liveOn'), 'atc'); }
+      if (kind === 'closed' || kind === 'error') { ui.setLiveState(false); liveSnapshot = null; ui.log(t('log.liveOff'), 'info'); }
+    },
+  });
+}
+
 // ── Language switch ───────────────────────────────────────────────────────────────
 // Re-apply static translations; dynamic panels re-localize on their next tick.
 onLangChange(() => {
@@ -331,6 +407,15 @@ document.title = t('page.title');
 ui.log(t('boot.start'), 'info');
 ui.log(t('boot.waiting'), 'atc');
 ui.log(t('boot.hint'), 'info');
+
+// 若检测到上次保存的运行状态，提示是否恢复继续。
+{
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (e) {}
+  if (s && s.api && Array.isArray(s.api.flights) && s.api.flights.length) {
+    ui.showRestorePrompt(tf('save.restoreQ', { n: s.api.flights.length, t: Math.round(s.api.clock) }));
+  }
+}
 
 scheduler.spawnNow();
 setTimeout(() => scheduler.spawnNow(), 1800);

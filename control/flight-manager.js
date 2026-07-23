@@ -374,4 +374,74 @@ export class Flight {
       turnaround: this.turnaround ? this.turnaround.snapshot() : null,
     };
   }
+
+  // ── Save / restore (机场运行状态保存，下次打开继续) ──────────────────────────
+  /** Plain-JSON state for persistence. DONE flights are not worth saving. */
+  serialize() {
+    return {
+      callsign: this.callsign, airline: this.airline, type: this.type,
+      runway: this.runway, gateId: this.gateId, color: this.color,
+      state: this.state, x: +this.x.toFixed(2), z: +this.z.toFixed(2), y: +(this.y || 0).toFixed(2),
+      slot: this.slot, gateHold: this.gateHold, touchedDown: this.touchedDown,
+      actualTurnaround: this.actualTurnaround,
+      turnaroundT: this.turnaround ? +this.turnaround.t.toFixed(1) : null,
+      milestones: this.milestones, stand: this.stand,
+      takeoffX0: this._takeoffX0,
+    };
+  }
+
+  /** Rebuild a live Flight from serialize() output. Position snaps to the
+   *  rebuilt waypoint path, so motion resumes without teleporting. */
+  static restore(d) {
+    const f = new Flight({ callsign: d.callsign, airline: d.airline, type: d.type,
+                           runway: d.runway, gateId: d.gateId, color: d.color });
+    f.actualTurnaround = d.actualTurnaround ?? f.actualTurnaround;
+    f.milestones  = d.milestones || {};
+    f.stand       = d.stand ?? null;
+    f.gateHold    = !!d.gateHold;
+    f.touchedDown = !!d.touchedDown;
+    f.slot        = d.slot || 0;
+    f.state       = d.state;
+    f._takeoffX0  = d.takeoffX0 || 0;
+
+    if (d.state === FS.AT_GATE) {
+      f._wi = f._wps.length - 1; f._wp = 0;                 // parked at the at_gate wp
+      f.turnaround = new TurnaroundPlan(f.actualTurnaround, Date.now());
+      f.turnaround.t = d.turnaroundT || 0;
+      f.turnaround.update(0);                               // recompute node flags
+    } else if (d.state === FS.PUSHBACK || d.state === FS.TAKEOFF) {
+      f._wps = buildDeparturePath(d.runway, d.gateId, 0);   // full path, then snap
+      f._snapToPath(d.x, d.z);
+    } else if (d.state === FS.TAXIING_OUT || d.state === FS.HOLDING) {
+      f._wps = buildDepartureTail(d.runway, f.slot, d.x, d.z);  // resumes from here
+      f._wi = 0; f._wp = 0;
+      f._spd = TAXI;
+    } else {
+      f._snapToPath(d.x, d.z);                              // TAXIING_IN on arrival path
+    }
+
+    const p = f.getPosition();
+    f.x = p.x; f.z = p.z; f.y = p.y;
+    // Re-derive segment speed from the last speed-tagged waypoint at/before _wi.
+    for (let i = f._wi; i >= 0; i--) {
+      if (f._wps[i] && f._wps[i].speed !== undefined) { f._spd = f._wps[i].speed || f._spd; break; }
+    }
+    if (d.state === FS.PUSHBACK) f._spd = TAXI * 0.45;
+    return f;
+  }
+
+  /** Set _wi/_wp to the closest point of the current waypoint path to (x,z). */
+  _snapToPath(x, z) {
+    let best = { d: Infinity, i: 0, t: 0 };
+    for (let i = 0; i < this._wps.length - 1; i++) {
+      const a = this._wps[i], b = this._wps[i + 1];
+      const dx = b.x - a.x, dz = b.z - a.z;
+      const len2 = dx * dx + dz * dz;
+      const t = len2 ? Math.max(0, Math.min(1, ((x - a.x) * dx + (z - a.z) * dz) / len2)) : 0;
+      const px = a.x + dx * t, pz = a.z + dz * t;
+      const dist = (x - px) * (x - px) + (z - pz) * (z - pz);
+      if (dist < best.d) best = { d: dist, i, t };
+    }
+    this._wi = best.i; this._wp = best.t;
+  }
 }

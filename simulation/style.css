@@ -118,6 +118,58 @@ html, body {
 .win-collapsed > .win-body,
 .win-collapsed > .win-resize { display: none !important; }
 .win-collapsed > .win-bar { border-bottom: none; border-radius: 9px; }
+.win-hidden { display: none !important; }
+
+/* ─── Dock（三侧窗口栏 + 全局设置） ─────────────────────────── */
+#dock-root { position: fixed; inset: 0; z-index: 350; pointer-events: none; font: 11px/1.3 system-ui, sans-serif; }
+.dock-rail { position: absolute; display: flex; gap: 4px; pointer-events: auto;
+  background: rgba(10,16,26,0.82); border: 1px solid var(--border); backdrop-filter: blur(6px); }
+.dock-top   { top: 46px; left: 50%; transform: translateX(-50%); flex-direction: row; align-items: center;
+  padding: 3px 5px; border-radius: 0 0 10px 10px; border-top: none; max-width: calc(100vw - 20px); overflow-x: auto; }
+.dock-left  { left: 0; top: 96px; flex-direction: column; padding: 5px 3px; border-radius: 0 10px 10px 0; border-left: none; }
+.dock-right { right: 0; top: 96px; flex-direction: column; padding: 5px 3px; border-radius: 10px 0 0 10px; border-right: none; }
+.dock-head { display: none; font-size: 8px; font-weight: 700; letter-spacing: 0.4px; color: var(--text2);
+  text-transform: uppercase; padding: 1px 4px; }
+#dock-root.dock-expanded .dock-head { display: block; }
+.dock-left .dock-head, .dock-right .dock-head { writing-mode: initial; }
+.dock-btn { display: flex; align-items: center; gap: 5px; background: transparent; border: 1px solid transparent;
+  border-radius: 6px; color: var(--text2); cursor: pointer; padding: 4px 6px; white-space: nowrap; max-width: 100%; }
+.dock-btn:hover { background: var(--surface2); color: var(--text); }
+.dock-btn.dock-active { background: rgba(74,168,255,0.16); border-color: var(--accent); color: var(--accent); }
+.dock-ic { font-size: 13px; line-height: 1; flex: none; }
+.dock-lbl { display: none; overflow: hidden; text-overflow: ellipsis; }
+#dock-root.dock-expanded .dock-lbl { display: inline; }
+.dock-spacer { flex: none; width: 6px; }
+.dock-left .dock-spacer, .dock-right .dock-spacer { width: auto; height: 6px; }
+.dock-util { color: var(--muted); }
+#dock-settings { position: fixed; top: 82px; left: 50%; transform: translateX(-50%); z-index: 360; pointer-events: auto;
+  background: var(--surface); border: 1px solid var(--accent); border-radius: 8px; padding: 9px 11px;
+  box-shadow: 0 6px 22px rgba(0,0,0,0.5); }
+.dock-set-row { display: flex; gap: 7px; align-items: flex-start; font-size: 11px; color: var(--text); max-width: 240px; cursor: pointer; }
+
+/* ─── 底部运行控制按钮 ─────────────────────────────────────── */
+.stat-sep { width: 1px; align-self: stretch; background: var(--border); margin: 0 4px; }
+.act-btn { font: 12px/1 system-ui; font-weight: 600; color: var(--text); background: var(--surface2);
+  border: 1px solid var(--border); border-radius: 7px; padding: 7px 11px; cursor: pointer; white-space: nowrap; }
+.act-btn:hover { border-color: var(--accent); color: var(--accent); }
+.act-btn.act-on { background: rgba(74,168,255,0.18); border-color: var(--accent); color: var(--accent); }
+
+/* ─── LIVE 数据源对话框 ────────────────────────────────────── */
+#live-dialog { position: fixed; inset: 0; z-index: 500; display: flex; align-items: center; justify-content: center;
+  background: rgba(4,8,14,0.6); }
+.live-card { width: min(460px, 90vw); background: var(--surface); border: 1px solid var(--accent);
+  border-radius: 12px; padding: 18px 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
+.live-h { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+.live-desc { font-size: 12px; line-height: 1.6; color: var(--text2); margin-bottom: 12px; }
+.live-url { width: 100%; box-sizing: border-box; font: 12px monospace; padding: 8px 10px; border-radius: 6px;
+  background: var(--surface2); border: 1px solid var(--border); color: var(--text); }
+.live-status { font-size: 11px; font-family: monospace; color: var(--accent); margin: 9px 0; min-height: 16px; }
+.live-btns { display: flex; gap: 8px; justify-content: flex-end; }
+
+/* ─── 恢复运行状态提示条 ───────────────────────────────────── */
+#restore-bar { position: fixed; bottom: 66px; left: 50%; transform: translateX(-50%); z-index: 480;
+  display: flex; gap: 9px; align-items: center; background: var(--surface); border: 1px solid var(--accent);
+  border-radius: 9px; padding: 8px 12px; font-size: 12px; color: var(--text); box-shadow: 0 6px 22px rgba(0,0,0,0.5); }
 .win-resize {
   position: absolute;
   right: 1px; bottom: 1px;
@@ -140,7 +192,7 @@ html, body {
 
 /* ─── Left config panel ───────────────────────────────────────────────── */
 #panel-config {
-  top: 12px; left: 12px;
+  top: 12px; left: 46px;
   width: 215px;
   display: flex;
   flex-direction: column;
@@ -149,7 +201,7 @@ html, body {
 
 /* ─── Right flight board panel ────────────────────────────────────────── */
 #panel-flights {
-  top: 12px; right: 12px;
+  top: 12px; right: 46px;
   width: 240px;
   max-height: calc(100vh - 130px);
   overflow-y: auto;
@@ -313,7 +365,7 @@ button:active { transform: scale(0.97); }
 #event-log {
   position: absolute;
   bottom: 74px;
-  right: 12px;
+  right: 46px;
   width: 240px;
   max-height: 150px;
   background: rgba(8, 18, 35, 0.88);
@@ -548,7 +600,7 @@ button:active { transform: scale(0.97); }
 .gd-node-time { font-size: 9px; color: var(--text2); font-family: monospace; white-space: nowrap; }
 
 /* ─── Analytics / optimization panel ──────────────────────────────────── */
-#panel-analytics { left: 12px; bottom: 14px; width: 256px; }
+#panel-analytics { left: 46px; bottom: 14px; width: 256px; }
 .an-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .an-cell {
   display: flex; flex-direction: column; gap: 1px;
@@ -643,7 +695,7 @@ button:active { transform: scale(0.97); }
 .dcb-cap { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed #cfd8e3; }
 
 /* ─── AMAN arrival ladder ────────────────────────────────── */
-#panel-aman { right: 16px; top: 300px; width: 250px; }
+#panel-aman { right: 50px; top: 300px; width: 250px; }
 .aman-cols { display: flex; gap: 8px; }
 .aman-col { flex: 1; }
 .aman-rwy { font-size: 10px; font-weight: 700; color: var(--cyan); font-family: monospace;
@@ -711,7 +763,7 @@ button:active { transform: scale(0.97); }
 
 /* ─── A-SMGCS runway safety net (RIMCAS) ─────────────────── */
 #panel-safetynet {
-  top: 224px; right: 16px;
+  top: 224px; right: 50px;
   width: 210px;
 }
 .sn-runways { display: flex; flex-direction: column; gap: 4px; }

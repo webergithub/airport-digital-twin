@@ -132,6 +132,45 @@ const DICT = {
   'panel.aman': { zh: '🛬 到港排序 (AMAN)', en: '🛬 Arrival Ladder (AMAN)' },
   'aman.none':  { zh: '无进港航班', en: 'No inbounds' },
 
+  // ── Dock 与全局窗口管理 ──
+  'dock.control':  { zh: '控制',      en: 'Control' },
+  'dock.ops':      { zh: '运行监控',  en: 'Operations' },
+  'dock.analysis': { zh: '分析与安全', en: 'Analysis & Safety' },
+  'dock.expand':   { zh: '展开/收起名称', en: 'Expand / collapse labels' },
+  'dock.settings': { zh: '全局设置',  en: 'Settings' },
+  'dock.solo':     { zh: '单窗模式：调出新窗口时关闭已打开的窗口', en: 'Solo mode: opening a window closes the others' },
+
+  // ── 底部运行控制 ──
+  'act.pause':   { zh: '⏸ 暂停模拟', en: '⏸ Pause sim' },
+  'act.resume':  { zh: '▶ 启动模拟', en: '▶ Start sim' },
+  'act.live':    { zh: '🔗 对接真实机场', en: '🔗 Connect live data' },
+  'act.save':    { zh: '💾 保存运行状态', en: '💾 Save state' },
+  'log.simPaused':  { zh: '模拟已暂停', en: 'Simulation paused' },
+  'log.simResumed': { zh: '模拟已启动', en: 'Simulation running' },
+
+  // ── LIVE 数据源 ──
+  'live.title':   { zh: '对接真实机场运行（预览版）', en: 'Connect live airport data (preview)' },
+  'live.desc':    { zh: '通过 WebSocket 接入外部数据源：对端按本产品的标准快照契约（schemaVersion 1.0，见 GitHub 文档 §6.1）持续推送 JSON。连接期间本地模拟暂停，快照直接驱动航班动态、统计条与场面雷达；其余面板保持冻结。', en: 'Connect a WebSocket source that streams JSON snapshots in this product\'s standard contract (schemaVersion 1.0, see docs §6.1). While connected the local sim pauses; snapshots drive the flight board, stats bar and surface radar; other panels freeze.' },
+  'live.connect': { zh: '连接', en: 'Connect' },
+  'live.disconnect': { zh: '断开', en: 'Disconnect' },
+  'live.close':   { zh: '关闭', en: 'Close' },
+  'live.st.idle':       { zh: '未连接', en: 'Not connected' },
+  'live.st.connecting': { zh: '连接中…', en: 'Connecting…' },
+  'live.st.open':       { zh: '已连接，等待数据', en: 'Connected, awaiting data' },
+  'live.st.data':       { zh: '已接收 {n} 帧快照', en: 'Received {n} snapshot frames' },
+  'live.st.badframe':   { zh: '收到非快照格式的数据：{e}', en: 'Frame is not a snapshot: {e}' },
+  'live.st.error':      { zh: '连接错误', en: 'Connection error' },
+  'live.st.closed':     { zh: '连接已关闭', en: 'Connection closed' },
+  'log.liveOn':   { zh: '🔗 已接入外部数据源，本地模拟暂停', en: '🔗 Live data connected — local sim paused' },
+  'log.liveOff':  { zh: '外部数据源已断开，本地模拟恢复', en: 'Live data disconnected — local sim resumed' },
+
+  // ── 保存/恢复运行状态 ──
+  'save.saved':    { zh: '💾 运行状态已保存（{n} 架航班，T+{t}s）', en: '💾 State saved ({n} flights, T+{t}s)' },
+  'save.restoreQ': { zh: '检测到上次保存的运行状态（{n} 架航班，T+{t}s）。要继续吗？', en: 'A saved state was found ({n} flights, T+{t}s). Continue from it?' },
+  'save.restore':  { zh: '恢复继续', en: 'Restore' },
+  'save.discard':  { zh: '重新开始', en: 'Start fresh' },
+  'log.restored':  { zh: '已恢复上次运行状态（{n} 架航班）', en: 'Restored saved state ({n} flights)' },
+
   // ── Demand-Capacity Balancing forecast ──
   'panel.dcb':  { zh: '📈 需求-容量预测', en: '📈 Demand-Capacity (DCB)' },
   'dcb.next':   { zh: '⚠ 预计 ~{s}s 后出现容量热点', en: '⚠ Capacity hotspot in ~{s}s' },
