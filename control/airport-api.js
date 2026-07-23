@@ -195,12 +195,20 @@ export class AirportAPI {
             this._gates.vacate(flight.gateId);
             this._runways[flight.runway].onAirborneDone(flight.id);
             this._stats.departures++;
-            this._throughputLog.push(Date.now());
+            this._throughputLog.push(this._clock);   // sim timebase (uniform with all KPIs)
             this.emit('flight_departed', flight.getStatus());
-            // Clean up after a short delay (keep in list briefly for FIDS)
-            setTimeout(() => this._flights.delete(id), 3000);
+            // Keep in list briefly for FIDS, then prune — on the SIM clock so
+            // fast-forward (__step) and live runs behave identically.
+            flight._doneAtSim = this._clock;
             break;
         }
+      }
+    }
+
+    // Prune DONE flights after a short sim-time linger (FIDS display grace).
+    for (const [id, f] of this._flights) {
+      if (f.state === FS.DONE && f._doneAtSim != null && this._clock - f._doneAtSim > 3) {
+        this._flights.delete(id);
       }
     }
 
@@ -215,8 +223,9 @@ export class AirportAPI {
     this._runways.RWY1.service(this._flights, this._clock, this._arrivals.runwayBusy('RWY1'));
     this._runways.RWY2.service(this._flights, this._clock, this._arrivals.runwayBusy('RWY2'));
 
-    // Prune old throughput entries (keep last 60 minutes)
-    const cutoff = Date.now() - 3600000;
+    // Prune old throughput entries (keep the last sim-hour; when running live
+    // 1 sim-hour == 1 wall-hour, and under __step fast-forward it stays honest)
+    const cutoff = this._clock - 3600;
     this._throughputLog = this._throughputLog.filter(t => t > cutoff);
   }
 
@@ -278,7 +287,7 @@ export class AirportAPI {
     const occ    = this._gates.getOccupancy();
     const active = Array.from(this._flights.values()).filter(f => f.state !== FS.DONE);
     // Simple hourly throughput from log
-    const recent = this._throughputLog.filter(t => t > Date.now() - 3600000).length;
+    const recent = this._throughputLog.filter(t => t > this._clock - 3600).length;
     return {
       arrivals:   this._stats.arrivals,
       departures: this._stats.departures,

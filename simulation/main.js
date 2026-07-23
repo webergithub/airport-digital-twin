@@ -362,3 +362,7 @@ window.__step = (n = 200, dt = 0.5) => {
   return analytics.getMetrics();
 };
 window.__dcb = dcb;
+
+// Health watchdog handshake (index.html inline script shows a diagnostic page
+// if this is not set within 12 s — i.e. the CDN/module chain failed to load).
+window.__appReady = true;

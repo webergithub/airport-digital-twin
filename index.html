@@ -61,6 +61,72 @@
     #lang-btn:hover { background: rgba(201, 148, 74, 0.22); }
     #app { position: absolute; top: 44px; left: 0; right: 0; bottom: 0; width: auto; height: auto; }
   </style>
+  <script>
+  // ── 健康自检（G-OBS-1）：必须先于任何 module 注册，才能捕获加载期失败 ──
+  // 全局错误/未处理异常 → 顶部健康横幅；应用 12 秒未就绪 → 依赖诊断页；
+  // 页面从后台恢复 → 提示仿真推进受浏览器限速。纯内联无依赖，CDN 挂了也能工作。
+  (function () {
+    var errs = 0;
+    var lang = 'zh';
+    try { lang = localStorage.getItem('opcstudio_lang') || 'zh'; } catch (e) {}
+    function T(zh, en) { return lang === 'en' ? en : zh; }
+    function show(msg, warn) {
+      var b = document.getElementById('health-banner');
+      if (!b) {
+        b = document.createElement('div');
+        b.id = 'health-banner';
+        var s = document.createElement('span'); s.id = 'health-msg'; s.style.cssText = 'flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+        var x = document.createElement('button'); x.textContent = '×';
+        x.style.cssText = 'background:none;border:1px solid currentColor;color:inherit;cursor:pointer;border-radius:3px;line-height:1;padding:1px 7px;flex:none';
+        x.onclick = function () { b.remove(); };
+        b.appendChild(s); b.appendChild(x);
+        (document.body || document.documentElement).appendChild(b);
+      }
+      b.style.cssText = 'position:fixed;top:44px;left:0;right:0;z-index:1000;display:flex;gap:10px;align-items:center;' +
+        'font:12px/1.6 monospace;padding:5px 12px;' +
+        (warn ? 'background:#5c470e;color:#ffe2a8;' : 'background:#7a1210;color:#ffd7d3;');
+      document.getElementById('health-msg').textContent = msg;
+    }
+    window.addEventListener('error', function (e) {
+      errs++;
+      show(T('⚠ 运行时错误 ×' + errs + '：', '⚠ Runtime error ×' + errs + ': ') + (e.message || e.type || 'error'));
+    }, true);
+    window.addEventListener('unhandledrejection', function (e) {
+      errs++;
+      var m = (e.reason && e.reason.message) || String(e.reason);
+      show(T('⚠ 未处理异常 ×' + errs + '：', '⚠ Unhandled rejection ×' + errs + ': ') + m);
+    });
+    // 加载看门狗：main.js 启动末尾置 window.__appReady；12 秒未置 → 诊断页
+    setTimeout(function () {
+      if (window.__appReady) return;
+      var d = document.createElement('div');
+      d.id = 'health-diag';
+      d.style.cssText = 'position:fixed;top:44px;left:0;right:0;bottom:0;z-index:999;background:#0a0e14;color:#d4e8ff;' +
+        'display:flex;align-items:center;justify-content:center;text-align:center;font:14px/1.9 system-ui;padding:24px';
+      d.innerHTML = '<div style="max-width:560px">' +
+        '<div style="font-size:30px">⛈</div>' +
+        '<div style="font-weight:700;margin:6px 0">' + T('3D 引擎未能加载', 'Failed to load the 3D engine') + '</div>' +
+        '<div style="color:#8fa8c8;font-size:13px">' +
+        T('本页依赖 jsDelivr CDN 加载 Three.js。请检查网络连接（需可访问 cdn.jsdelivr.net）后刷新重试；若网络正常，请打开控制台查看具体错误。',
+          'This page loads Three.js from the jsDelivr CDN. Check that your network can reach cdn.jsdelivr.net, then refresh; if the network is fine, open the console for details.') +
+        '</div></div>';
+      document.body.appendChild(d);
+    }, 12000);
+    // 后台恢复提示：浏览器对后台标签页限速，仿真几乎不推进
+    var hidAt = null;
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) { hidAt = Date.now(); return; }
+      if (hidAt) {
+        var min = Math.round((Date.now() - hidAt) / 60000);
+        if (min >= 1) {
+          show(T('ℹ 页面在后台约 ' + min + ' 分钟，期间浏览器限速、仿真几乎未推进',
+                 'ℹ Tab was in background ~' + min + ' min; the sim barely advanced (browser throttling)'), true);
+        }
+        hidAt = null;
+      }
+    });
+  })();
+  </script>
   <script type="importmap">
   {
     "imports": {
