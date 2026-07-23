@@ -18,7 +18,8 @@ const LS_OPEN = 'airporttwin_dock_open';   // remembered window layout (which pa
 // defines rail order. gate-detail is contextual (opened by clicking a gate)
 // and intentionally absent.
 export const DOCK_ITEMS = [
-  // Top rail — Control（改变仿真的控制面板）
+  // Top rail — Control（改变仿真的控制面板 + 运行指挥总览）
+  { id: 'panel-apoc',      side: 'top',   icon: '🎛', key: 'panel.apoc',      d: 'dock.d.apoc' },
   { id: 'panel-config',    side: 'top',   icon: '✈', key: 'panel.config',    d: 'dock.d.config' },
   { id: 'panel-whatif',    side: 'top',   icon: '🌩', key: 'panel.whatif',    d: 'dock.d.whatif' },
   // Left rail — Operations（运行监控）

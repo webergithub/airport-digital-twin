@@ -37,6 +37,7 @@ const DICT = {
   'nav.langBtn':  { zh: 'EN', en: '中文' },
 
   // ── Panel titles ──
+  'panel.apoc':      { zh: '🎛 运行指挥中心 (APOC)', en: '🎛 Operations Centre (APOC)' },
   'panel.config':    { zh: '✈ 机场控制台', en: '✈ Airport Console' },
   'panel.flights':   { zh: '🛬 航班动态',   en: '🛬 Flights' },
   'panel.log':       { zh: '运行日志',       en: 'Event Log' },
@@ -140,6 +141,7 @@ const DICT = {
   'dock.settings': { zh: '全局设置',  en: 'Settings' },
   'dock.solo':     { zh: '单窗模式：调出新窗口时关闭已打开的窗口', en: 'Solo mode: opening a window closes the others' },
   // 各窗口核心功能一句话（dock 详细卡片图标下方展示）
+  'dock.d.apoc':      { zh: '全域 KPI 评级·绩效总分·告警', en: 'All-domain KPI status, score & alerts' },
   'dock.d.config':    { zh: '流量·速度·机位·跑道控制', en: 'Traffic, speed, stands & runway controls' },
   'dock.d.whatif':    { zh: '注入天气与跑道中断情景', en: 'Inject weather & runway disruptions' },
   'dock.d.flights':   { zh: '全场航班状态与里程碑', en: 'Live flights & A-CDM milestones' },
@@ -153,6 +155,32 @@ const DICT = {
   'dock.d.safetynet': { zh: '跑道冲突 RIMCAS 告警', en: 'RIMCAS runway conflict alerts' },
   'dock.d.oooi':      { zh: 'OOOI 报文与滑行统计', en: 'OOOI reports & taxi-time stats' },
   'dock.d.replay':    { zh: '录制·导出·复盘运行', en: 'Record, export & replay runs' },
+
+  // ── APOC 运行指挥中心 (Total Airport Management) ──
+  'apoc.score':    { zh: '机场绩效', en: 'Perf. score' },
+  'apoc.alerts':   { zh: '告警清单', en: 'Active alerts' },
+  'apoc.nominal':  { zh: '✓ 各项指标正常', en: '✓ All indicators nominal' },
+  'apoc.target':   { zh: '目标', en: 'target' },
+  'apoc.predicted':{ zh: '预测', en: 'FCST' },
+  'apoc.sev.red':  { zh: '红', en: 'RED' },
+  'apoc.sev.amber':{ zh: '橙', en: 'AMB' },
+  'apoc.dom.cap':  { zh: '容量', en: 'Capacity' },
+  'apoc.dom.punc': { zh: '准点', en: 'Punctuality' },
+  'apoc.dom.safe': { zh: '安全', en: 'Safety' },
+  'apoc.dom.env':  { zh: '环保', en: 'Environment' },
+  'apoc.kpi.otp':          { zh: '准点率', en: 'OTP' },
+  'apoc.kpi.depWait':      { zh: '离港等待', en: 'Dep wait' },
+  'apoc.kpi.dcbPeak':      { zh: '需求/容量峰值', en: 'Demand/cap peak' },
+  'apoc.kpi.gateUtil':     { zh: '机位占用', en: 'Gate util' },
+  'apoc.kpi.standContact': { zh: '靠桥率', en: 'Contact %' },
+  'apoc.kpi.rwyLive':      { zh: '跑道现状', en: 'Runway now' },
+  'apoc.kpi.rwyAlarms':    { zh: 'RIMCAS 告警', en: 'RIMCAS alarms' },
+  'apoc.kpi.setCut':       { zh: '单发滑行减排', en: 'SET cut' },
+  'apoc.kpi.hotspot':      { zh: '预测容量热点', en: 'Capacity hotspot' },
+  'apoc.h.throughput': { zh: '吞吐/时', en: 'Thrpt/h' },
+  'apoc.h.onGround':   { zh: '在场', en: 'On grnd' },
+  'apoc.h.atRisk':     { zh: '过站风险', en: 'Turn risk' },
+  'apoc.h.co2':        { zh: '滑行CO₂', en: 'Taxi CO₂' },
 
   // ── 底部运行控制 ──
   'act.pause':   { zh: '⏸ 暂停模拟', en: '⏸ Pause sim' },

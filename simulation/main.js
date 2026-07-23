@@ -27,6 +27,7 @@ import { AnalyticsEngine } from '../optimization/analytics.js';
 import { RunLogger }      from '../optimization/run-logger.js';
 import { RunwaySafetyNet } from '../optimization/safety-nets.js';
 import { DCBForecaster }   from '../optimization/dcb-forecaster.js';
+import { APOC }            from '../optimization/apoc.js';
 import { TaxiGuidance }    from './guidance-lights.js';
 import { LiveSource }      from './live-source.js';
 import { t, tf, onLangChange, toggleLang, getLang } from './i18n.js';
@@ -48,6 +49,7 @@ const analytics = new AnalyticsEngine(api, scheduler, { targetUtil: 0.6 });
 const runLog    = new RunLogger(api, { snapshotEverySec: 5 });
 const safetyNet = new RunwaySafetyNet(api);   // A-SMGCS RIMCAS runway monitor
 const dcb       = new DCBForecaster(api, scheduler);  // rolling demand-capacity forecast
+const apoc      = new APOC();                          // Total Airport Management 运行指挥中心
 const liveSource = new LiveSource();                  // 对接真实机场（WS 数据源）
 let simPaused   = false;                              // 暂停/启动模拟
 let liveSnapshot = null;                              // 最近一帧外部数据源快照
@@ -272,19 +274,31 @@ function logicTick() {
     nextIn: scheduler.getStats().nextIn,
     count:  aircraft3dMap.size,
   });
+  // Compute the module outputs once; both the individual panels and the APOC
+  // roll-up read the same values so the operations picture stays consistent.
+  const metrics  = analytics.getMetrics();
+  const safety   = safetyNet.getStatus();
+  const forecast = dcb.getForecast();
+  const wall     = api.getTurnaroundWall();
+
   ui.updateAnalytics({
-    metrics:   analytics.getMetrics(),
+    metrics,
     decisions: analytics.getDecisions(),
     logCounts: runLog.counts(),
   });
-  ui.updateTurnWall(api.getTurnaroundWall());
+  ui.updateTurnWall(wall);
   ui.updateStandPlan(api.getStandPlan());
   ui.updateOOOI(runLog.recentOOOI(24), analytics.getAspm());
-  ui.updateSafetyNets(safetyNet.getStatus());
+  ui.updateSafetyNets(safety);
   ui.updateSurfaceRadar(snapshot, { RWY1: safetyNet.stage('RWY1'), RWY2: safetyNet.stage('RWY2') });
   ui.updateDisruption(snapshot.disruptions, analytics.getScenarioDelta());
   ui.updateAman(api.getArrivalLadder());
-  ui.updateDCB(dcb.getForecast());
+  ui.updateDCB(forecast);
+
+  // APOC — Total Airport Management: score every domain's KPIs vs target.
+  apoc.update({ metrics, safety, dcb: forecast, wall, stats: snapshot.stats,
+                simTimeSec: snapshot.simTimeSec });
+  ui.updateAPOC(apoc.getState());
 
   if (focusedGateId) {
     const occ    = api.getGateOccupancy().gates.find(g => g.id === focusedGateId);

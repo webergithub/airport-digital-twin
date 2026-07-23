@@ -617,6 +617,54 @@ button:active { transform: scale(0.97); }
 .gd-node-label { font-size: 10px; font-weight: 600; white-space: nowrap; }
 .gd-node-time { font-size: 9px; color: var(--text2); font-family: monospace; white-space: nowrap; }
 
+/* ─── APOC — Airport Operations Centre (Total Airport Management) ──────── */
+#panel-apoc { top: 176px; left: 50%; transform: translateX(-50%); width: 344px;
+  max-height: calc(100vh - 210px); overflow-y: auto; }
+.apoc-top { display: flex; gap: 10px; align-items: stretch; margin-bottom: 8px; }
+.apoc-score { flex: none; width: 92px; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 2px; border: 1px solid var(--border); border-radius: 10px;
+  background: var(--surface2); padding: 6px 4px; }
+.apoc-score-val { font-size: 34px; font-weight: 800; line-height: 1; color: var(--text2); }
+.apoc-score-lbl { font-size: 8.5px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+.apoc-green { color: var(--green) !important; }
+.apoc-amber { color: var(--orange) !important; }
+.apoc-red   { color: var(--red) !important; }
+.apoc-headline { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.apoc-hcell { display: flex; flex-direction: column; gap: 0; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: 7px; padding: 4px 8px; }
+.apoc-hv { font-size: 16px; font-weight: 700; color: var(--accent); line-height: 1.15; }
+.apoc-hv.apoc-bad { color: var(--orange); }
+.apoc-hk { font-size: 8.5px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.4px; }
+.apoc-domains { display: flex; flex-direction: column; gap: 6px; }
+.apoc-dom-h { display: flex; align-items: center; gap: 6px; }
+.apoc-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.apoc-dom-n { font-size: 11px; font-weight: 700; color: var(--text); }
+.apoc-dom-s { margin-left: auto; font-size: 11px; font-weight: 700; color: var(--text2); font-family: monospace; }
+.apoc-chips { display: flex; flex-wrap: wrap; gap: 4px; margin: 3px 0 2px; }
+.apoc-chip { font-size: 9.5px; color: var(--text2); border: 1px solid var(--border); border-left-width: 3px;
+  border-radius: 4px; padding: 1px 5px; white-space: nowrap; }
+.apoc-chip b { color: var(--text); font-weight: 700; margin-left: 2px; }
+.apoc-b-green  { border-left-color: var(--green); }
+.apoc-b-amber  { border-left-color: var(--orange); }
+.apoc-b-red    { border-left-color: var(--red); }
+.apoc-dot.apoc-b-green { background: var(--green); }
+.apoc-dot.apoc-b-amber { background: var(--orange); }
+.apoc-dot.apoc-b-red   { background: var(--red); }
+.apoc-alerts-head { font-size: 9px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px;
+  margin: 8px 0 4px; }
+.apoc-alerts { display: flex; flex-direction: column; gap: 3px; }
+.apoc-alert { display: flex; align-items: center; gap: 6px; font-size: 10px; padding: 3px 6px;
+  border-radius: 5px; background: var(--surface2); border-left: 3px solid var(--border); }
+.apoc-a-red   { border-left-color: var(--red); }
+.apoc-a-amber { border-left-color: var(--orange); }
+.apoc-a-tag { font-size: 8px; font-weight: 800; letter-spacing: 0.5px; padding: 1px 4px; border-radius: 3px;
+  background: var(--border); color: var(--text); flex: none; }
+.apoc-a-red   .apoc-a-tag { background: rgba(231,76,60,0.22);  color: var(--red); }
+.apoc-a-amber .apoc-a-tag { background: rgba(230,126,34,0.22); color: var(--orange); }
+.apoc-a-name { color: var(--text); }
+.apoc-a-val { margin-left: auto; font-family: monospace; color: var(--text2); }
+.apoc-nominal { font-size: 10.5px; color: var(--green); padding: 3px 2px; }
+
 /* ─── Analytics / optimization panel ──────────────────────────────────── */
 #panel-analytics { left: 46px; bottom: 14px; width: 256px; }
 .an-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }

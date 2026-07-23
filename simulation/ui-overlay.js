@@ -21,7 +21,7 @@ export class UIOverlay {
     // small default set opens on first load; the rest are one dock-click away.
     this._wm = new WindowManager();
     this._wm.register(document.getElementById('panel-gate-detail'), { hidden: true });   // contextual (gate focus)
-    const DEFAULT_OPEN = new Set(['panel-config', 'panel-flights', 'panel-analytics', 'panel-radar']);
+    const DEFAULT_OPEN = new Set(['panel-apoc', 'panel-config', 'panel-flights', 'panel-radar']);
     DOCK_ITEMS.forEach(it =>
       this._wm.register(document.getElementById(it.id), { hidden: !DEFAULT_OPEN.has(it.id) }));
     this._dock = new Dock(this._wm);
@@ -347,6 +347,21 @@ export class UIOverlay {
         <div id="sn-log" class="sn-log"></div>
       </div>
 
+      <!-- APOC — Airport Operations Centre (Total Airport Management roll-up) -->
+      <div id="panel-apoc" class="panel">
+        <div class="panel-title" data-i18n="panel.apoc">${t('panel.apoc')}</div>
+        <div class="apoc-top">
+          <div id="apoc-score" class="apoc-score">
+            <div id="apoc-score-val" class="apoc-score-val">—</div>
+            <div class="apoc-score-lbl" data-i18n="apoc.score">${t('apoc.score')}</div>
+          </div>
+          <div id="apoc-headline" class="apoc-headline"></div>
+        </div>
+        <div id="apoc-domains" class="apoc-domains"></div>
+        <div class="apoc-alerts-head" data-i18n="apoc.alerts">${t('apoc.alerts')}</div>
+        <div id="apoc-alerts" class="apoc-alerts"></div>
+      </div>
+
       <!-- Data algorithm layer: analytics + optimization + run log -->
       <div id="panel-analytics" class="panel">
         <div class="panel-title" data-i18n="panel.analytics">${t('panel.analytics')}</div>
@@ -659,6 +674,51 @@ export class UIOverlay {
                    `${tf('sn.episode', { rwy: e.runway, kind, dur: Math.round(e.durSec) })}</div>`;
           }).join('')
         : `<div class="sn-empty">${t('sn.noAlerts')}</div>`;
+    }
+  }
+
+  // ── APOC — Total Airport Management roll-up ──────────────────────────────────
+  updateAPOC(st) {
+    if (!st) return;
+    const sv = document.getElementById('apoc-score-val');
+    if (sv) { sv.textContent = st.score; sv.className = `apoc-score-val apoc-${st.rag}`; }
+
+    const hd = document.getElementById('apoc-headline');
+    if (hd) {
+      const h = st.headline;
+      const cell = (k, v, bad) => `<div class="apoc-hcell"><span class="apoc-hv${bad ? ' apoc-bad' : ''}">${v}</span>` +
+                                  `<span class="apoc-hk">${t(k)}</span></div>`;
+      hd.innerHTML =
+        cell('apoc.h.throughput', h.throughput) +
+        cell('apoc.h.onGround', h.onGround) +
+        cell('apoc.h.atRisk', h.turnAtRisk, h.turnAtRisk > 0) +
+        cell('apoc.h.co2', h.taxiCO2Kg);
+    }
+
+    const dm = document.getElementById('apoc-domains');
+    if (dm) {
+      dm.innerHTML = st.domains.map(d => {
+        const chips = d.kpis.map(k =>
+          `<span class="apoc-chip apoc-b-${k.rag}" title="${t('apoc.kpi.' + k.id)} · ${t('apoc.target')} ${k.target}">` +
+          `${t('apoc.kpi.' + k.id)} <b>${k.text}</b></span>`).join('');
+        const dot = d.rag === 'na' ? '' : `<span class="apoc-dot apoc-b-${d.rag}"></span>`;
+        return `<div class="apoc-dom"><div class="apoc-dom-h">${dot}` +
+               `<span class="apoc-dom-n">${t('apoc.dom.' + d.id)}</span>` +
+               `<span class="apoc-dom-s">${d.score == null ? '—' : d.score}</span></div>` +
+               `<div class="apoc-chips">${chips}</div></div>`;
+      }).join('');
+    }
+
+    const al = document.getElementById('apoc-alerts');
+    if (al) {
+      al.innerHTML = st.alerts.length
+        ? st.alerts.map(a => {
+            const name = a.predictive ? t('apoc.kpi.hotspot') : t('apoc.kpi.' + a.kpi);
+            const tag = a.predictive ? t('apoc.predicted') : t('apoc.sev.' + a.sev);
+            return `<div class="apoc-alert apoc-a-${a.sev}"><span class="apoc-a-tag">${tag}</span>` +
+                   `<span class="apoc-a-name">${name}</span><span class="apoc-a-val">${a.text}</span></div>`;
+          }).join('')
+        : `<div class="apoc-nominal">${t('apoc.nominal')}</div>`;
     }
   }
 

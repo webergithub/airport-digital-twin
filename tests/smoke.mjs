@@ -17,6 +17,7 @@ import { Scheduler } from '../optimization/scheduler.js';
 import { AnalyticsEngine } from '../optimization/analytics.js';
 import { RunwaySafetyNet } from '../optimization/safety-nets.js';
 import { DCBForecaster } from '../optimization/dcb-forecaster.js';
+import { APOC, RAG } from '../optimization/apoc.js';
 import { RunLogger } from '../optimization/run-logger.js';
 
 // Deterministic PRNG (mulberry32) so the smoke run is reproducible — a flaky
@@ -42,6 +43,7 @@ const scheduler = new Scheduler(api, { arrivalInterval: 25 });
 const analytics = new AnalyticsEngine(api, scheduler, { targetUtil: 0.6 });
 const safetyNet = new RunwaySafetyNet(api);
 const dcb = new DCBForecaster(api, scheduler);
+const apoc = new APOC();
 const runLog = new RunLogger(api, { snapshotEverySec: 5 });
 
 const seenStates = new Set();
@@ -58,6 +60,9 @@ for (let i = 0; i < STEPS; i++) {
   analytics.update(snapshot, DT);
   safetyNet.update(snapshot);
   dcb.update(snapshot);
+  apoc.update({ metrics: analytics.getMetrics(), safety: safetyNet.getStatus(),
+    dcb: dcb.getForecast(), wall: api.getTurnaroundWall(),
+    stats: snapshot.stats, simTimeSec: snapshot.simTimeSec });
   runLog.tick(snapshot, DT);
   for (const f of snapshot.flights) seenStates.add(f.state);
 }
@@ -145,6 +150,31 @@ check('DCB capacities non-negative',
   fc.runways.RWY1.bins.every(b => b.cap >= 0) && fc.runways.RWY2.bins.every(b => b.cap >= 0));
 const ladder = api.getArrivalLadder();
 check('AMAN ladder shape', 'clock' in ladder && Array.isArray(ladder.RWY1) && Array.isArray(ladder.RWY2));
+
+// APOC — Total Airport Management roll-up
+const ap = apoc.getState();
+check('APOC state present', !!ap && typeof ap.score === 'number');
+check('APOC score in [0,100]', ap.score >= 0 && ap.score <= 100, String(ap.score));
+check('APOC overall rag valid', [RAG.GREEN, RAG.AMBER, RAG.RED].includes(ap.rag), ap.rag);
+check('APOC covers 4 domains', ap.domains.length === 4,
+  ap.domains.map(d => d.id).join(','));
+check('APOC every rated KPI has a valid rag',
+  ap.domains.flatMap(d => d.kpis).every(k => [RAG.GREEN, RAG.AMBER, RAG.RED, RAG.NA].includes(k.rag)));
+check('APOC alerts is an array', Array.isArray(ap.alerts));
+// Headline colour never reads greener than an open breach: any red KPI floors
+// it at amber; a fully-red domain forces red.
+const anyRedKpi = ap.domains.flatMap(d => d.kpis).some(k => k.rag === RAG.RED);
+check('APOC not green while a red KPI is open', !(anyRedKpi && ap.rag === RAG.GREEN),
+  `rag=${ap.rag} anyRedKpi=${anyRedKpi}`);
+check('APOC red when a whole domain is red',
+  !ap.domains.some(d => d.rag === RAG.RED) || ap.rag === RAG.RED, ap.rag);
+check('APOC headline fields present',
+  ap.headline && 'throughput' in ap.headline && 'turnAtRisk' in ap.headline);
+// Every non-predictive alert must correspond to a KPI actually rated amber/red.
+const rated = new Map(ap.domains.flatMap(d => d.kpis).map(k => [k.id, k.rag]));
+check('APOC alerts trace back to breached KPIs',
+  ap.alerts.filter(a => !a.predictive).every(a => rated.get(a.kpi) === a.sev),
+  JSON.stringify(ap.alerts.filter(a => !a.predictive).map(a => [a.kpi, a.sev])));
 const exported = runLog.toJSON();
 check('run-log export sections', ['meta', 'events', 'snapshots', 'turnarounds', 'oooi']
   .every(k => k in exported));
