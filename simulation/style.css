@@ -795,6 +795,7 @@ button:active { transform: scale(0.97); }
 .wi-seg button:hover { border-color: var(--accent); }
 .wi-wx.wi-on { background: var(--accent); color: #06111f; border-color: var(--accent); }
 .wi-rwy.wi-closed { background: rgba(231,76,60,0.22); color: #ff6a56; border-color: #e74c3c; }
+.wi-deice.wi-on { background: rgba(120,190,255,0.22); color: #bfe3ff; border-color: #78beff; }
 .wi-delta { margin-top: 3px; display: flex; flex-direction: column; gap: 2px; }
 .wi-drow { display: flex; justify-content: space-between; font-size: 10px; font-family: monospace; color: var(--text2); }
 .wi-drow span:last-child { color: var(--text); font-weight: 700; }
@@ -802,6 +803,30 @@ button:active { transform: scale(0.97); }
 .wi-drow span.wi-good { color: #2ecc71; }
 .wi-drow span.wi-bad  { color: #e74c3c; }
 .wi-empty { font-size: 10px; color: var(--muted); }
+
+/* ─── Winter de-icing operations ─────────────────────────── */
+#panel-deice { left: 284px; top: 470px; width: 236px; }
+.deice-off { font-size: 10px; line-height: 1.5; color: var(--text2); padding: 2px 0; }
+.deice-kpis { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-bottom: 7px; }
+.deice-kpi { display: flex; flex-direction: column; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 4px 6px; }
+.deice-v { font-size: 14px; font-weight: 700; color: #bfe3ff; line-height: 1.15; }
+.deice-v.deice-bad { color: var(--red); }
+.deice-k { font-size: 8px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.3px; }
+.deice-lh { font-size: 9px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.4px; margin: 4px 0 3px; }
+.deice-list { display: flex; flex-direction: column; gap: 3px; max-height: 150px; overflow-y: auto; }
+.deice-row { display: flex; align-items: center; gap: 6px; font-size: 10px; padding: 3px 6px;
+  border-radius: 5px; background: var(--surface2); border-left: 3px solid var(--border); }
+.deice-row.deice-queued   { border-left-color: var(--text2); }
+.deice-row.deice-deicing  { border-left-color: #78beff; }
+.deice-row.deice-holdover { border-left-color: var(--green); }
+.deice-cs { font-weight: 700; color: var(--text); font-family: monospace; }
+.deice-rwy { font-size: 9px; color: var(--text2); font-family: monospace; }
+.deice-stt { color: var(--text2); }
+.deice-hot { margin-left: auto; font-size: 9px; font-family: monospace; color: var(--green); }
+.deice-hot.deice-warn { color: var(--orange); }
+.deice-hot.deice-bad  { color: var(--red); font-weight: 700; }
+.deice-empty { font-size: 10px; color: var(--muted); padding: 2px; }
 
 /* ─── RECALL surface replay ──────────────────────────────── */
 #panel-replay { left: 284px; bottom: 300px; width: 320px; }

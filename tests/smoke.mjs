@@ -78,13 +78,16 @@ check('turnaround timelines recorded', runLog.counts().turnarounds >= 10,
 // ── 2. Snapshot contract ──────────────────────────────────────────────────────
 console.log('snapshot contract:');
 const TOP_KEYS = ['schemaVersion', 'simTimeSec', 'wallClock', 'activeRunways', 'groundStop',
-  'metering', 'disruptions', 'flights', 'gates', 'runways', 'stats'];
+  'metering', 'disruptions', 'deicing', 'flights', 'gates', 'runways', 'stats'];
 for (const k of TOP_KEYS) check(`top-level "${k}"`, k in snapshot);
+for (const k of ['active', 'padCap', 'padBusy', 'queueLen', 'deicedTotal', 'hotBreaches'])
+  check(`deicing field "${k}"`, k in snapshot.deicing);
+check('deicing inert by default', snapshot.deicing.active === false && snapshot.deicing.deicedTotal === 0);
 check('schemaVersion is 1.0', snapshot.schemaVersion === '1.0');
 
 const FLIGHT_KEYS = ['id', 'callsign', 'airline', 'type', 'state', 'gate', 'runway', 'slot',
   'position', 'headingDeg', 'speedMps', 'altitudeM', 'milestones', 'holdingAtGate',
-  'pobtSim', 'turnAtRisk', 'stand', 'wakeCat', 'eta', 'sta', 'timeToLose', 'seqIdx', 'turnaround'];
+  'pobtSim', 'turnAtRisk', 'stand', 'wakeCat', 'eta', 'sta', 'timeToLose', 'seqIdx', 'turnaround', 'deice'];
 const sample = snapshot.flights.find(f => f.state !== 'DONE') || snapshot.flights[0];
 check('has at least one flight to sample', !!sample);
 if (sample) for (const k of FLIGHT_KEYS) check(`flight field "${k}"`, k in sample);
@@ -178,6 +181,36 @@ check('APOC alerts trace back to breached KPIs',
 const exported = runLog.toJSON();
 check('run-log export sections', ['meta', 'events', 'snapshots', 'turnarounds', 'oooi']
   .every(k => k in exported));
+
+// ── 7. Winter de-icing scenario (isolated run) ────────────────────────────────
+console.log('winter de-icing:');
+{
+  const wApi = new AirportAPI({ runways: 2 });
+  const wSch = new Scheduler(wApi, { arrivalInterval: 18 });
+  const run = (mins) => { for (let i = 0; i < mins * 120; i++) { wApi.update(0.5); wSch.update(0.5); } };
+  run(12);                                   // warm up without winter
+  const depBefore = wApi.getSnapshot().stats.departures;
+  wApi.setDeicing(true);
+  check('de-icing activates', wApi.getSnapshot().deicing.active === true);
+  run(40);
+  const dk = wApi.getDeicing();
+  const depMid = wApi.getSnapshot().stats.departures;
+  check('departures flow through de-icing (no deadlock)', depMid > depBefore,
+    `before=${depBefore} mid=${depMid}`);
+  check('flights actually de-iced', dk.deicedTotal >= 10, `deiced=${dk.deicedTotal}`);
+  check('de-ice list entries carry valid states',
+    dk.list.every(f => ['queued', 'deicing', 'holdover'].includes(f.state)));
+  check('holdover flights expose a HOT countdown',
+    dk.list.filter(f => f.state === 'holdover').every(f => typeof f.hotRemainingSec === 'number'));
+  // Turning winter off must drain everything and keep departures completing.
+  wApi.setDeicing(false);
+  run(15);
+  const wEnd = wApi.getSnapshot();
+  check('de-icing drains when switched off',
+    wEnd.deicing.active === false && wEnd.flights.every(f => !f.deice || f.deice.state !== 'queued'));
+  check('departures still complete after drain', wEnd.stats.departures > depMid,
+    `mid=${depMid} end=${wEnd.stats.departures}`);
+}
 
 // ── Result ────────────────────────────────────────────────────────────────────
 if (failed) { console.error(`\nFAIL: ${failed} check(s) failed`); process.exit(1); }

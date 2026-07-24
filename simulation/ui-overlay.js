@@ -313,8 +313,23 @@ export class UIOverlay {
           <button class="wi-rwy" data-rwy="RWY1">RWY1</button>
           <button class="wi-rwy" data-rwy="RWY2">RWY2</button>
         </div>
+        <div class="wi-lbl" data-i18n="wi.winter">${t('wi.winter')}</div>
+        <div id="wi-winter" class="wi-seg">
+          <button class="wi-deice" data-i18n="wi.deice">${t('wi.deice')}</button>
+        </div>
         <div class="wi-lbl" data-i18n="wi.delta">${t('wi.delta')}</div>
         <div id="wi-delta" class="wi-delta"></div>
+      </div>
+
+      <!-- Winter de-icing operations (collapsed by default) -->
+      <div id="panel-deice" class="panel">
+        <div class="panel-title" data-i18n="panel.deice">${t('panel.deice')}</div>
+        <div id="deice-off" class="deice-off" data-i18n="deice.off">${t('deice.off')}</div>
+        <div id="deice-body" class="deice-body" style="display:none">
+          <div id="deice-kpis" class="deice-kpis"></div>
+          <div class="deice-lh" data-i18n="deice.inProcess">${t('deice.inProcess')}</div>
+          <div id="deice-list" class="deice-list"></div>
+        </div>
       </div>
 
       <!-- RECALL surface replay + time-scrubber (collapsed by default) -->
@@ -445,6 +460,10 @@ export class UIOverlay {
     document.getElementById('wi-runways').addEventListener('click', e => {
       const b = e.target.closest('.wi-rwy');
       if (b) this._cb('toggleRunway', { runway: b.dataset.rwy, closed: !b.classList.contains('wi-closed') });
+    });
+    document.getElementById('wi-winter').addEventListener('click', e => {
+      const b = e.target.closest('.wi-deice');
+      if (b) this._cb('toggleDeicing', { on: !b.classList.contains('wi-on') });
     });
     document.getElementById('an-export').addEventListener('click', () => {
       this._cb('exportLog');
@@ -610,6 +629,8 @@ export class UIOverlay {
     document.querySelectorAll('#wi-runways .wi-rwy').forEach(b => {
       b.classList.toggle('wi-closed', !!d.runwaysClosed[b.dataset.rwy]);
     });
+    const winterBtn = document.querySelector('#wi-winter .wi-deice');
+    if (winterBtn) winterBtn.classList.toggle('wi-on', !!d.deicing);
     const banner = document.getElementById('wi-banner');
     if (banner) {
       if (d.active) {
@@ -617,6 +638,7 @@ export class UIOverlay {
         const bits = [];
         if (d.weather > 0) bits.push(`${d.weatherKey}`);
         if (closed.length) bits.push(tf('wi.closed', { r: closed.join('/') }));
+        if (d.deicing) bits.push(t('wi.deice'));
         banner.textContent = tf('wi.activeBanner', { s: bits.join(' · ') });
         banner.style.display = 'block';
       } else {
@@ -640,6 +662,45 @@ export class UIOverlay {
         row(t('an.gateUtil'),   delta.gateUtil == null ? null : delta.gateUtil * 100, '%', false) +
         row(t('an.taxiOut'),    delta.avgTaxiOut, 's', true) +
         row(t('an.avgDepWait'), delta.avgDepWait, 's', true);
+    }
+  }
+
+  // ── Winter de-icing operations ───────────────────────────────────────────────
+  updateDeice(dk) {
+    if (!dk) return;
+    const off = document.getElementById('deice-off');
+    const body = document.getElementById('deice-body');
+    if (off)  off.style.display  = dk.active ? 'none' : 'block';
+    if (body) body.style.display = dk.active ? 'block' : 'none';
+    if (!dk.active) return;
+
+    const kp = document.getElementById('deice-kpis');
+    if (kp) {
+      const cell = (label, val, bad) =>
+        `<div class="deice-kpi"><span class="deice-v${bad ? ' deice-bad' : ''}">${val}</span>` +
+        `<span class="deice-k">${label}</span></div>`;
+      kp.innerHTML =
+        cell(t('deice.pads'), `${dk.padBusy}/${dk.padCap}`, dk.padBusy >= dk.padCap) +
+        cell(t('deice.queue'), dk.queueLen, dk.queueLen > 0) +
+        cell(t('deice.treated'), dk.deicedTotal) +
+        cell(t('deice.avgWait'), `${dk.avgWaitSec}s`) +
+        cell(t('deice.hotBreach'), dk.hotBreaches, dk.hotBreaches > 0);
+    }
+    const ls = document.getElementById('deice-list');
+    if (ls) {
+      const ST = { queued: 'deice.st.queued', deicing: 'deice.st.deicing', holdover: 'deice.st.holdover' };
+      const list = dk.list || [];
+      ls.innerHTML = list.length
+        ? list.map(f => {
+            const hot = f.state === 'holdover'
+              ? `<span class="deice-hot${f.hotBreached ? ' deice-bad' : (f.hotRemainingSec <= 15 ? ' deice-warn' : '')}">` +
+                (f.hotBreached ? t('deice.expired') : `HOT ${Math.round(f.hotRemainingSec)}s`) + `</span>`
+              : '';
+            return `<div class="deice-row deice-${f.state}"><span class="deice-cs">${f.callsign}</span>` +
+                   `<span class="deice-rwy">${f.runway}</span>` +
+                   `<span class="deice-stt">${t(ST[f.state])}</span>${hot}</div>`;
+          }).join('')
+        : `<div class="deice-empty">${t('deice.none')}</div>`;
     }
   }
 

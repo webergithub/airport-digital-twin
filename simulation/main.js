@@ -162,6 +162,12 @@ const ui = new UIOverlay(document.getElementById('ui-root'), (action, payload) =
       syncScenarioBaseline();
       break;
     }
+    case 'toggleDeicing': {
+      api.setDeicing(payload.on);
+      ui.log(t(payload.on ? 'log.deiceOn' : 'log.deiceOff'), payload.on ? 'warn' : 'info');
+      syncScenarioBaseline();
+      break;
+    }
     case 'exportLog':
       runLog.download();
       ui.log(tf('log.export', { e: runLog.counts().events, s: runLog.counts().snapshots }), 'info');
@@ -292,12 +298,13 @@ function logicTick() {
   ui.updateSafetyNets(safety);
   ui.updateSurfaceRadar(snapshot, { RWY1: safetyNet.stage('RWY1'), RWY2: safetyNet.stage('RWY2') });
   ui.updateDisruption(snapshot.disruptions, analytics.getScenarioDelta());
+  ui.updateDeice(api.getDeicing());          // includes the per-flight in-process list
   ui.updateAman(api.getArrivalLadder());
   ui.updateDCB(forecast);
 
   // APOC — Total Airport Management: score every domain's KPIs vs target.
   apoc.update({ metrics, safety, dcb: forecast, wall, stats: snapshot.stats,
-                simTimeSec: snapshot.simTimeSec });
+                deicing: snapshot.deicing, simTimeSec: snapshot.simTimeSec });
   ui.updateAPOC(apoc.getState());
 
   if (focusedGateId) {

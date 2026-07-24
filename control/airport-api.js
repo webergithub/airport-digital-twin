@@ -12,6 +12,7 @@ import { Flight, FS } from './flight-manager.js';
 import { GateManager } from './gate-manager.js';
 import { RunwayController } from './runway-controller.js';
 import { ArrivalManager } from './arrival-manager.js';
+import { DeiceManager } from './deice-manager.js';
 
 // ── DMAN departure metering (A-CDM TSAT / NASA ATD-2 surface metering) ────────
 const METER_DEPTH = 3;  // hold at gate while runway demand (queue+rolling+pushback) ≥ this
@@ -39,6 +40,7 @@ export class AirportAPI {
     // Per-runway departure sequencing + AMAN arrival sequencing
     this._runways = { RWY1: new RunwayController('RWY1'), RWY2: new RunwayController('RWY2') };
     this._arrivals = new ArrivalManager();
+    this._deice   = new DeiceManager();   // winter de-icing (inert unless activated)
     this._clock   = 0;               // monotonic sim-seconds
 
     // DMAN departure metering: hold ready flights at the gate (engines off)
@@ -81,7 +83,29 @@ export class AirportAPI {
     this.emit('runway_opened', { runway: key });
   }
   get runwaysClosed() { return { ...this._runwayClosed }; }
-  hasDisruption() { return this._weather > 0 || this._runwayClosed.RWY1 || this._runwayClosed.RWY2; }
+
+  /** Winter de-icing: freezing-precipitation scenario. Departures must be de-iced. */
+  setDeicing(on) {
+    if (this._deice.active === !!on) return;
+    this._deice.setActive(on);
+    this.emit(on ? 'deicing_on' : 'deicing_off', {});
+  }
+  get deicingActive() { return this._deice.active; }
+  getDeicing() {
+    const s = this._deice.getStatus();
+    const list = [];
+    for (const [, f] of this._flights) {
+      const v = this._deice.flightView(f, this._clock);
+      if (v) list.push({ callsign: f.callsign, runway: f.runway, ...v });
+    }
+    // Queued first, then de-icing, then holdover with least HOT remaining first.
+    const rank = { queued: 0, deicing: 1, holdover: 2 };
+    list.sort((a, b) => (rank[a.state] - rank[b.state]) ||
+      ((a.hotRemainingSec ?? 1e9) - (b.hotRemainingSec ?? 1e9)));
+    return { ...s, list };
+  }
+
+  hasDisruption() { return this._weather > 0 || this._runwayClosed.RWY1 || this._runwayClosed.RWY2 || this._deice.active; }
   weatherParams() { return WEATHER[this._weather]; }
 
   // ── Config ─────────────────────────────────────────────────────────────────
@@ -181,7 +205,11 @@ export class AirportAPI {
             break;
           case FS.TAXIING_OUT:
             // Left the gate apron → join its runway's departure queue (once).
-            this._runways[flight.runway].enqueue(flight);
+            // In winter mode the flight is held for de-icing first and enqueued
+            // only once treated (DeiceManager.service); otherwise enqueue now.
+            if (!this._deice.intercept(flight, this._clock)) {
+              this._runways[flight.runway].enqueue(flight);
+            }
             break;
           case FS.HOLDING:
             this.emit('atc_hold', flight.getStatus());
@@ -210,6 +238,12 @@ export class AirportAPI {
       if (f.state === FS.DONE && f._doneAtSim != null && this._clock - f._doneAtSim > 3) {
         this._flights.delete(id);
       }
+    }
+
+    // De-icing: complete treatments and release de-iced (DCR) flights into their
+    // runway's departure queue. No-op when winter mode is off.
+    for (const f of this._deice.service(this._flights, this._clock)) {
+      this._runways[f.runway]?.enqueue(f);
     }
 
     // AMAN: sequence inbound traffic and meter approach speeds first.
@@ -395,6 +429,7 @@ export class AirportAPI {
         wakeCat:    f.wakeCat,                 // AMAN wake category (H/M/S)
         eta: f.eta, sta: f.sta, timeToLose: f.timeToLose, seqIdx: f.seqIdx,
         turnaround: f.turnaround ? f.turnaround.snapshot() : null,
+        deice:      this._deice.flightView(f, this._clock),   // winter de-icing (null if N/A)
       };
     });
     return {
@@ -409,8 +444,10 @@ export class AirportAPI {
         weatherKey:    WEATHER[this._weather].key,
         runwaysClosed: { ...this._runwayClosed },
         sepFactor:     WEATHER[this._weather].sep,
+        deicing:       this._deice.active,
         active:        this.hasDisruption(),
       },
+      deicing: this._deice.getStatus(),
       flights,
       gates: this._gates.getOccupancy().gates,
       runways: [this._runways.RWY1.getStatus(), this._runways.RWY2.getStatus()],

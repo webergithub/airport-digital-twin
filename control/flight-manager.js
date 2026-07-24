@@ -196,6 +196,10 @@ export class Flight {
     // HOLDING: wait for RunwayController.clearForTakeoff() — no self-clearing timer.
     if (this.state === FS.HOLDING) { this.currentSpeed = 0; return; }
 
+    // Winter de-icing hold: frozen at the apron until treatment completes (DCR).
+    // Only ever set on a departing flight while TAXIING_OUT (DeiceManager).
+    if (this._deiceHold) { this.currentSpeed = 0; return; }
+
     const cur = this._wps[this._wi];
     const nxt = this._wps[this._wi + 1];
     if (!nxt) { this._onEnd(); return; }

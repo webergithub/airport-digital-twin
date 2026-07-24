@@ -52,6 +52,11 @@ const KPIS = [
     val: d => d.metrics.standContactPct, na: d => (d.metrics.standCount || 0) < 2,
     fmt: v => Math.round(v * 100) + '%',
     rate: v => v >= 0.75 ? RAG.GREEN : v >= 0.5 ? RAG.AMBER : RAG.RED },
+  // Only rated while winter de-icing is active — otherwise N/A (excluded).
+  { id: 'deiceQueue', domain: 'cap', dir: 'down', target: '0',
+    val: d => d.deicing ? d.deicing.queueLen : 0, na: d => !d.deicing || !d.deicing.active,
+    fmt: v => String(v),
+    rate: v => v === 0 ? RAG.GREEN : v <= 2 ? RAG.AMBER : RAG.RED },
 
   // ── Airside safety (A-SMGCS / RIMCAS) ─────────────────────────────────────
   { id: 'rwyLive', domain: 'safe', dir: 'down', target: 'clear',
