@@ -28,6 +28,7 @@ import { RunLogger }      from '../optimization/run-logger.js';
 import { RunwaySafetyNet } from '../optimization/safety-nets.js';
 import { DCBForecaster }   from '../optimization/dcb-forecaster.js';
 import { APOC }            from '../optimization/apoc.js';
+import { VDGS }            from '../optimization/vdgs.js';
 import { TaxiGuidance }    from './guidance-lights.js';
 import { LiveSource }      from './live-source.js';
 import { t, tf, onLangChange, toggleLang, getLang } from './i18n.js';
@@ -50,6 +51,7 @@ const runLog    = new RunLogger(api, { snapshotEverySec: 5 });
 const safetyNet = new RunwaySafetyNet(api);   // A-SMGCS RIMCAS runway monitor
 const dcb       = new DCBForecaster(api, scheduler);  // rolling demand-capacity forecast
 const apoc      = new APOC();                          // Total Airport Management 运行指挥中心
+const vdgs      = new VDGS();                          // A-VDGS 泊位引导（Safedock 数字机坪）
 const liveSource = new LiveSource();                  // 对接真实机场（WS 数据源）
 let simPaused   = false;                              // 暂停/启动模拟
 let liveSnapshot = null;                              // 最近一帧外部数据源快照
@@ -299,6 +301,14 @@ function logicTick() {
   ui.updateSurfaceRadar(snapshot, { RWY1: safetyNet.stage('RWY1'), RWY2: safetyNet.stage('RWY2') });
   ui.updateDisruption(snapshot.disruptions, analytics.getScenarioDelta());
   ui.updateDeice(api.getDeicing());          // includes the per-flight in-process list
+
+  // A-VDGS: derive each stand's docking display from the snapshot, mirror it
+  // onto the 3D boards, and log completed dockings (Digital Apron telemetry).
+  vdgs.update(snapshot);
+  const vs = vdgs.getStatus();
+  for (const g of vs.gates) airport.setVDGS(g.id, g.l1, g.l2, g.cls);
+  for (const d of vdgs.justDocked()) ui.log(tf('log.docked', { cs: d.cs, g: d.gate, s: d.durSec }), 'gate');
+  ui.updateVDGS(vs);
   ui.updateAman(api.getArrivalLadder());
   ui.updateDCB(forecast);
 

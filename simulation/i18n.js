@@ -227,6 +227,19 @@ const DICT = {
   'wi.winter':      { zh: '冬季运行',    en: 'Winter ops' },
   'wi.deice':       { zh: '❄ 冻雨 / 除冰', en: '❄ Freezing / de-icing' },
   'wi.delta':       { zh: '相对基线',    en: 'Δ vs baseline' },
+  // ── A-VDGS 泊位引导 ──
+  'panel.vdgs':    { zh: '🎯 泊位引导 (A-VDGS)', en: '🎯 Docking Guidance (A-VDGS)' },
+  'dock.d.vdgs':   { zh: '泊位引导屏·进位倒计时·对接统计', en: 'Stand docking displays & stats' },
+  'vdgs.active':   { zh: '进位中', en: 'Docking' },
+  'vdgs.dockings': { zh: '完成对接', en: 'Dockings' },
+  'vdgs.avg':      { zh: '平均进位', en: 'Avg dock' },
+  'vdgs.ph.idle':    { zh: '空闲', en: 'Idle' },
+  'vdgs.ph.wait':    { zh: '等待到位', en: 'Waiting' },
+  'vdgs.ph.closing': { zh: '进位中', en: 'Closing' },
+  'vdgs.ph.slow':    { zh: '减速', en: 'SLOW' },
+  'vdgs.ph.parked':  { zh: '已对接', en: 'On blocks' },
+  'log.docked':    { zh: '🎯 {cs} 对接 {g} 完成（进位 {s}s）', en: '🎯 {cs} docked at {g} ({s}s lead-in)' },
+
   // ── 除冰 / 冬季运行 ──
   'panel.deice':      { zh: '❄ 除冰运行', en: '❄ De-icing Ops' },
   'dock.d.deice':     { zh: '除冰位·排队·保持时间(HOT)', en: 'De-icing pads, queue & holdover time' },

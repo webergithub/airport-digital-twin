@@ -46,6 +46,7 @@ export class Airport3D {
     this.group.add(this.gateGroup);
     this.gateMarkers = [];                   // raycast targets (ground planes)
     this._gateLabels = [];                   // CSS2D label objects (for cleanup)
+    this._vdgsBoards = new Map();            // gateId → A-VDGS display board div
 
     this._build();
   }
@@ -190,7 +191,29 @@ export class Airport3D {
       lbl.position.set(g.x, 0.5, 5);
       this.gateGroup.add(lbl);
       this._gateLabels.push(lbl);
+
+      // A-VDGS docking display (CSS2D) mounted above the stop bar, facing the
+      // lead-in line — mirrors the Safedock unit on the terminal face.
+      const vd = document.createElement('div');
+      vd.className = 'vdgs-board';
+      vd.innerHTML = '<div class="vdgs-l1">– –</div><div class="vdgs-l2">·</div>';
+      const vlbl = new CSS2DObject(vd);
+      vlbl.position.set(g.x, 3.0, 14.6);
+      this.gateGroup.add(vlbl);
+      this._gateLabels.push(vlbl);           // shares the rebuild cleanup path
+      this._vdgsBoards.set(g.id, vd);
     }
+  }
+
+  /** Update one stand's A-VDGS display (language-neutral LED lines). */
+  setVDGS(gateId, l1, l2, cls = '') {
+    const el = this._vdgsBoards.get(gateId);
+    if (!el) return;
+    const a = el.firstElementChild, b = el.lastElementChild;
+    if (a.textContent !== l1) a.textContent = l1;
+    if (b.textContent !== l2) b.textContent = l2;
+    const want = 'vdgs-board' + (cls ? ' ' + cls : '');
+    if (el.className !== want) el.className = want;
   }
 
   /** Rebuild all per-gate furniture from the current gate layout. */
@@ -202,6 +225,7 @@ export class Airport3D {
     }
     this._gateLabels = [];
     this.gateMarkers = [];
+    this._vdgsBoards.clear();
 
     // Dispose & remove all mesh children
     for (const child of [...this.gateGroup.children]) {

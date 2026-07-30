@@ -804,6 +804,40 @@ button:active { transform: scale(0.97); }
 .wi-drow span.wi-bad  { color: #e74c3c; }
 .wi-empty { font-size: 10px; color: var(--muted); }
 
+/* ─── A-VDGS docking guidance ────────────────────────────── */
+/* 3D display board (CSS2D, LED look) */
+.vdgs-board { background: rgba(6,10,8,0.92); border: 1px solid #23402a; border-radius: 3px;
+  padding: 2px 7px; text-align: center; font-family: monospace; pointer-events: none;
+  min-width: 44px; }
+.vdgs-l1 { font-size: 9px; font-weight: 700; color: #3d5a48; letter-spacing: 0.5px; line-height: 1.25; }
+.vdgs-l2 { font-size: 10px; font-weight: 800; color: #4a6a55; line-height: 1.25; }
+.vdgs-board.vdgs-wait  .vdgs-l1, .vdgs-board.vdgs-wait  .vdgs-l2 { color: #f0b429; }
+.vdgs-board.vdgs-close .vdgs-l1, .vdgs-board.vdgs-close .vdgs-l2 { color: #ffd166; }
+.vdgs-board.vdgs-slow  .vdgs-l1, .vdgs-board.vdgs-slow  .vdgs-l2 { color: #ff8c42; }
+.vdgs-board.vdgs-ok    .vdgs-l1, .vdgs-board.vdgs-ok    .vdgs-l2 { color: #2ecc71; }
+.vdgs-board.vdgs-close, .vdgs-board.vdgs-slow { border-color: #6a5a23; }
+.vdgs-board.vdgs-ok { border-color: #1f5a38; }
+
+/* panel */
+#panel-vdgs { right: 46px; top: 360px; width: 238px; }
+body.dock-wide #panel-vdgs { right: 110px; }
+.vdgs-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-bottom: 7px; }
+.vdgs-kpi { display: flex; flex-direction: column; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 4px 7px; }
+.vdgs-kv { font-size: 14px; font-weight: 700; color: var(--accent); line-height: 1.15; }
+.vdgs-kk { font-size: 8px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.3px; }
+.vdgs-list { display: flex; flex-direction: column; gap: 3px; }
+.vdgs-row { display: flex; align-items: center; gap: 6px; font-size: 10px; padding: 3px 6px;
+  border-radius: 5px; background: var(--surface2); border-left: 3px solid var(--border); }
+.vdgs-row.vph-wait    { border-left-color: #f0b429; }
+.vdgs-row.vph-closing { border-left-color: #ffd166; }
+.vdgs-row.vph-slow    { border-left-color: #ff8c42; }
+.vdgs-row.vph-parked  { border-left-color: var(--green); }
+.vdgs-gid { font-family: monospace; font-weight: 700; color: var(--text); width: 22px; }
+.vdgs-led { font-family: monospace; color: var(--accent); width: 64px; }
+.vdgs-ph { color: var(--text2); }
+.vdgs-dist { margin-left: auto; font-family: monospace; color: var(--text2); }
+
 /* ─── Winter de-icing operations ─────────────────────────── */
 #panel-deice { left: 284px; top: 470px; width: 236px; }
 .deice-off { font-size: 10px; line-height: 1.5; color: var(--text2); padding: 2px 0; }

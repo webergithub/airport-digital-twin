@@ -332,6 +332,13 @@ export class UIOverlay {
         </div>
       </div>
 
+      <!-- A-VDGS docking guidance (collapsed by default) -->
+      <div id="panel-vdgs" class="panel">
+        <div class="panel-title" data-i18n="panel.vdgs">${t('panel.vdgs')}</div>
+        <div id="vdgs-stats" class="vdgs-stats"></div>
+        <div id="vdgs-list" class="vdgs-list"></div>
+      </div>
+
       <!-- RECALL surface replay + time-scrubber (collapsed by default) -->
       <div id="panel-replay" class="panel">
         <div class="panel-title" data-i18n="panel.replay">${t('panel.replay')}</div>
@@ -662,6 +669,31 @@ export class UIOverlay {
         row(t('an.gateUtil'),   delta.gateUtil == null ? null : delta.gateUtil * 100, '%', false) +
         row(t('an.taxiOut'),    delta.avgTaxiOut, 's', true) +
         row(t('an.avgDepWait'), delta.avgDepWait, 's', true);
+    }
+  }
+
+  // ── A-VDGS docking guidance ──────────────────────────────────────────────────
+  updateVDGS(vs) {
+    if (!vs) return;
+    const stats = document.getElementById('vdgs-stats');
+    if (stats) {
+      const cell = (label, val) =>
+        `<div class="vdgs-kpi"><span class="vdgs-kv">${val}</span><span class="vdgs-kk">${label}</span></div>`;
+      stats.innerHTML =
+        cell(t('vdgs.active'), vs.active) +
+        cell(t('vdgs.dockings'), vs.dockings) +
+        cell(t('vdgs.avg'), vs.avgDockSec ? `${vs.avgDockSec}s` : '—');
+    }
+    const ls = document.getElementById('vdgs-list');
+    if (ls) {
+      ls.innerHTML = (vs.gates || []).map(g => {
+        const dist = (g.phase === 'closing' || g.phase === 'slow') ? `${g.distM}m` : '';
+        return `<div class="vdgs-row vph-${g.phase}">` +
+               `<span class="vdgs-gid">${g.id}</span>` +
+               `<span class="vdgs-led">${g.l1 === '– –' ? '' : g.l1}</span>` +
+               `<span class="vdgs-ph">${t('vdgs.ph.' + g.phase)}</span>` +
+               `<span class="vdgs-dist">${dist}</span></div>`;
+      }).join('');
     }
   }
 

@@ -18,6 +18,7 @@ import { AnalyticsEngine } from '../optimization/analytics.js';
 import { RunwaySafetyNet } from '../optimization/safety-nets.js';
 import { DCBForecaster } from '../optimization/dcb-forecaster.js';
 import { APOC, RAG } from '../optimization/apoc.js';
+import { VDGS, VPH } from '../optimization/vdgs.js';
 import { RunLogger } from '../optimization/run-logger.js';
 
 // Deterministic PRNG (mulberry32) so the smoke run is reproducible — a flaky
@@ -44,7 +45,12 @@ const analytics = new AnalyticsEngine(api, scheduler, { targetUtil: 0.6 });
 const safetyNet = new RunwaySafetyNet(api);
 const dcb = new DCBForecaster(api, scheduler);
 const apoc = new APOC();
+const vdgs = new VDGS();
 const runLog = new RunLogger(api, { snapshotEverySec: 5 });
+
+// Track one docking episode per gate to assert the countdown is monotonic.
+const vdgsEpisodes = new Map();   // gateId → last distM while closing
+let vdgsMonotonic = true;
 
 const seenStates = new Set();
 const departures = [];                 // { simT, milestones } per completed flight
@@ -63,6 +69,16 @@ for (let i = 0; i < STEPS; i++) {
   apoc.update({ metrics: analytics.getMetrics(), safety: safetyNet.getStatus(),
     dcb: dcb.getForecast(), wall: api.getTurnaroundWall(),
     stats: snapshot.stats, simTimeSec: snapshot.simTimeSec });
+  vdgs.update(snapshot);
+  for (const g of vdgs.getStatus().gates) {
+    if (g.phase === VPH.CLOSE || g.phase === VPH.SLOW) {
+      const prev = vdgsEpisodes.get(g.id);
+      if (prev != null && g.distM > prev + 0.5) vdgsMonotonic = false;  // countdown went UP
+      vdgsEpisodes.set(g.id, g.distM);
+    } else {
+      vdgsEpisodes.delete(g.id);
+    }
+  }
   runLog.tick(snapshot, DT);
   for (const f of snapshot.flights) seenStates.add(f.state);
 }
@@ -181,6 +197,22 @@ check('APOC alerts trace back to breached KPIs',
 const exported = runLog.toJSON();
 check('run-log export sections', ['meta', 'events', 'snapshots', 'turnarounds', 'oooi']
   .every(k => k in exported));
+
+// ── 6b. A-VDGS docking guidance ───────────────────────────────────────────────
+console.log('A-VDGS:');
+{
+  const vst = vdgs.getStatus();
+  check('VDGS covers every stand', vst.gates.length >= 4, `gates=${vst.gates.length}`);
+  const PHASES = new Set(Object.values(VPH));
+  check('VDGS phases all valid', vst.gates.every(g => PHASES.has(g.phase)),
+    vst.gates.map(g => g.phase).join(','));
+  check('VDGS dockings completed over the run', vst.dockings >= 10, `dockings=${vst.dockings}`);
+  check('VDGS avg docking time sane (0–60s)', vst.avgDockSec > 0 && vst.avgDockSec < 60,
+    String(vst.avgDockSec));
+  check('VDGS closing countdown monotonically decreases', vdgsMonotonic);
+  check('VDGS display lines present on every state',
+    vst.gates.every(g => typeof g.l1 === 'string' && typeof g.l2 === 'string'));
+}
 
 // ── 7. Winter de-icing scenario (isolated run) ────────────────────────────────
 console.log('winter de-icing:');
