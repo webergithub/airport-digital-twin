@@ -20,6 +20,7 @@ import { DCBForecaster } from '../optimization/dcb-forecaster.js';
 import { APOC, RAG } from '../optimization/apoc.js';
 import { VDGS, VPH } from '../optimization/vdgs.js';
 import { NoiseMonitor, NMT_SITES } from '../optimization/noise-monitor.js';
+import { SlotMonitor } from '../optimization/slot-monitor.js';
 import { RunLogger } from '../optimization/run-logger.js';
 
 // Deterministic PRNG (mulberry32) so the smoke run is reproducible — a flaky
@@ -48,6 +49,7 @@ const dcb = new DCBForecaster(api, scheduler);
 const apoc = new APOC();
 const vdgs = new VDGS();
 const noise = new NoiseMonitor();
+const slots = new SlotMonitor();
 const runLog = new RunLogger(api, { snapshotEverySec: 5 });
 
 // Track one docking episode per gate to assert the countdown is monotonic.
@@ -69,9 +71,10 @@ for (let i = 0; i < STEPS; i++) {
   safetyNet.update(snapshot);
   dcb.update(snapshot);
   noise.update(snapshot);
+  slots.update(snapshot);
   apoc.update({ metrics: analytics.getMetrics(), safety: safetyNet.getStatus(),
     dcb: dcb.getForecast(), wall: api.getTurnaroundWall(), noise: noise.getStatus(),
-    stats: snapshot.stats, simTimeSec: snapshot.simTimeSec });
+    slots: slots.getStatus(), stats: snapshot.stats, simTimeSec: snapshot.simTimeSec });
   vdgs.update(snapshot);
   for (const g of vdgs.getStatus().gates) {
     if (g.phase === VPH.CLOSE || g.phase === VPH.SLOW) {
@@ -239,6 +242,24 @@ console.log('noise monitoring:');
   const apNoise = apoc.getState().domains.find(d => d.id === 'env').kpis.find(k => k.id === 'noise');
   check('APOC env domain rates the noise KPI', !!apNoise && apNoise.rag !== RAG.NA,
     apNoise && apNoise.rag);
+}
+
+// ── 6d. ATFM / CTOT slot adherence ────────────────────────────────────────────
+console.log('slot adherence:');
+{
+  const st = slots.getStatus();
+  check('regulated departures assigned CTOTs', st.regulated >= 5, `regulated=${st.regulated}`);
+  check('slots closed over the run', st.closed >= 3, `closed=${st.closed}`);
+  check('verdict tally consistent', st.compliant + st.early + st.late === st.closed,
+    JSON.stringify({ c: st.compliant, e: st.early, l: st.late, closed: st.closed }));
+  check('adherence in [0,100]', st.adherencePct == null ||
+    (st.adherencePct >= 0 && st.adherencePct <= 100), String(st.adherencePct));
+  check('open slot windows ordered lo<hi', st.open.every(s => s.winLo < s.winHi));
+  check('open slot statuses valid', st.open.every(s => ['ok', 'risk', 'missed'].includes(s.status)),
+    st.open.map(s => s.status).join(','));
+  const apSlot = apoc.getState().domains.find(d => d.id === 'punc').kpis.find(k => k.id === 'slotAdh');
+  check('APOC punctuality rates slot adherence', !!apSlot && (st.closed < 3 || apSlot.rag !== RAG.NA),
+    apSlot && apSlot.rag);
 }
 
 // ── 7. Winter de-icing scenario (isolated run) ────────────────────────────────

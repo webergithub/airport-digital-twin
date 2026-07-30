@@ -38,6 +38,13 @@ const KPIS = [
     val: d => d.metrics.avgDepWait, na: d => (d.metrics.completed?.dep || 0) < 2,
     fmt: v => Math.round(v) + 's',
     rate: v => v <= 120 ? RAG.GREEN : v <= 300 ? RAG.AMBER : RAG.RED },
+  // ATFM slot adherence — EUROCONTROL's network KPI (≥80% expected; ≥20%
+  // non-adherence triggers an action plan).
+  { id: 'slotAdh', domain: 'punc', dir: 'up', target: '≥ 80%',
+    val: d => d.slots && d.slots.adherencePct != null ? d.slots.adherencePct / 100 : null,
+    na: d => !d.slots || d.slots.closed < 3,
+    fmt: v => Math.round(v * 100) + '%',
+    rate: v => v >= 0.80 ? RAG.GREEN : v >= 0.60 ? RAG.AMBER : RAG.RED },
 
   // ── Capacity ──────────────────────────────────────────────────────────────
   { id: 'dcbPeak', domain: 'cap', dir: 'down', target: '< 1.0',

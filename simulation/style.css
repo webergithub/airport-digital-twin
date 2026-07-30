@@ -824,6 +824,36 @@ button:active { transform: scale(0.97); }
 .wi-drow span.wi-bad  { color: #e74c3c; }
 .wi-empty { font-size: 10px; color: var(--muted); }
 
+/* ─── ATFM / CTOT slot adherence ─────────────────────────── */
+#panel-slots { left: 284px; top: 60px; width: 252px; }
+.slots-kpis { display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr; gap: 5px; margin-bottom: 7px; }
+.slots-kpi { display: flex; flex-direction: column; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 4px 6px; }
+.slots-kv { font-size: 13px; font-weight: 700; color: var(--accent); line-height: 1.2; }
+.slots-kv.slots-good { color: var(--green); }
+.slots-kv.slots-warn { color: var(--orange); }
+.slots-kv.slots-bad  { color: var(--red); }
+.slots-kk { font-size: 7.5px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.3px; }
+.slots-lh { font-size: 9px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.4px; margin: 6px 0 3px; }
+.slots-open, .slots-recent { display: flex; flex-direction: column; gap: 3px; max-height: 120px; overflow-y: auto; }
+.slots-row { display: flex; align-items: center; gap: 7px; font-size: 10px; font-family: monospace;
+  color: var(--text2); padding: 2px 6px; border-radius: 4px; background: var(--surface2);
+  border-left: 3px solid var(--border); }
+.slots-row.st-ok     { border-left-color: var(--green); }
+.slots-row.st-risk   { border-left-color: var(--orange); }
+.slots-row.st-missed { border-left-color: var(--red); }
+.slots-row.sv-compliant { border-left-color: var(--green); }
+.slots-row.sv-early     { border-left-color: var(--orange); }
+.slots-row.sv-late      { border-left-color: var(--red); }
+.slots-cs { color: var(--text); font-weight: 700; }
+.slots-win { font-size: 9px; color: var(--muted); }
+.slots-st { margin-left: auto; font-weight: 700; }
+.st-risk .slots-st { color: var(--orange); } .st-missed .slots-st { color: var(--red); }
+.sv-late .slots-st { color: var(--red); } .sv-early .slots-st { color: var(--orange); }
+.sv-compliant .slots-st { color: var(--green); }
+.slots-dev { color: var(--text); }
+.slots-empty { font-size: 10px; color: var(--muted); padding: 2px; }
+
 /* ─── ANOMS noise monitoring ─────────────────────────────── */
 #panel-noise { right: 300px; top: 60px; width: 258px; }
 .noise-kpis { display: grid; grid-template-columns: 1fr 1fr 1fr 1.4fr; gap: 5px; margin-bottom: 7px; }

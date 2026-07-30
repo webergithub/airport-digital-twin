@@ -335,6 +335,16 @@ export class UIOverlay {
         </div>
       </div>
 
+      <!-- ATFM / CTOT slot adherence (collapsed by default) -->
+      <div id="panel-slots" class="panel">
+        <div class="panel-title" data-i18n="panel.slots">${t('panel.slots')}</div>
+        <div id="slots-kpis" class="slots-kpis"></div>
+        <div class="slots-lh" data-i18n="slots.open">${t('slots.open')}</div>
+        <div id="slots-open" class="slots-open"></div>
+        <div class="slots-lh" data-i18n="slots.recent">${t('slots.recent')}</div>
+        <div id="slots-recent" class="slots-recent"></div>
+      </div>
+
       <!-- ANOMS noise monitoring (collapsed by default) -->
       <div id="panel-noise" class="panel">
         <div class="panel-title" data-i18n="panel.noise">${t('panel.noise')}</div>
@@ -681,6 +691,46 @@ export class UIOverlay {
         row(t('an.gateUtil'),   delta.gateUtil == null ? null : delta.gateUtil * 100, '%', false) +
         row(t('an.taxiOut'),    delta.avgTaxiOut, 's', true) +
         row(t('an.avgDepWait'), delta.avgDepWait, 's', true);
+    }
+  }
+
+  // ── ATFM / CTOT slot adherence ───────────────────────────────────────────────
+  updateSlots(sl) {
+    if (!sl) return;
+    const kp = document.getElementById('slots-kpis');
+    if (kp) {
+      const cell = (label, val, cls = '') =>
+        `<div class="slots-kpi"><span class="slots-kv ${cls}">${val}</span>` +
+        `<span class="slots-kk">${label}</span></div>`;
+      const adh = sl.adherencePct;
+      kp.innerHTML =
+        cell(t('slots.adh'), adh == null ? '—' : adh + '%',
+             adh == null ? '' : adh >= 80 ? 'slots-good' : adh >= 60 ? 'slots-warn' : 'slots-bad') +
+        cell(t('slots.closed'), sl.closed) +
+        cell(t('slots.early'), sl.early, sl.early ? 'slots-warn' : '') +
+        cell(t('slots.late'), sl.late, sl.late ? 'slots-bad' : '');
+    }
+    const fmtT = (s) => 'T+' + Math.round(s);
+    const open = document.getElementById('slots-open');
+    if (open) {
+      open.innerHTML = sl.open.length
+        ? sl.open.map(s =>
+            `<div class="slots-row st-${s.status}">` +
+            `<span class="slots-cs">${s.cs}</span>` +
+            `<span class="slots-ctot">${fmtT(s.ctot)}</span>` +
+            `<span class="slots-win">[${fmtT(s.winLo)}‥${fmtT(s.winHi)}]</span>` +
+            `<span class="slots-st">${t('slots.st.' + s.status)}</span></div>`).join('')
+        : `<div class="slots-empty">${t('slots.none')}</div>`;
+    }
+    const rec = document.getElementById('slots-recent');
+    if (rec) {
+      rec.innerHTML = sl.recent.length
+        ? sl.recent.map(r =>
+            `<div class="slots-row sv-${r.verdict}">` +
+            `<span class="slots-cs">${r.cs}</span>` +
+            `<span class="slots-dev">${r.devSec > 0 ? '+' : ''}${r.devSec}s</span>` +
+            `<span class="slots-st">${t('slots.v.' + r.verdict)}</span></div>`).join('')
+        : `<div class="slots-empty">${t('slots.none')}</div>`;
     }
   }
 

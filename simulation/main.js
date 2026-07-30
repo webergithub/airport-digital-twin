@@ -30,6 +30,7 @@ import { DCBForecaster }   from '../optimization/dcb-forecaster.js';
 import { APOC }            from '../optimization/apoc.js';
 import { VDGS }            from '../optimization/vdgs.js';
 import { NoiseMonitor, NMT_SITES } from '../optimization/noise-monitor.js';
+import { SlotMonitor }     from '../optimization/slot-monitor.js';
 import { TaxiGuidance }    from './guidance-lights.js';
 import { LiveSource }      from './live-source.js';
 import { t, tf, onLangChange, toggleLang, getLang } from './i18n.js';
@@ -54,6 +55,7 @@ const dcb       = new DCBForecaster(api, scheduler);  // rolling demand-capacity
 const apoc      = new APOC();                          // Total Airport Management 运行指挥中心
 const vdgs      = new VDGS();                          // A-VDGS 泊位引导（Safedock 数字机坪）
 const noise     = new NoiseMonitor();                  // ANOMS 噪声监测（NMT 阵列）
+const slots     = new SlotMonitor();                   // ATFM/CTOT 时隙符合性监测
 airport.buildNoiseSites(NMT_SITES);                    // 场内 NMT 立桩 + 实时读数标签
 const liveSource = new LiveSource();                  // 对接真实机场（WS 数据源）
 let simPaused   = false;                              // 暂停/启动模拟
@@ -293,6 +295,8 @@ function logicTick() {
   const wall     = api.getTurnaroundWall();
   noise.update(snapshot);
   const ns       = noise.getStatus();      // ANOMS — panels + APOC env domain
+  slots.update(snapshot);
+  const sl       = slots.getStatus();      // ATFM slots — panel + APOC punc domain
 
   ui.updateAnalytics({
     metrics,
@@ -319,12 +323,14 @@ function logicTick() {
   // other module outputs so the APOC roll-up reads the same values).
   for (const m of ns.nmts) airport.setNMT(m.id, m.db, m.alerting);
   ui.updateNoise(ns);
+  ui.updateSlots(sl);
   ui.updateAman(api.getArrivalLadder());
   ui.updateDCB(forecast);
 
   // APOC — Total Airport Management: score every domain's KPIs vs target.
   apoc.update({ metrics, safety, dcb: forecast, wall, stats: snapshot.stats,
-                deicing: snapshot.deicing, noise: ns, simTimeSec: snapshot.simTimeSec });
+                deicing: snapshot.deicing, noise: ns, slots: sl,
+                simTimeSec: snapshot.simTimeSec });
   ui.updateAPOC(apoc.getState());
 
   if (focusedGateId) {
@@ -483,6 +489,13 @@ window.__step = (n = 200, dt = 0.5) => {
     analytics.update(s, dt);
     safetyNet.update(s);
     dcb.update(s);
+    noise.update(s);
+    slots.update(s);
+    vdgs.update(s);
+    apoc.update({ metrics: analytics.getMetrics(), safety: safetyNet.getStatus(),
+                  dcb: dcb.getForecast(), wall: api.getTurnaroundWall(),
+                  deicing: s.deicing, noise: noise.getStatus(), slots: slots.getStatus(),
+                  stats: s.stats, simTimeSec: s.simTimeSec });
     runLog.tick(s, dt);
   }
   return analytics.getMetrics();
