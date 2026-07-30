@@ -52,6 +52,7 @@ export const DOCK_ITEMS = [
   { id: 'panel-oooi',      side: 'right', icon: '📻', key: 'panel.oooi',      d: 'dock.d.oooi' },
   { id: 'panel-noise',     side: 'right', icon: '🔊', key: 'panel.noise',     d: 'dock.d.noise' },
   { id: 'panel-energy',    side: 'right', icon: '🔌', key: 'panel.energy',    d: 'dock.d.energy' },
+  { id: 'panel-notam',     side: 'right', icon: '📰', key: 'panel.notam',     d: 'dock.d.notam' },
   { id: 'panel-replay',    side: 'right', icon: '🎞', key: 'panel.replay',    d: 'dock.d.replay' },
 ];
 

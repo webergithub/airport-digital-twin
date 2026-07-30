@@ -377,6 +377,15 @@ export class UIOverlay {
         </div>
       </div>
 
+      <!-- NOTAM / SNOWTAM board (collapsed by default) -->
+      <div id="panel-notam" class="panel">
+        <div class="panel-title" data-i18n="panel.notam">${t('panel.notam')}</div>
+        <div id="ntm-active" class="ntm-active"></div>
+        <div id="ntm-snowtam" class="ntm-snowtam"></div>
+        <div class="ntm-lh" data-i18n="ntm.cancelled">${t('ntm.cancelled')}</div>
+        <div id="ntm-cancelled" class="ntm-cancelled"></div>
+      </div>
+
       <!-- GSE pooling (collapsed by default) -->
       <div id="panel-gse" class="panel">
         <div class="panel-title" data-i18n="panel.gse">${t('panel.gse')}</div>
@@ -809,6 +818,39 @@ export class UIOverlay {
         row(t('an.gateUtil'),   delta.gateUtil == null ? null : delta.gateUtil * 100, '%', false) +
         row(t('an.taxiOut'),    delta.avgTaxiOut, 's', true) +
         row(t('an.avgDepWait'), delta.avgDepWait, 's', true);
+    }
+  }
+
+  // ── NOTAM / SNOWTAM board ────────────────────────────────────────────────────
+  updateNOTAM(nb) {
+    if (!nb) return;
+    const ac = document.getElementById('ntm-active');
+    if (ac) {
+      ac.innerHTML = nb.active.length
+        ? nb.active.map(n =>
+            `<div class="ntm-row"><span class="ntm-serial">${n.serial}</span>` +
+            `<span class="ntm-q">${n.q}</span>` +
+            `<span class="ntm-txt">${tf(n.key, n.params)}</span>` +
+            `<span class="ntm-t">T+${Math.round(n.sinceSim)}</span></div>`).join('')
+        : `<div class="ntm-empty">${t('ntm.none')}</div>`;
+    }
+    const sn = document.getElementById('ntm-snowtam');
+    if (sn) {
+      sn.innerHTML = nb.snowtam
+        ? `<div class="ntm-snowhead">SNOWTAM</div>` +
+          nb.snowtam.runways.map(r =>
+            `<div class="ntm-snowrow"><span>${r.rwy}</span><b>${r.codes}</b>` +
+            `<span>${t(r.contamKey)}</span></div>`).join('')
+        : '';
+    }
+    const cc = document.getElementById('ntm-cancelled');
+    if (cc) {
+      cc.innerHTML = nb.cancelled.length
+        ? nb.cancelled.map(n =>
+            `<div class="ntm-row ntm-c"><span class="ntm-serial">${n.serial}</span>` +
+            `<span class="ntm-q">NOTAMC</span>` +
+            `<span class="ntm-txt">${tf(n.key, n.params)}</span></div>`).join('')
+        : `<div class="ntm-empty">—</div>`;
     }
   }
 

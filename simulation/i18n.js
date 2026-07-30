@@ -247,6 +247,19 @@ const DICT = {
   'view.follow':   { zh: '跟拍', en: 'Follow' },
   'log.noFollow':  { zh: '当前无可跟拍航班', en: 'No flight to follow right now' },
 
+  // ── NOTAM 发布板 ──
+  'panel.notam':  { zh: '📰 航行通告 (NOTAM)', en: '📰 Notices (NOTAM)' },
+  'dock.d.notam': { zh: '自动 NOTAM·SNOWTAM·撤销记录', en: 'Auto NOTAMs, SNOWTAM & cancellations' },
+  'ntm.none':      { zh: '✓ 无生效通告 — 全场正常运行', en: '✓ No active notices — normal ops' },
+  'ntm.cancelled': { zh: '最近撤销 (NOTAMC)', en: 'Recently cancelled (NOTAMC)' },
+  'ntm.rwyClosed': { zh: '{rwy} 跑道关闭', en: '{rwy} closed' },
+  'ntm.lvp':       { zh: '低能见度程序生效', en: 'LVP in force' },
+  'ntm.winter':    { zh: '冻雨·离港须除冰', en: 'Freezing precip — de-icing required' },
+  'ntm.rampStop':  { zh: '雷电·停机坪停工', en: 'Lightning — ramp ops suspended' },
+  'ntm.aglBelow':  { zh: '助航灯光低于最低标准（{c}）', en: 'AGL below minima ({c})' },
+  'ntm.wildlife':  { zh: '鸟情高风险（{rwy}）', en: 'Bird activity HIGH ({rwy})' },
+  'ntm.fuelLow':   { zh: '燃油库存偏低·可能限供', en: 'Fuel stock low — uplift may be restricted' },
+
   // ── GSE 资源池 ──
   'panel.gse':   { zh: '🚜 地面设备 (GSE)', en: '🚜 Ground Equipment (GSE)' },
   'dock.d.gse':  { zh: '车队占用·短缺·利用率', en: 'Fleet busy, shortages & utilisation' },

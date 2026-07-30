@@ -857,6 +857,24 @@ button:active { transform: scale(0.97); }
 .ss-ic { font-size: 24px; }
 .ss-hint { font-size: 13px; color: var(--text2); }
 
+/* ─── NOTAM / SNOWTAM board ──────────────────────────────── */
+#panel-notam { right: 46px; top: 90px; width: 268px; }
+body.dock-wide #panel-notam { right: 110px; }
+.ntm-active, .ntm-cancelled { display: flex; flex-direction: column; gap: 3px; }
+.ntm-row { display: flex; align-items: baseline; gap: 6px; font-size: 10px; font-family: monospace;
+  padding: 3px 6px; border-radius: 4px; background: var(--surface2); border-left: 3px solid var(--orange); }
+.ntm-row.ntm-c { border-left-color: var(--border); opacity: 0.75; }
+.ntm-serial { color: var(--accent); font-weight: 700; }
+.ntm-q { color: var(--muted); font-size: 9px; }
+.ntm-txt { color: var(--text); flex: 1; font-family: var(--font); }
+.ntm-t { color: var(--muted); font-size: 8.5px; }
+.ntm-snowhead { margin-top: 6px; font: 700 9px monospace; color: #9fd4ff; letter-spacing: 1px; }
+.ntm-snowrow { display: flex; gap: 10px; font-size: 10px; font-family: monospace; color: var(--text2);
+  padding: 2px 6px; background: rgba(120,190,255,0.08); border-left: 3px solid #78beff; border-radius: 4px; margin-top: 2px; }
+.ntm-snowrow b { color: #bfe3ff; }
+.ntm-lh { font-size: 9px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.4px; margin: 7px 0 3px; }
+.ntm-empty { font-size: 10px; color: var(--muted); padding: 2px; }
+
 /* ─── GSE pooling ────────────────────────────────────────── */
 #panel-gse { left: 46px; top: 470px; width: 240px; }
 body.dock-wide #panel-gse { left: 110px; }
