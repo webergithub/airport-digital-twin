@@ -51,6 +51,7 @@ export class AirportAPI {
     // Disruption / what-if state
     this._weather = 0;
     this._runwayClosed = { RWY1: false, RWY2: false };
+    this._lightning = { phase: 'normal', clearAtSim: 0 };   // ⚡ ramp stop (IATA tiered)
 
     // Cumulative stats
     this._stats = { arrivals: 0, departures: 0 };
@@ -105,7 +106,24 @@ export class AirportAPI {
     return { ...s, list };
   }
 
-  hasDisruption() { return this._weather > 0 || this._runwayClosed.RWY1 || this._runwayClosed.RWY2 || this._deice.active; }
+  /** Lightning within the stop radius: ramp closes at once; lifting it starts
+   *  the 30/30-style all-clear countdown (scaled) before ground ops resume. */
+  setLightning(on) {
+    if (on) {
+      if (this._lightning.phase !== 'stop') {
+        this._lightning = { phase: 'stop', clearAtSim: 0 };
+        this.emit('lightning_stop', {});
+      }
+    } else if (this._lightning.phase === 'stop') {
+      this._lightning = { phase: 'clearing', clearAtSim: this._clock + 15 };
+      this.emit('lightning_clearing', { sec: 15 });
+    }
+  }
+  /** Ramp is closed during the stop AND the all-clear countdown. */
+  rampStopped() { return this._lightning.phase !== 'normal'; }
+  get lightningPhase() { return this._lightning.phase; }
+
+  hasDisruption() { return this._weather > 0 || this._runwayClosed.RWY1 || this._runwayClosed.RWY2 || this._deice.active || this._lightning.phase !== 'normal'; }
   weatherParams() { return WEATHER[this._weather]; }
 
   // ── Config ─────────────────────────────────────────────────────────────────
@@ -171,8 +189,16 @@ export class AirportAPI {
   update(dt) {
     this._clock += dt;
 
+    // Lightning all-clear countdown → reopen the ramp.
+    if (this._lightning.phase === 'clearing' && this._clock >= this._lightning.clearAtSim) {
+      this._lightning = { phase: 'normal', clearAtSim: 0 };
+      this.emit('lightning_clear', {});
+    }
+    const rampStopped = this.rampStopped();
+
     for (const [id, flight] of this._flights) {
       const prevState = flight.state;
+      flight._rampHold = rampStopped;        // freezes gate handling only (see flight-manager)
       flight.update(dt);
 
       // Wheels-on (touchdown): stamp ALDT (Actual Landing Time) and emit the
@@ -445,6 +471,9 @@ export class AirportAPI {
         runwaysClosed: { ...this._runwayClosed },
         sepFactor:     WEATHER[this._weather].sep,
         deicing:       this._deice.active,
+        lightning:     { phase: this._lightning.phase,
+                         clearInSec: this._lightning.phase === 'clearing'
+                           ? Math.max(0, +(this._lightning.clearAtSim - this._clock).toFixed(1)) : null },
         active:        this.hasDisruption(),
       },
       deicing: this._deice.getStatus(),

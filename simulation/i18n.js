@@ -229,6 +229,10 @@ const DICT = {
   'wi.runways':     { zh: '跑道关闭',    en: 'Runway closure' },
   'wi.winter':      { zh: '冬季运行',    en: 'Winter ops' },
   'wi.deice':       { zh: '❄ 冻雨 / 除冰', en: '❄ Freezing / de-icing' },
+  'wi.storm':       { zh: '雷暴 (停机坪)', en: 'Thunderstorm (ramp)' },
+  'wi.lightning':   { zh: '⚡ 3 英里内闪电', en: '⚡ Lightning within 3 mi' },
+  'wi.rampStop':    { zh: '⚡ 停机坪停工', en: '⚡ RAMP STOP' },
+  'wi.rampClear':   { zh: '⚡ 清场倒计时 {s}s', en: '⚡ All-clear in {s}s' },
   'wi.delta':       { zh: '相对基线',    en: 'Δ vs baseline' },
   // ── 冷启动遮罩 ──
   'start.btn':      { zh: '启动模拟', en: 'Start simulation' },
@@ -269,6 +273,7 @@ const DICT = {
   'grf.b.poor':       { zh: '差', en: 'POOR' },
   'grf.b.lessPoor':   { zh: '极差', en: 'LESS THAN POOR' },
   'apoc.kpi.rwycc':   { zh: '跑道状态码', en: 'RWYCC' },
+  'apoc.kpi.ramp':    { zh: '停机坪状态', en: 'Ramp status' },
 
   // ── ATFM / CTOT 时隙符合性 ──
   'panel.slots':   { zh: '🎫 网络时隙 (CTOT)', en: '🎫 Network Slots (CTOT)' },
@@ -435,6 +440,9 @@ const DICT = {
   'log.weather':   { zh: '天气变更：{w}', en: 'Weather set: {w}' },
   'log.rwyClosed': { zh: '⚠️ {r} 跑道关闭', en: '⚠️ Runway {r} closed' },
   'log.rwyOpened': { zh: '{r} 跑道恢复运行', en: 'Runway {r} reopened' },
+  'log.lightningOn':       { zh: '⚡ 3 英里内闪电：停机坪停工，地面保障暂停', en: '⚡ Lightning within 3 mi — RAMP STOP, ground handling suspended' },
+  'log.lightningClearing': { zh: '⚡ 闪电远离：按 30/30 规则等待静默期', en: '⚡ Lightning receding — 30/30 all-clear countdown running' },
+  'log.lightningClear':    { zh: '✅ 静默期结束：停机坪复工', en: '✅ All clear — ramp operations resumed' },
   'log.deiceOn':   { zh: '❄ 冻雨天气：离港航班须除冰', en: '❄ Freezing precip — departures require de-icing' },
   'log.deiceOff':  { zh: '冻雨解除：除冰运行结束', en: 'Freezing precip cleared — de-icing ops ended' },
   'log.tsat':      { zh: '{cs} 获 TSAT 放行（机位等待 {s}s，引擎未启动）',

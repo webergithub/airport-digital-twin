@@ -74,6 +74,12 @@ const KPIS = [
     val: d => d.safety ? d.safety.alarms : 0, na: d => !d.safety,
     fmt: v => String(v),
     rate: v => v === 0 ? RAG.GREEN : RAG.RED },
+  // Lightning ramp status — amber while the ramp is stopped or in all-clear.
+  { id: 'ramp', domain: 'safe', dir: 'up', target: 'OPEN',
+    val: d => d.lightning ? (d.lightning.phase === 'normal' ? 1 : 0) : 1,
+    na: d => !d.lightning,
+    fmt: v => v === 1 ? 'OPEN' : 'STOP',
+    rate: v => v === 1 ? RAG.GREEN : RAG.AMBER },
   // GRF runway condition — worst published RWYCC across all runway thirds.
   { id: 'rwycc', domain: 'safe', dir: 'up', target: '≥ 5',
     val: d => d.grf ? d.grf.minCode : 6, na: d => !d.grf,

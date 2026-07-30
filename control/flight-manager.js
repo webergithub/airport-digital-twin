@@ -186,10 +186,12 @@ export class Flight {
 
     if (this.state === FS.AT_GATE) {
       this.currentSpeed = 0;
-      if (this.turnaround) this.turnaround.update(dt);
+      // Lightning ramp stop: outdoor ground handling pauses — turnaround
+      // progress freezes and no pushback is initiated until the all-clear.
+      if (this.turnaround && !this._rampHold) this.turnaround.update(dt);
       // Depart once turnaround completes AND the DMAN gate hold (departure
       // metering — awaiting TSAT start-up approval) has been released.
-      if ((!this.turnaround || this.turnaround.complete) && !this.gateHold) this._startDeparture();
+      if ((!this.turnaround || this.turnaround.complete) && !this.gateHold && !this._rampHold) this._startDeparture();
       return;
     }
 

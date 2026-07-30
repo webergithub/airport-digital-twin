@@ -173,6 +173,12 @@ const ui = new UIOverlay(document.getElementById('ui-root'), (action, payload) =
       syncScenarioBaseline();
       break;
     }
+    case 'toggleLightning': {
+      api.setLightning(payload.on);
+      ui.log(t(payload.on ? 'log.lightningOn' : 'log.lightningClearing'), payload.on ? 'warn' : 'info');
+      syncScenarioBaseline();
+      break;
+    }
     case 'toggleDeicing': {
       api.setDeicing(payload.on);
       ui.log(t(payload.on ? 'log.deiceOn' : 'log.deiceOff'), payload.on ? 'warn' : 'info');
@@ -242,6 +248,7 @@ api.on('flight_spawned', f => ui.log(tf('log.spawned',  { cs: f.callsign, al: al
 api.on('flight_arrived', f => ui.log(tf('log.arrived',  { cs: f.callsign, gate: f.gateId }), 'gate'));
 api.on('atc_hold',       f => ui.log(tf('log.atcHold',  { cs: f.callsign, rwy: f.runway }), 'atc'));
 api.on('tsat_release',   f => ui.log(tf('log.tsat',     { cs: f.callsign, s: f.heldSec }), 'atc'));
+api.on('lightning_clear', () => ui.log(t('log.lightningClear'), 'info'));
 api.on('rimcas_alert',   d => ui.log(tf('log.rimcas',   { rwy: d.runway, kind: t(d.stage === 2 ? 'sn.alarm' : 'sn.caution') }), 'warn'));
 api.on('flight_takeoff', f => ui.log(tf('log.takeoff',  { cs: f.callsign }), 'depart'));
 api.on('flight_departed',f => ui.log(tf('log.departed', { cs: f.callsign }), 'info'));
@@ -347,7 +354,7 @@ function logicTick() {
 
   // APOC — Total Airport Management: score every domain's KPIs vs target.
   apoc.update({ metrics, safety, dcb: forecast, wall, stats: snapshot.stats,
-                deicing: snapshot.deicing, noise: ns, slots: sl, grf: gr, energy: en,
+                deicing: snapshot.deicing, lightning: snapshot.disruptions.lightning, noise: ns, slots: sl, grf: gr, energy: en,
                 simTimeSec: snapshot.simTimeSec });
   ui.updateAPOC(apoc.getState());
 
@@ -521,7 +528,7 @@ window.__step = (n = 200, dt = 0.5) => {
     energy.update(s);
     apoc.update({ metrics: analytics.getMetrics(), safety: safetyNet.getStatus(),
                   dcb: dcb.getForecast(), wall: api.getTurnaroundWall(),
-                  deicing: s.deicing, noise: noise.getStatus(), slots: slots.getStatus(), grf: grf.getStatus(), energy: energy.getStatus(),
+                  deicing: s.deicing, lightning: s.disruptions.lightning, noise: noise.getStatus(), slots: slots.getStatus(), grf: grf.getStatus(), energy: energy.getStatus(),
                   stats: s.stats, simTimeSec: s.simTimeSec });
     runLog.tick(s, dt);
   }

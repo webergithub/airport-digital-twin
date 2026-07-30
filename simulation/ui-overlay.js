@@ -336,6 +336,10 @@ export class UIOverlay {
         <div id="wi-winter" class="wi-seg">
           <button class="wi-deice" data-i18n="wi.deice">${t('wi.deice')}</button>
         </div>
+        <div class="wi-lbl" data-i18n="wi.storm">${t('wi.storm')}</div>
+        <div id="wi-storm" class="wi-seg">
+          <button class="wi-lightning" data-i18n="wi.lightning">${t('wi.lightning')}</button>
+        </div>
         <div class="wi-lbl" data-i18n="wi.delta">${t('wi.delta')}</div>
         <div id="wi-delta" class="wi-delta"></div>
       </div>
@@ -530,6 +534,10 @@ export class UIOverlay {
       const b = e.target.closest('.wi-deice');
       if (b) this._cb('toggleDeicing', { on: !b.classList.contains('wi-on') });
     });
+    document.getElementById('wi-storm').addEventListener('click', e => {
+      const b = e.target.closest('.wi-lightning');
+      if (b) this._cb('toggleLightning', { on: !b.classList.contains('wi-on') });
+    });
     document.getElementById('an-export').addEventListener('click', () => {
       this._cb('exportLog');
     });
@@ -696,6 +704,9 @@ export class UIOverlay {
     });
     const winterBtn = document.querySelector('#wi-winter .wi-deice');
     if (winterBtn) winterBtn.classList.toggle('wi-on', !!d.deicing);
+    const lgt = d.lightning || { phase: 'normal' };
+    const stormBtn = document.querySelector('#wi-storm .wi-lightning');
+    if (stormBtn) stormBtn.classList.toggle('wi-on', lgt.phase === 'stop');
     const banner = document.getElementById('wi-banner');
     if (banner) {
       if (d.active) {
@@ -704,6 +715,8 @@ export class UIOverlay {
         if (d.weather > 0) bits.push(`${d.weatherKey}`);
         if (closed.length) bits.push(tf('wi.closed', { r: closed.join('/') }));
         if (d.deicing) bits.push(t('wi.deice'));
+        if (lgt.phase === 'stop') bits.push(t('wi.rampStop'));
+        if (lgt.phase === 'clearing') bits.push(tf('wi.rampClear', { s: Math.ceil(lgt.clearInSec || 0) }));
         banner.textContent = tf('wi.activeBanner', { s: bits.join(' · ') });
         banner.style.display = 'block';
       } else {

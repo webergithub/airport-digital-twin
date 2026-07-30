@@ -81,6 +81,7 @@ for (let i = 0; i < STEPS; i++) {
   apoc.update({ metrics: analytics.getMetrics(), safety: safetyNet.getStatus(),
     dcb: dcb.getForecast(), wall: api.getTurnaroundWall(), noise: noise.getStatus(),
     slots: slots.getStatus(), grf: grf.getStatus(), energy: energy.getStatus(),
+    lightning: snapshot.disruptions.lightning,
     stats: snapshot.stats, simTimeSec: snapshot.simTimeSec });
   vdgs.update(snapshot);
   for (const g of vdgs.getStatus().gates) {
@@ -317,6 +318,37 @@ console.log('apron energy:');
   check('APU league consistent', en.byAirline.every(a => a.co2Kg >= 0));
   const apE = apoc.getState().domains.find(d => d.id === 'env').kpis.find(k => k.id === 'fegp');
   check('APOC env rates FEGP share', !!apE && apE.rag !== RAG.NA, apE && apE.rag);
+}
+
+// ── 6g. Lightning ramp stop (isolated run) ────────────────────────────────────
+console.log('lightning ramp stop:');
+{
+  const lApi = new AirportAPI({ runways: 2 });
+  const lSch = new Scheduler(lApi, { arrivalInterval: 18 });
+  const run = (mins) => { for (let i = 0; i < mins * 120; i++) { lApi.update(0.5); lSch.update(0.5); } };
+  run(12);
+  check('lightning inert by default', lApi.getSnapshot().disruptions.lightning.phase === 'normal');
+  lApi.setLightning(true);
+  check('ramp stops on strike', lApi.getSnapshot().disruptions.lightning.phase === 'stop');
+  run(15);                                   // pipeline drains, gates frozen
+  const depB = lApi.getSnapshot().stats.departures;
+  run(10);                                   // still stopped → nothing new departs
+  const depC = lApi.getSnapshot().stats.departures;
+  check('departures fully stall under ramp stop', depC === depB, `B=${depB} C=${depC}`);
+  const frozen = lApi.getSnapshot().flights.filter(f => f.state === 'AT_GATE');
+  check('gates hold aircraft during the stop', frozen.length >= 3, `atGate=${frozen.length}`);
+  lApi.setLightning(false);
+  const lg = lApi.getSnapshot().disruptions.lightning;
+  check('all-clear countdown starts (30/30 rule)', lg.phase === 'clearing' && lg.clearInSec > 0,
+    JSON.stringify(lg));
+  run(1);
+  check('ramp reopens after the quiet period',
+    lApi.getSnapshot().disruptions.lightning.phase === 'normal');
+  run(15);
+  check('departures resume after all-clear', lApi.getSnapshot().stats.departures > depC,
+    `C=${depC} end=${lApi.getSnapshot().stats.departures}`);
+  const apR = apoc.getState().domains.find(d => d.id === 'safe').kpis.find(k => k.id === 'ramp');
+  check('APOC safety rates ramp status', !!apR && apR.rag === RAG.GREEN, apR && apR.rag);
 }
 
 // ── 7. Winter de-icing scenario (isolated run) ────────────────────────────────

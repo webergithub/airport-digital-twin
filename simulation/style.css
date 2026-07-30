@@ -820,6 +820,7 @@ button:active { transform: scale(0.97); }
 .wi-wx.wi-on { background: var(--accent); color: #06111f; border-color: var(--accent); }
 .wi-rwy.wi-closed { background: rgba(231,76,60,0.22); color: #ff6a56; border-color: #e74c3c; }
 .wi-deice.wi-on { background: rgba(120,190,255,0.22); color: #bfe3ff; border-color: #78beff; }
+.wi-lightning.wi-on { background: rgba(240,180,41,0.22); color: #ffd166; border-color: #f0b429; }
 .wi-delta { margin-top: 3px; display: flex; flex-direction: column; gap: 2px; }
 .wi-drow { display: flex; justify-content: space-between; font-size: 10px; font-family: monospace; color: var(--text2); }
 .wi-drow span:last-child { color: var(--text); font-weight: 700; }
