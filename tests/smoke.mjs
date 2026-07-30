@@ -25,6 +25,7 @@ import { GRFReporter } from '../optimization/runway-condition.js';
 import { GateEnergyMonitor } from '../optimization/gate-energy.js';
 import { TaxiConflictMonitor } from '../optimization/taxi-conflict.js';
 import { WildlifeMonitor } from '../optimization/wildlife.js';
+import { ALCMS } from '../optimization/alcms.js';
 import { RunLogger } from '../optimization/run-logger.js';
 
 // Deterministic PRNG (mulberry32) so the smoke run is reproducible — a flaky
@@ -58,6 +59,7 @@ const grf = new GRFReporter();
 const energy = new GateEnergyMonitor();
 const taxiCft = new TaxiConflictMonitor();
 const wildlife = new WildlifeMonitor();
+const alcms = new ALCMS();
 const runLog = new RunLogger(api, { snapshotEverySec: 5 });
 
 // Track one docking episode per gate to assert the countdown is monotonic.
@@ -84,9 +86,10 @@ for (let i = 0; i < STEPS; i++) {
   energy.update(snapshot);
   taxiCft.update(snapshot);
   wildlife.update(snapshot);
+  alcms.update(snapshot);
   apoc.update({ metrics: analytics.getMetrics(), safety: safetyNet.getStatus(),
     dcb: dcb.getForecast(), wall: api.getTurnaroundWall(), noise: noise.getStatus(),
-    slots: slots.getStatus(), grf: grf.getStatus(), energy: energy.getStatus(), taxi: taxiCft.getStatus(), wildlife: wildlife.getStatus(),
+    slots: slots.getStatus(), grf: grf.getStatus(), energy: energy.getStatus(), taxi: taxiCft.getStatus(), wildlife: wildlife.getStatus(), agl: alcms.getStatus(snapshot.disruptions.weather),
     lightning: snapshot.disruptions.lightning,
     stats: snapshot.stats, simTimeSec: snapshot.simTimeSec });
   vdgs.update(snapshot);
@@ -360,6 +363,22 @@ console.log('wildlife hazard:');
     ['dispersal', 'strike', 'nearmiss'].includes(e.kind) && typeof e.sim === 'number'));
   const apW = apoc.getState().domains.find(d => d.id === 'safe').kpis.find(k => k.id === 'wildlife');
   check('APOC safety rates wildlife risk', !!apW && apW.rag !== RAG.NA, apW && apW.rag);
+}
+
+// ── 6j. ALCMS airfield lighting ───────────────────────────────────────────────
+console.log('ALCMS lighting:');
+{
+  const ag = alcms.getStatus(0);
+  check('9 circuits reported', ag.circuits.length === 9, String(ag.circuits.length));
+  check('serviceability within [0,100]', ag.circuits.every(c => c.svcPct >= 0 && c.svcPct <= 100));
+  check('statuses valid', ag.circuits.every(c => ['ok', 'degraded', 'below'].includes(c.status)),
+    ag.circuits.map(c => c.status).join(','));
+  check('lamp failures occurred over the run', ag.lampsReplaced + ag.circuits.reduce((s, c) => s + c.failed, 0) > 0,
+    JSON.stringify({ replaced: ag.lampsReplaced }));
+  check('maintenance crew completed repairs', ag.repairs >= 1, String(ag.repairs));
+  check('no LVP impairment in clear weather', ag.lvpImpaired === false);
+  const apA = apoc.getState().domains.find(d => d.id === 'safe').kpis.find(k => k.id === 'agl');
+  check('APOC safety rates AGL serviceability', !!apA && apA.rag !== RAG.NA, apA && apA.rag);
 }
 
 // ── 6g. Lightning ramp stop (isolated run) ────────────────────────────────────

@@ -239,6 +239,26 @@ const DICT = {
   'start.hint':     { zh: '点击后开始航班起降与地面保障模拟', en: 'Click to start arrivals, departures & ground ops' },
   'log.simStarted': { zh: '▶ 模拟已启动', en: '▶ Simulation started' },
 
+  // ── ALCMS 助航灯光 ──
+  'panel.alcms':  { zh: '💡 助航灯光 (ALCMS)', en: '💡 Airfield Lighting (ALCMS)' },
+  'dock.d.alcms': { zh: '灯光回路健康·单灯故障·维护派工', en: 'Circuit health, lamp faults & maintenance' },
+  'agl.overall':  { zh: '整体可用率', en: 'Overall serviceability' },
+  'agl.repairs':  { zh: '修复回路', en: 'Repairs' },
+  'agl.lamps':    { zh: '换灯', en: 'lamps' },
+  'agl.lvpImpaired': { zh: '⚠ LVP 运行受损：关键回路低于 ICAO 最低可用率', en: '⚠ LVP impaired: critical circuit below ICAO minima' },
+  'agl.crewBusy': { zh: '🔧 维护班组作业中：{c}', en: '🔧 Crew working on {c}' },
+  'agl.crewIdle': { zh: '维护班组待命', en: 'Maintenance crew standing by' },
+  'agl.c.r1e': { zh: 'RWY1 边灯', en: 'RWY1 edge' },
+  'agl.c.r1c': { zh: 'RWY1 中线', en: 'RWY1 centreline' },
+  'agl.c.r1a': { zh: 'RWY1 进近', en: 'RWY1 approach' },
+  'agl.c.r2e': { zh: 'RWY2 边灯', en: 'RWY2 edge' },
+  'agl.c.r2c': { zh: 'RWY2 中线', en: 'RWY2 centreline' },
+  'agl.c.r2a': { zh: 'RWY2 进近', en: 'RWY2 approach' },
+  'agl.c.tga': { zh: '滑行道绿灯 A', en: 'Taxiway greens A' },
+  'agl.c.tgb': { zh: '滑行道绿灯 B', en: 'Taxiway greens B' },
+  'agl.c.sb':  { zh: '停止排灯', en: 'Stop bars' },
+  'apoc.kpi.agl': { zh: '灯光可用率', en: 'AGL serviceability' },
+
   // ── 野生动物危害管理 ──
   'panel.wildlife': { zh: '🦅 鸟情防控 (WHM)', en: '🦅 Wildlife Hazard (WHM)' },
   'dock.d.wildlife':{ zh: '鸟情雷达·驱鸟行动·鸟击记录', en: 'Avian radar, dispersals & strike log' },

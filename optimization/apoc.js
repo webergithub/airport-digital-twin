@@ -74,6 +74,11 @@ const KPIS = [
     val: d => d.safety ? d.safety.alarms : 0, na: d => !d.safety,
     fmt: v => String(v),
     rate: v => v === 0 ? RAG.GREEN : RAG.RED },
+  // ALCMS airfield lighting serviceability (ICAO CAT minima).
+  { id: 'agl', domain: 'safe', dir: 'up', target: '≥ 95%',
+    val: d => d.agl ? d.agl.overallPct / 100 : null, na: d => !d.agl,
+    fmt: v => (v * 100).toFixed(1) + '%',
+    rate: (v, d) => v >= 0.97 ? RAG.GREEN : v >= 0.90 ? RAG.AMBER : RAG.RED },
   // Wildlife (avian-radar) risk — worst runway level right now.
   { id: 'wildlife', domain: 'safe', dir: 'down', target: 'LOW',
     val: d => d.wildlife ? ({ low: 0, mod: 1, high: 2 })[d.wildlife.worst] : 0,

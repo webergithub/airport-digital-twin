@@ -35,6 +35,7 @@ import { GRFReporter }     from '../optimization/runway-condition.js';
 import { GateEnergyMonitor } from '../optimization/gate-energy.js';
 import { TaxiConflictMonitor } from '../optimization/taxi-conflict.js';
 import { WildlifeMonitor } from '../optimization/wildlife.js';
+import { ALCMS } from '../optimization/alcms.js';
 import { TaxiGuidance }    from './guidance-lights.js';
 import { LiveSource }      from './live-source.js';
 import { t, tf, onLangChange, toggleLang, getLang } from './i18n.js';
@@ -64,6 +65,7 @@ const grf       = new GRFReporter();                   // GRF 跑道状态报告
 const energy    = new GateEnergyMonitor();             // 机坪能源 FEGP/APU 排放
 const taxiCft   = new TaxiConflictMonitor();           // A-SMGCS L3 滑行道冲突
 const wildlife  = new WildlifeMonitor();               // 野生动物危害管理（鸟情雷达）
+const alcms     = new ALCMS();                          // 助航灯光监控（预测性维护）
 airport.buildNoiseSites(NMT_SITES);                    // 场内 NMT 立桩 + 实时读数标签
 const liveSource = new LiveSource();                  // 对接真实机场（WS 数据源）
 let simPaused   = true;                               // 冷启动：等待「启动模拟」按钮
@@ -328,6 +330,8 @@ function logicTick() {
   const tc       = taxiCft.getStatus();    // 滑行道冲突 — radar + panel + APOC
   wildlife.update(snapshot);
   const wl       = wildlife.getStatus();   // 鸟情 — panel + APOC
+  alcms.update(snapshot);
+  const ag       = alcms.getStatus(snapshot.disruptions.weather);  // 灯光 — panel + APOC
 
   ui.updateAnalytics({
     metrics,
@@ -340,6 +344,7 @@ function logicTick() {
   ui.updateSafetyNets(safety);
   ui.updateTaxiConflicts(tc);
   ui.updateWildlife(wl);
+  ui.updateALCMS(ag);
   ui.updateSurfaceRadar(snapshot, { RWY1: safetyNet.stage('RWY1'), RWY2: safetyNet.stage('RWY2') }, tc.links);
   ui.updateDisruption(snapshot.disruptions, analytics.getScenarioDelta());
   ui.updateDeice(api.getDeicing());          // includes the per-flight in-process list
@@ -364,7 +369,7 @@ function logicTick() {
 
   // APOC — Total Airport Management: score every domain's KPIs vs target.
   apoc.update({ metrics, safety, dcb: forecast, wall, stats: snapshot.stats,
-                deicing: snapshot.deicing, lightning: snapshot.disruptions.lightning, noise: ns, slots: sl, grf: gr, energy: en, taxi: tc, wildlife: wl,
+                deicing: snapshot.deicing, lightning: snapshot.disruptions.lightning, noise: ns, slots: sl, grf: gr, energy: en, taxi: tc, wildlife: wl, agl: ag,
                 simTimeSec: snapshot.simTimeSec });
   ui.updateAPOC(apoc.getState());
 
@@ -538,9 +543,10 @@ window.__step = (n = 200, dt = 0.5) => {
     energy.update(s);
     taxiCft.update(s);
     wildlife.update(s);
+    alcms.update(s);
     apoc.update({ metrics: analytics.getMetrics(), safety: safetyNet.getStatus(),
                   dcb: dcb.getForecast(), wall: api.getTurnaroundWall(),
-                  deicing: s.deicing, lightning: s.disruptions.lightning, noise: noise.getStatus(), slots: slots.getStatus(), grf: grf.getStatus(), energy: energy.getStatus(), taxi: taxiCft.getStatus(), wildlife: wildlife.getStatus(),
+                  deicing: s.deicing, lightning: s.disruptions.lightning, noise: noise.getStatus(), slots: slots.getStatus(), grf: grf.getStatus(), energy: energy.getStatus(), taxi: taxiCft.getStatus(), wildlife: wildlife.getStatus(), agl: alcms.getStatus(s.disruptions.weather),
                   stats: s.stats, simTimeSec: s.simTimeSec });
     runLog.tick(s, dt);
   }

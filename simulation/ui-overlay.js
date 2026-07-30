@@ -355,6 +355,14 @@ export class UIOverlay {
         </div>
       </div>
 
+      <!-- ALCMS airfield lighting (collapsed by default) -->
+      <div id="panel-alcms" class="panel">
+        <div class="panel-title" data-i18n="panel.alcms">${t('panel.alcms')}</div>
+        <div id="agl-head" class="agl-head"></div>
+        <div id="agl-circuits" class="agl-circuits"></div>
+        <div id="agl-crew" class="agl-crew"></div>
+      </div>
+
       <!-- Wildlife hazard management (collapsed by default) -->
       <div id="panel-wildlife" class="panel">
         <div class="panel-title" data-i18n="panel.wildlife">${t('panel.wildlife')}</div>
@@ -752,6 +760,36 @@ export class UIOverlay {
         row(t('an.gateUtil'),   delta.gateUtil == null ? null : delta.gateUtil * 100, '%', false) +
         row(t('an.taxiOut'),    delta.avgTaxiOut, 's', true) +
         row(t('an.avgDepWait'), delta.avgDepWait, 's', true);
+    }
+  }
+
+  // ── ALCMS airfield lighting ──────────────────────────────────────────────────
+  updateALCMS(ag) {
+    if (!ag) return;
+    const hd = document.getElementById('agl-head');
+    if (hd) {
+      const cls = ag.anyCritBelow ? 'agl-bad' : ag.anyDegraded ? 'agl-warn' : 'agl-good';
+      hd.innerHTML =
+        `<span class="agl-total ${cls}">${ag.overallPct}%</span>` +
+        `<span class="agl-tk">${t('agl.overall')}</span>` +
+        `<span class="agl-rep">${t('agl.repairs')} ${ag.repairs} · ${t('agl.lamps')} ${ag.lampsReplaced}</span>` +
+        (ag.lvpImpaired ? `<div class="agl-lvp">${t('agl.lvpImpaired')}</div>` : '');
+    }
+    const host = document.getElementById('agl-circuits');
+    if (host) {
+      host.innerHTML = ag.circuits.map(c =>
+        `<div class="agl-row agl-${c.status}">` +
+        `<span class="agl-id">${c.id}${c.critical ? '★' : ''}</span>` +
+        `<span class="agl-name">${t(c.key)}</span>` +
+        `<span class="agl-bar"><i style="width:${c.svcPct}%"></i></span>` +
+        `<span class="agl-pct">${c.svcPct}%</span>` +
+        `<span class="agl-f">${c.failed ? '-' + c.failed : ''}${c.adjacentOut ? ' ‼' : ''}</span></div>`).join('');
+    }
+    const cr = document.getElementById('agl-crew');
+    if (cr) {
+      cr.textContent = ag.crew.busy
+        ? tf('agl.crewBusy', { c: ag.crew.circuit })
+        : t('agl.crewIdle');
     }
   }
 

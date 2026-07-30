@@ -38,6 +38,7 @@ export const DOCK_ITEMS = [
   { id: 'panel-vdgs',      side: 'left',  icon: '🎯', key: 'panel.vdgs',      d: 'dock.d.vdgs' },
   { id: 'panel-radar',     side: 'left',  icon: '🛰', key: 'panel.radar',     d: 'dock.d.radar' },
   { id: 'panel-deice',     side: 'left',  icon: '❄', key: 'panel.deice',     d: 'dock.d.deice' },
+  { id: 'panel-alcms',     side: 'left',  icon: '💡', key: 'panel.alcms',     d: 'dock.d.alcms' },
   { id: 'event-log',       side: 'left',  icon: '📝', key: 'panel.log',       d: 'dock.d.log' },
   // Right rail — Analysis & Safety（分析与安全）
   { id: 'panel-analytics', side: 'right', icon: '📈', key: 'panel.analytics', d: 'dock.d.analytics' },

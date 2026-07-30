@@ -842,6 +842,31 @@ button:active { transform: scale(0.97); }
 .ss-ic { font-size: 24px; }
 .ss-hint { font-size: 13px; color: var(--text2); }
 
+/* ─── ALCMS airfield lighting ────────────────────────────── */
+#panel-alcms { left: 284px; top: 300px; width: 258px; }
+.agl-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 7px; }
+.agl-total { font-size: 20px; font-weight: 800; }
+.agl-good { color: var(--green); } .agl-warn { color: var(--orange); } .agl-bad { color: var(--red); }
+.agl-tk { font-size: 9px; color: var(--text2); text-transform: uppercase; }
+.agl-rep { margin-left: auto; font-size: 9px; color: var(--muted); font-family: monospace; }
+.agl-lvp { flex-basis: 100%; font-size: 10px; font-weight: 700; color: var(--red);
+  background: rgba(231,76,60,0.12); border: 1px solid var(--red); border-radius: 5px; padding: 3px 7px; }
+.agl-circuits { display: flex; flex-direction: column; gap: 3px; }
+.agl-row { display: flex; align-items: center; gap: 6px; font-size: 10px; padding: 2px 6px;
+  border-radius: 4px; background: var(--surface2); border-left: 3px solid var(--green); }
+.agl-row.agl-degraded { border-left-color: var(--orange); }
+.agl-row.agl-below { border-left-color: var(--red); background: rgba(231,76,60,0.10); }
+.agl-id { font-family: monospace; font-weight: 700; color: var(--text); width: 34px; }
+.agl-name { color: var(--text2); font-size: 9px; width: 74px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.agl-bar { position: relative; flex: 1; height: 6px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 3px; overflow: hidden; }
+.agl-bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); }
+.agl-degraded .agl-bar i { background: var(--orange); }
+.agl-below .agl-bar i { background: var(--red); }
+.agl-pct { font-family: monospace; font-size: 9px; color: var(--text); width: 40px; text-align: right; }
+.agl-f { font-family: monospace; font-size: 9px; color: var(--red); width: 26px; }
+.agl-crew { margin-top: 6px; font-size: 10px; color: var(--text2); }
+
 /* ─── Wildlife hazard management ─────────────────────────── */
 #panel-wildlife { right: 46px; top: 560px; width: 238px; }
 body.dock-wide #panel-wildlife { right: 110px; }
