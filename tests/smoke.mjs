@@ -19,6 +19,7 @@ import { RunwaySafetyNet } from '../optimization/safety-nets.js';
 import { DCBForecaster } from '../optimization/dcb-forecaster.js';
 import { APOC, RAG } from '../optimization/apoc.js';
 import { VDGS, VPH } from '../optimization/vdgs.js';
+import { NoiseMonitor, NMT_SITES } from '../optimization/noise-monitor.js';
 import { RunLogger } from '../optimization/run-logger.js';
 
 // Deterministic PRNG (mulberry32) so the smoke run is reproducible — a flaky
@@ -46,6 +47,7 @@ const safetyNet = new RunwaySafetyNet(api);
 const dcb = new DCBForecaster(api, scheduler);
 const apoc = new APOC();
 const vdgs = new VDGS();
+const noise = new NoiseMonitor();
 const runLog = new RunLogger(api, { snapshotEverySec: 5 });
 
 // Track one docking episode per gate to assert the countdown is monotonic.
@@ -66,8 +68,9 @@ for (let i = 0; i < STEPS; i++) {
   analytics.update(snapshot, DT);
   safetyNet.update(snapshot);
   dcb.update(snapshot);
+  noise.update(snapshot);
   apoc.update({ metrics: analytics.getMetrics(), safety: safetyNet.getStatus(),
-    dcb: dcb.getForecast(), wall: api.getTurnaroundWall(),
+    dcb: dcb.getForecast(), wall: api.getTurnaroundWall(), noise: noise.getStatus(),
     stats: snapshot.stats, simTimeSec: snapshot.simTimeSec });
   vdgs.update(snapshot);
   for (const g of vdgs.getStatus().gates) {
@@ -212,6 +215,30 @@ console.log('A-VDGS:');
   check('VDGS closing countdown monotonically decreases', vdgsMonotonic);
   check('VDGS display lines present on every state',
     vst.gates.every(g => typeof g.l1 === 'string' && typeof g.l2 === 'string'));
+}
+
+// ── 6c. ANOMS noise monitoring ────────────────────────────────────────────────
+console.log('noise monitoring:');
+{
+  const nst = noise.getStatus();
+  check('all NMT sites reporting', nst.nmts.length === NMT_SITES.length,
+    `nmts=${nst.nmts.length}`);
+  check('NMT levels finite and plausible (38–110 dB)',
+    nst.nmts.every(m => Number.isFinite(m.db) && m.db >= 38 && m.db < 110),
+    nst.nmts.map(m => m.db).join(','));
+  check('Lmax never below the live level', nst.nmts.every(m => m.lmax >= m.db - 0.11),
+    nst.nmts.map(m => `${m.db}/${m.lmax}`).join(' '));
+  check('noise events recorded over 90 min', nst.totalEvents >= 5,
+    `events=${nst.totalEvents}`);
+  check('event shape (site/cs/peak/dur/qc)', nst.events.every(e =>
+    e.site && 'cs' in e && e.peakDb > 0 && e.durSec > 0 && e.qc > 0));
+  check('N-above bands monotonic (65 ≥ 80 ≥ 90)',
+    nst.nAbove[65] >= nst.nAbove[80] && nst.nAbove[80] >= nst.nAbove[90],
+    JSON.stringify(nst.nAbove));
+  check('QC quota accrues with events', nst.qc > 0, String(nst.qc));
+  const apNoise = apoc.getState().domains.find(d => d.id === 'env').kpis.find(k => k.id === 'noise');
+  check('APOC env domain rates the noise KPI', !!apNoise && apNoise.rag !== RAG.NA,
+    apNoise && apNoise.rag);
 }
 
 // ── 7. Winter de-icing scenario (isolated run) ────────────────────────────────

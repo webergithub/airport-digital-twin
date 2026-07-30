@@ -824,6 +824,49 @@ button:active { transform: scale(0.97); }
 .wi-drow span.wi-bad  { color: #e74c3c; }
 .wi-empty { font-size: 10px; color: var(--muted); }
 
+/* ─── ANOMS noise monitoring ─────────────────────────────── */
+#panel-noise { right: 300px; top: 60px; width: 258px; }
+.noise-kpis { display: grid; grid-template-columns: 1fr 1fr 1fr 1.4fr; gap: 5px; margin-bottom: 7px; }
+.noise-kpi { display: flex; flex-direction: column; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 4px 6px; min-width: 0; }
+.noise-kv { font-size: 13px; font-weight: 700; color: var(--accent); line-height: 1.2;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.noise-kv.noise-bad { color: var(--red); }
+.noise-kk { font-size: 7.5px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.3px; }
+.noise-nmts { display: flex; flex-direction: column; gap: 4px; }
+.noise-nmt { display: flex; align-items: center; gap: 6px; font-size: 10px; padding: 3px 6px;
+  border-radius: 5px; background: var(--surface2); border-left: 3px solid var(--border); }
+.noise-nmt.noise-alert { border-left-color: var(--red); background: rgba(231,76,60,0.10); }
+.noise-id { font-family: monospace; font-weight: 700; color: var(--text); }
+.noise-name { color: var(--text2); font-size: 9px; width: 62px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.noise-bar { position: relative; flex: 1; height: 7px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 4px; overflow: hidden; }
+.noise-bar i { position: absolute; left: 0; top: 0; bottom: 0; display: block;
+  background: linear-gradient(90deg, #2ecc71, #f0b429 55%, #e74c3c 85%); }
+.noise-bar b { position: absolute; top: -1px; bottom: -1px; width: 2px; background: #ffffff66; }
+.noise-db { font-family: monospace; font-weight: 700; color: var(--text); width: 20px; text-align: right; }
+.noise-db.noise-bad { color: var(--red); }
+.noise-lmax { font-family: monospace; font-size: 8.5px; color: var(--muted); width: 18px; text-align: right; }
+.noise-lh { font-size: 9px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.4px; margin: 7px 0 3px; }
+.noise-events { display: flex; flex-direction: column; gap: 3px; max-height: 130px; overflow-y: auto; }
+.noise-ev { display: flex; align-items: center; gap: 7px; font-size: 10px; font-family: monospace;
+  color: var(--text2); padding: 2px 6px; border-radius: 4px; background: var(--surface2); }
+.noise-ev-site { color: var(--accent); font-weight: 700; }
+.noise-ev-cs { color: var(--text); }
+.noise-ev-db { color: var(--orange); }
+.noise-ev-qc { margin-left: auto; color: var(--muted); }
+.noise-empty { font-size: 10px; color: var(--muted); padding: 2px; }
+/* 3D NMT field markers */
+.nmt-tag { font: 700 9px monospace; color: #9fb8d0; background: rgba(6,12,20,0.85);
+  border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; pointer-events: none; }
+.nmt-tag.nmt-alert { color: #ff6a56; border-color: #e74c3c; }
+/* dock settings popover close */
+#dock-settings { padding-top: 24px; }
+.dock-set-close { position: absolute; top: 3px; right: 3px; width: 18px; height: 18px; padding: 0;
+  font-size: 10px; line-height: 1; background: var(--surface2); color: var(--text2);
+  border: 1px solid var(--border); border-radius: 4px; cursor: pointer; }
+.dock-set-close:hover { color: #ff6a56; border-color: #e74c3c; }
+
 /* ─── A-VDGS docking guidance ────────────────────────────── */
 /* 3D display board (CSS2D, LED look) */
 .vdgs-board { background: rgba(6,10,8,0.92); border: 1px solid #23402a; border-radius: 3px;

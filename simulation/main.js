@@ -29,6 +29,7 @@ import { RunwaySafetyNet } from '../optimization/safety-nets.js';
 import { DCBForecaster }   from '../optimization/dcb-forecaster.js';
 import { APOC }            from '../optimization/apoc.js';
 import { VDGS }            from '../optimization/vdgs.js';
+import { NoiseMonitor, NMT_SITES } from '../optimization/noise-monitor.js';
 import { TaxiGuidance }    from './guidance-lights.js';
 import { LiveSource }      from './live-source.js';
 import { t, tf, onLangChange, toggleLang, getLang } from './i18n.js';
@@ -52,6 +53,8 @@ const safetyNet = new RunwaySafetyNet(api);   // A-SMGCS RIMCAS runway monitor
 const dcb       = new DCBForecaster(api, scheduler);  // rolling demand-capacity forecast
 const apoc      = new APOC();                          // Total Airport Management 运行指挥中心
 const vdgs      = new VDGS();                          // A-VDGS 泊位引导（Safedock 数字机坪）
+const noise     = new NoiseMonitor();                  // ANOMS 噪声监测（NMT 阵列）
+airport.buildNoiseSites(NMT_SITES);                    // 场内 NMT 立桩 + 实时读数标签
 const liveSource = new LiveSource();                  // 对接真实机场（WS 数据源）
 let simPaused   = false;                              // 暂停/启动模拟
 let liveSnapshot = null;                              // 最近一帧外部数据源快照
@@ -288,6 +291,8 @@ function logicTick() {
   const safety   = safetyNet.getStatus();
   const forecast = dcb.getForecast();
   const wall     = api.getTurnaroundWall();
+  noise.update(snapshot);
+  const ns       = noise.getStatus();      // ANOMS — panels + APOC env domain
 
   ui.updateAnalytics({
     metrics,
@@ -309,12 +314,17 @@ function logicTick() {
   for (const g of vs.gates) airport.setVDGS(g.id, g.l1, g.l2, g.cls);
   for (const d of vdgs.justDocked()) ui.log(tf('log.docked', { cs: d.cs, g: d.gate, s: d.durSec }), 'gate');
   ui.updateVDGS(vs);
+
+  // ANOMS: live NMT levels → 3D field markers + panel (computed above with the
+  // other module outputs so the APOC roll-up reads the same values).
+  for (const m of ns.nmts) airport.setNMT(m.id, m.db, m.alerting);
+  ui.updateNoise(ns);
   ui.updateAman(api.getArrivalLadder());
   ui.updateDCB(forecast);
 
   // APOC — Total Airport Management: score every domain's KPIs vs target.
   apoc.update({ metrics, safety, dcb: forecast, wall, stats: snapshot.stats,
-                deicing: snapshot.deicing, simTimeSec: snapshot.simTimeSec });
+                deicing: snapshot.deicing, noise: ns, simTimeSec: snapshot.simTimeSec });
   ui.updateAPOC(apoc.getState());
 
   if (focusedGateId) {

@@ -68,11 +68,16 @@ const KPIS = [
     fmt: v => String(v),
     rate: v => v === 0 ? RAG.GREEN : RAG.RED },
 
-  // ── Environment (Airport Carbon Accreditation) ────────────────────────────
+  // ── Environment (Airport Carbon Accreditation + noise abatement) ──────────
   { id: 'setCut', domain: 'env', dir: 'up', target: '≥ 30%',
     val: d => d.metrics.setCutPct, na: d => !d.metrics.setEnabled,
     fmt: v => Math.round(v * 100) + '%',
     rate: v => v >= 0.30 ? RAG.GREEN : v >= 0.10 ? RAG.AMBER : RAG.RED },
+  // Live loudest NMT reading — the ANOMS compliance view at a glance.
+  { id: 'noise', domain: 'env', dir: 'down', target: '≤ 72dB',
+    val: d => d.noise ? d.noise.maxDb : 0, na: d => !d.noise,
+    fmt: v => v.toFixed(0) + 'dB',
+    rate: v => v <= 72 ? RAG.GREEN : v <= 82 ? RAG.AMBER : RAG.RED },
 ];
 
 const DOMAINS = ['cap', 'punc', 'safe', 'env'];

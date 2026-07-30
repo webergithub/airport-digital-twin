@@ -41,6 +41,7 @@ export const DOCK_ITEMS = [
   { id: 'panel-dcb',       side: 'right', icon: '📊', key: 'panel.dcb',       d: 'dock.d.dcb' },
   { id: 'panel-safetynet', side: 'right', icon: '🚨', key: 'panel.safetynet', d: 'dock.d.safetynet' },
   { id: 'panel-oooi',      side: 'right', icon: '📻', key: 'panel.oooi',      d: 'dock.d.oooi' },
+  { id: 'panel-noise',     side: 'right', icon: '🔊', key: 'panel.noise',     d: 'dock.d.noise' },
   { id: 'panel-replay',    side: 'right', icon: '🎞', key: 'panel.replay',    d: 'dock.d.replay' },
 ];
 
@@ -160,12 +161,14 @@ export class Dock {
     pop.id = 'dock-settings';
     pop.style.display = 'none';
     pop.innerHTML =
+      `<button id="dock-set-close" class="dock-set-close" title="✕">✕</button>` +
       `<label class="dock-set-row"><input type="checkbox" id="dock-solo"${this._solo ? ' checked' : ''}>` +
       `<span data-i18n="dock.solo">${t('dock.solo')}</span></label>`;
     root.appendChild(pop);
 
     document.body.appendChild(root);
     this._root = root; this._pop = pop;
+    pop.querySelector('#dock-set-close').addEventListener('click', () => { pop.style.display = 'none'; });
     pop.querySelector('#dock-solo').addEventListener('change', (e) => {
       this._solo = e.target.checked;
       try { localStorage.setItem(LS_SOLO, this._solo ? '1' : '0'); } catch (er) {}

@@ -228,6 +228,21 @@ const DICT = {
   'wi.winter':      { zh: '冬季运行',    en: 'Winter ops' },
   'wi.deice':       { zh: '❄ 冻雨 / 除冰', en: '❄ Freezing / de-icing' },
   'wi.delta':       { zh: '相对基线',    en: 'Δ vs baseline' },
+  // ── ANOMS 噪声监测 ──
+  'panel.noise':   { zh: '🔊 噪声监测 (ANOMS)', en: '🔊 Noise Monitoring (ANOMS)' },
+  'dock.d.noise':  { zh: 'NMT 实时分贝·噪声事件·QC 配额', en: 'Live NMT levels, events & QC quota' },
+  'noise.s.west':  { zh: '西进近走廊', en: 'West approach' },
+  'noise.s.east':  { zh: '东离场走廊', en: 'East departure' },
+  'noise.s.north': { zh: '北侧社区', en: 'North community' },
+  'noise.s.south': { zh: '南场界', en: 'South boundary' },
+  'noise.events':  { zh: '噪声事件（超阈值·持续）', en: 'Noise events (over threshold)' },
+  'noise.n65':     { zh: 'N>65dB', en: 'N>65dB' },
+  'noise.n80':     { zh: 'N>80dB', en: 'N>80dB' },
+  'noise.qc':      { zh: 'QC 配额', en: 'QC quota' },
+  'noise.top':     { zh: '事件最多航司', en: 'Top airline' },
+  'noise.none':    { zh: '暂无噪声事件', en: 'No noise events yet' },
+  'apoc.kpi.noise': { zh: '噪声峰值', en: 'Noise peak' },
+
   // ── A-VDGS 泊位引导 ──
   'panel.vdgs':    { zh: '🎯 泊位引导 (A-VDGS)', en: '🎯 Docking Guidance (A-VDGS)' },
   'dock.d.vdgs':   { zh: '泊位引导屏·进位倒计时·对接统计', en: 'Stand docking displays & stats' },

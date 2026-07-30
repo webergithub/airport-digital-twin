@@ -335,6 +335,15 @@ export class UIOverlay {
         </div>
       </div>
 
+      <!-- ANOMS noise monitoring (collapsed by default) -->
+      <div id="panel-noise" class="panel">
+        <div class="panel-title" data-i18n="panel.noise">${t('panel.noise')}</div>
+        <div id="noise-kpis" class="noise-kpis"></div>
+        <div id="noise-nmts" class="noise-nmts"></div>
+        <div class="noise-lh" data-i18n="noise.events">${t('noise.events')}</div>
+        <div id="noise-events" class="noise-events"></div>
+      </div>
+
       <!-- A-VDGS docking guidance (collapsed by default) -->
       <div id="panel-vdgs" class="panel">
         <div class="panel-title" data-i18n="panel.vdgs">${t('panel.vdgs')}</div>
@@ -672,6 +681,48 @@ export class UIOverlay {
         row(t('an.gateUtil'),   delta.gateUtil == null ? null : delta.gateUtil * 100, '%', false) +
         row(t('an.taxiOut'),    delta.avgTaxiOut, 's', true) +
         row(t('an.avgDepWait'), delta.avgDepWait, 's', true);
+    }
+  }
+
+  // ── ANOMS noise monitoring ───────────────────────────────────────────────────
+  updateNoise(ns) {
+    if (!ns) return;
+    const kp = document.getElementById('noise-kpis');
+    if (kp) {
+      const cell = (label, val, bad) =>
+        `<div class="noise-kpi"><span class="noise-kv${bad ? ' noise-bad' : ''}">${val}</span>` +
+        `<span class="noise-kk">${label}</span></div>`;
+      kp.innerHTML =
+        cell(t('noise.n65'), ns.nAbove[65]) +
+        cell(t('noise.n80'), ns.nAbove[80], ns.nAbove[80] > 0) +
+        cell(t('noise.qc'), ns.qc, false) +
+        (ns.byAirline.length
+          ? cell(t('noise.top'), `${ns.byAirline[0].airline}·${ns.byAirline[0].n}`, false)
+          : cell(t('noise.top'), '—'));
+    }
+    const host = document.getElementById('noise-nmts');
+    if (host) {
+      host.innerHTML = ns.nmts.map(m => {
+        const pct = Math.max(0, Math.min(100, (m.db - 40) / 55 * 100));
+        return `<div class="noise-nmt${m.alerting ? ' noise-alert' : ''}">` +
+               `<span class="noise-id">${m.id}</span>` +
+               `<span class="noise-name">${t(m.key)}</span>` +
+               `<span class="noise-bar"><i style="width:${pct.toFixed(0)}%"></i>` +
+               `<b class="noise-thr" style="left:${((m.thrDb - 40) / 55 * 100).toFixed(0)}%"></b></span>` +
+               `<span class="noise-db${m.alerting ? ' noise-bad' : ''}">${m.db.toFixed(0)}</span>` +
+               `<span class="noise-lmax">${m.lmax.toFixed(0)}</span></div>`;
+      }).join('');
+    }
+    const ev = document.getElementById('noise-events');
+    if (ev) {
+      ev.innerHTML = ns.events.length
+        ? ns.events.map(e =>
+            `<div class="noise-ev"><span class="noise-ev-site">${e.site}</span>` +
+            `<span class="noise-ev-cs">${e.cs}</span>` +
+            `<span class="noise-ev-db">${e.peakDb.toFixed(0)}dB</span>` +
+            `<span class="noise-ev-dur">${e.durSec.toFixed(0)}s</span>` +
+            `<span class="noise-ev-qc">QC ${e.qc}</span></div>`).join('')
+        : `<div class="noise-empty">${t('noise.none')}</div>`;
     }
   }
 

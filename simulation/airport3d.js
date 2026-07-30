@@ -205,6 +205,33 @@ export class Airport3D {
     }
   }
 
+  /** Build ANOMS noise-monitoring terminal markers (called once from main). */
+  buildNoiseSites(sites) {
+    this._nmtLabels = new Map();
+    for (const s of sites) {
+      // Slim mast with a small head box — the field NMT unit.
+      this._add(mkBox(0.25, 2.2, 0.25, matRemote, s.x, 1.1, s.z));
+      this._add(mkBox(0.7, 0.5, 0.5, matStripe, s.x, 2.45, s.z));
+      const div = document.createElement('div');
+      div.className = 'nmt-tag';
+      div.textContent = `${s.id} · –`;
+      const lbl = new CSS2DObject(div);
+      lbl.position.set(s.x, 3.6, s.z);
+      this.group.add(lbl);
+      this._nmtLabels.set(s.id, div);
+    }
+  }
+
+  /** Live NMT readout (dB + alert colouring). */
+  setNMT(id, db, alerting) {
+    const el = this._nmtLabels?.get(id);
+    if (!el) return;
+    const txt = `${id} · ${db.toFixed(0)}dB`;
+    if (el.textContent !== txt) el.textContent = txt;
+    const want = 'nmt-tag' + (alerting ? ' nmt-alert' : '');
+    if (el.className !== want) el.className = want;
+  }
+
   /** Update one stand's A-VDGS display (language-neutral LED lines). */
   setVDGS(gateId, l1, l2, cls = '') {
     const el = this._vdgsBoards.get(gateId);
