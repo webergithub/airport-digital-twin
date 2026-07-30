@@ -842,6 +842,28 @@ button:active { transform: scale(0.97); }
 .ss-ic { font-size: 24px; }
 .ss-hint { font-size: 13px; color: var(--text2); }
 
+/* ─── ARFF response drill ────────────────────────────────── */
+#panel-arff { right: 300px; top: 690px; width: 236px; }
+.arff-cat { font-size: 9px; color: var(--text2); margin-bottom: 5px; }
+.arff-idle { font-size: 10px; color: var(--muted); }
+.arff-live { display: flex; align-items: center; gap: 8px; font-size: 11px; padding: 5px 8px;
+  border-radius: 6px; background: rgba(231,76,60,0.10); border: 1px solid var(--red); }
+.arff-live.arff-ph-onscene { background: rgba(240,180,41,0.10); border-color: var(--orange); }
+.arff-live.arff-ph-standdown { background: rgba(46,204,113,0.10); border-color: var(--green); }
+.arff-rwy { font-family: monospace; font-weight: 700; color: var(--text); }
+.arff-phase { color: var(--text2); flex: 1; }
+.arff-clock { font-family: monospace; font-weight: 700; color: var(--text); }
+.arff-rate { margin-top: 5px; font-size: 10px; color: var(--text2); }
+.arff-lh { font-size: 9px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.4px; margin: 7px 0 3px; }
+.arff-history { display: flex; flex-direction: column; gap: 3px; }
+.arff-row { display: flex; gap: 10px; font-size: 10px; font-family: monospace; color: var(--text2);
+  padding: 2px 6px; border-radius: 4px; background: var(--surface2); border-left: 3px solid var(--green); }
+.arff-row.arff-bust { border-left-color: var(--red); }
+.arff-v { margin-left: auto; font-weight: 700; }
+.arff-pass .arff-v { color: var(--green); }
+.arff-bust .arff-v { color: var(--red); }
+.arff-empty { font-size: 10px; color: var(--muted); padding: 2px; }
+
 /* ─── ALCMS airfield lighting ────────────────────────────── */
 #panel-alcms { left: 284px; top: 300px; width: 258px; }
 .agl-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 7px; }

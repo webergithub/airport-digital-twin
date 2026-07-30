@@ -26,6 +26,7 @@ import { GateEnergyMonitor } from '../optimization/gate-energy.js';
 import { TaxiConflictMonitor } from '../optimization/taxi-conflict.js';
 import { WildlifeMonitor } from '../optimization/wildlife.js';
 import { ALCMS } from '../optimization/alcms.js';
+import { ARFFService } from '../optimization/arff.js';
 import { RunLogger } from '../optimization/run-logger.js';
 
 // Deterministic PRNG (mulberry32) so the smoke run is reproducible — a flaky
@@ -410,6 +411,32 @@ console.log('lightning ramp stop:');
     `C=${depC} end=${lApi.getSnapshot().stats.departures}`);
   const apR = apoc.getState().domains.find(d => d.id === 'safe').kpis.find(k => k.id === 'ramp');
   check('APOC safety rates ramp status', !!apR && apR.rag === RAG.GREEN, apR && apR.rag);
+}
+
+// ── 6k. ARFF response drill (isolated run) ────────────────────────────────────
+console.log('ARFF drill:');
+{
+  const aApi = new AirportAPI({ runways: 2 });
+  const drill = new ARFFService();
+  const step = (sec) => { for (let i = 0; i < sec * 2; i++) { aApi.update(0.5); drill.update(0.5, aApi, aApi.getSnapshot().simTimeSec); } };
+  check('drill starts and closes the runway', drill.startDrill(aApi, 'RWY2') === true &&
+    aApi.runwaysClosed.RWY2 === true);
+  check('second drill refused while active', drill.startDrill(aApi, 'RWY1') === false);
+  step(45);
+  const st = drill.getStatus();
+  check('drill completed a cycle', st.phase === 'idle' && st.drills === 1,
+    JSON.stringify({ phase: st.phase, drills: st.drills }));
+  check('runway reopened after stand-down', aApi.runwaysClosed.RWY2 === false);
+  check('response time within model bounds', st.last.responseSec >= 10 && st.last.responseSec <= 26,
+    String(st.last.responseSec));
+  check('pass verdict consistent with the standard',
+    st.last.pass === (st.last.responseSec <= st.standardSec), JSON.stringify(st.last));
+  // Respect a user-closed runway: drill must NOT reopen it.
+  aApi.closeRunway('RWY1');
+  drill.startDrill(aApi, 'RWY1');
+  step(45);
+  check('user-closed runway stays closed after drill', aApi.runwaysClosed.RWY1 === true);
+  check('pass rate reported', drill.getStatus().passRate != null);
 }
 
 // ── 7. Winter de-icing scenario (isolated run) ────────────────────────────────

@@ -36,6 +36,7 @@ import { GateEnergyMonitor } from '../optimization/gate-energy.js';
 import { TaxiConflictMonitor } from '../optimization/taxi-conflict.js';
 import { WildlifeMonitor } from '../optimization/wildlife.js';
 import { ALCMS } from '../optimization/alcms.js';
+import { ARFFService } from '../optimization/arff.js';
 import { TaxiGuidance }    from './guidance-lights.js';
 import { LiveSource }      from './live-source.js';
 import { t, tf, onLangChange, toggleLang, getLang } from './i18n.js';
@@ -66,6 +67,7 @@ const energy    = new GateEnergyMonitor();             // 机坪能源 FEGP/APU 
 const taxiCft   = new TaxiConflictMonitor();           // A-SMGCS L3 滑行道冲突
 const wildlife  = new WildlifeMonitor();               // 野生动物危害管理（鸟情雷达）
 const alcms     = new ALCMS();                          // 助航灯光监控（预测性维护）
+const arff      = new ARFFService();                    // 应急救援演练（ICAO 3 分钟）
 airport.buildNoiseSites(NMT_SITES);                    // 场内 NMT 立桩 + 实时读数标签
 const liveSource = new LiveSource();                  // 对接真实机场（WS 数据源）
 let simPaused   = true;                               // 冷启动：等待「启动模拟」按钮
@@ -177,6 +179,15 @@ const ui = new UIOverlay(document.getElementById('ui-root'), (action, payload) =
       if (payload.closed) api.closeRunway(payload.runway); else api.openRunway(payload.runway);
       ui.log(tf(payload.closed ? 'log.rwyClosed' : 'log.rwyOpened', { r: payload.runway }), payload.closed ? 'warn' : 'info');
       syncScenarioBaseline();
+      break;
+    }
+    case 'arffDrill': {
+      // Exercise the runway with the fewest queued departures (least disruption).
+      const q1 = api.getSnapshot().runways.find(r => r.runway === 'RWY1');
+      const rwy = (q1 && q1.waiting > 0) ? 'RWY2' : 'RWY1';
+      if (arff.startDrill(api, rwy)) {
+        ui.log(tf('log.arffStart', { rwy }), 'warn');
+      }
       break;
     }
     case 'toggleLightning': {
@@ -332,6 +343,8 @@ function logicTick() {
   const wl       = wildlife.getStatus();   // 鸟情 — panel + APOC
   alcms.update(snapshot);
   const ag       = alcms.getStatus(snapshot.disruptions.weather);  // 灯光 — panel + APOC
+  if (!simPaused) arff.update(dt, api, snapshot.simTimeSec);
+  const af       = arff.getStatus();       // 应急演练 — panel + APOC
 
   ui.updateAnalytics({
     metrics,
@@ -345,6 +358,7 @@ function logicTick() {
   ui.updateTaxiConflicts(tc);
   ui.updateWildlife(wl);
   ui.updateALCMS(ag);
+  ui.updateARFF(af);
   ui.updateSurfaceRadar(snapshot, { RWY1: safetyNet.stage('RWY1'), RWY2: safetyNet.stage('RWY2') }, tc.links);
   ui.updateDisruption(snapshot.disruptions, analytics.getScenarioDelta());
   ui.updateDeice(api.getDeicing());          // includes the per-flight in-process list
@@ -369,7 +383,7 @@ function logicTick() {
 
   // APOC — Total Airport Management: score every domain's KPIs vs target.
   apoc.update({ metrics, safety, dcb: forecast, wall, stats: snapshot.stats,
-                deicing: snapshot.deicing, lightning: snapshot.disruptions.lightning, noise: ns, slots: sl, grf: gr, energy: en, taxi: tc, wildlife: wl, agl: ag,
+                deicing: snapshot.deicing, lightning: snapshot.disruptions.lightning, noise: ns, slots: sl, grf: gr, energy: en, taxi: tc, wildlife: wl, agl: ag, arff: af,
                 simTimeSec: snapshot.simTimeSec });
   ui.updateAPOC(apoc.getState());
 
@@ -544,9 +558,10 @@ window.__step = (n = 200, dt = 0.5) => {
     taxiCft.update(s);
     wildlife.update(s);
     alcms.update(s);
+    arff.update(dt, api, s.simTimeSec);
     apoc.update({ metrics: analytics.getMetrics(), safety: safetyNet.getStatus(),
                   dcb: dcb.getForecast(), wall: api.getTurnaroundWall(),
-                  deicing: s.deicing, lightning: s.disruptions.lightning, noise: noise.getStatus(), slots: slots.getStatus(), grf: grf.getStatus(), energy: energy.getStatus(), taxi: taxiCft.getStatus(), wildlife: wildlife.getStatus(), agl: alcms.getStatus(s.disruptions.weather),
+                  deicing: s.deicing, lightning: s.disruptions.lightning, noise: noise.getStatus(), slots: slots.getStatus(), grf: grf.getStatus(), energy: energy.getStatus(), taxi: taxiCft.getStatus(), wildlife: wildlife.getStatus(), agl: alcms.getStatus(s.disruptions.weather), arff: arff.getStatus(),
                   stats: s.stats, simTimeSec: s.simTimeSec });
     runLog.tick(s, dt);
   }

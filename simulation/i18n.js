@@ -239,6 +239,25 @@ const DICT = {
   'start.hint':     { zh: '点击后开始航班起降与地面保障模拟', en: 'Click to start arrivals, departures & ground ops' },
   'log.simStarted': { zh: '▶ 模拟已启动', en: '▶ Simulation started' },
 
+  // ── ARFF 应急救援 ──
+  'panel.arff':   { zh: '🚒 应急救援 (ARFF)', en: '🚒 Rescue & Fire (ARFF)' },
+  'dock.d.arff':  { zh: '响应演练·3 分钟标准·通过率', en: 'Response drills vs the 3-min objective' },
+  'wi.arff':      { zh: '应急救援', en: 'Rescue & fire' },
+  'wi.arffBtn':   { zh: '🚒 发起响应演练', en: '🚒 Run response drill' },
+  'arff.std':     { zh: '响应标准 ≤{s}s（对应 ICAO 3 分钟）', en: 'Objective ≤{s}s (scaled ICAO 3 min)' },
+  'arff.idle':    { zh: '待命 · 可从「情景推演」发起演练', en: 'Standing by · start a drill from What-If' },
+  'arff.history': { zh: '演练记录', en: 'Drill history' },
+  'arff.none':    { zh: '暂无演练', en: 'No drills yet' },
+  'arff.pass':    { zh: '达标', en: 'PASS' },
+  'arff.bust':    { zh: '超时', en: 'BUST' },
+  'arff.passRate':{ zh: '通过率 {p}%（{n} 次）', en: 'Pass rate {p}% ({n} drills)' },
+  'arff.ph.alarm':     { zh: '警铃 · 出动准备', en: 'Alarm · turnout' },
+  'arff.ph.enroute':   { zh: '出动中 → 跑道', en: 'En route → runway' },
+  'arff.ph.onscene':   { zh: '现场处置（喷洒/检查）', en: 'On scene (agent/inspection)' },
+  'arff.ph.standdown': { zh: '演练结束 · 复位', en: 'Stand-down' },
+  'log.arffStart': { zh: '🚒 {rwy} 响应演练开始（跑道临时关闭）', en: '🚒 Response drill at {rwy} (runway temporarily closed)' },
+  'apoc.kpi.arff': { zh: '救援演练', en: 'ARFF drill' },
+
   // ── ALCMS 助航灯光 ──
   'panel.alcms':  { zh: '💡 助航灯光 (ALCMS)', en: '💡 Airfield Lighting (ALCMS)' },
   'dock.d.alcms': { zh: '灯光回路健康·单灯故障·维护派工', en: 'Circuit health, lamp faults & maintenance' },

@@ -340,6 +340,10 @@ export class UIOverlay {
         <div id="wi-storm" class="wi-seg">
           <button class="wi-lightning" data-i18n="wi.lightning">${t('wi.lightning')}</button>
         </div>
+        <div class="wi-lbl" data-i18n="wi.arff">${t('wi.arff')}</div>
+        <div id="wi-arff" class="wi-seg">
+          <button class="wi-drill" data-i18n="wi.arffBtn">${t('wi.arffBtn')}</button>
+        </div>
         <div class="wi-lbl" data-i18n="wi.delta">${t('wi.delta')}</div>
         <div id="wi-delta" class="wi-delta"></div>
       </div>
@@ -353,6 +357,14 @@ export class UIOverlay {
           <div class="deice-lh" data-i18n="deice.inProcess">${t('deice.inProcess')}</div>
           <div id="deice-list" class="deice-list"></div>
         </div>
+      </div>
+
+      <!-- ARFF response drill (collapsed by default) -->
+      <div id="panel-arff" class="panel">
+        <div class="panel-title" data-i18n="panel.arff">${t('panel.arff')}</div>
+        <div id="arff-status" class="arff-status"></div>
+        <div class="arff-lh" data-i18n="arff.history">${t('arff.history')}</div>
+        <div id="arff-history" class="arff-history"></div>
       </div>
 
       <!-- ALCMS airfield lighting (collapsed by default) -->
@@ -558,6 +570,9 @@ export class UIOverlay {
       const b = e.target.closest('.wi-lightning');
       if (b) this._cb('toggleLightning', { on: !b.classList.contains('wi-on') });
     });
+    document.getElementById('wi-arff').addEventListener('click', e => {
+      if (e.target.closest('.wi-drill')) this._cb('arffDrill');
+    });
     document.getElementById('an-export').addEventListener('click', () => {
       this._cb('exportLog');
     });
@@ -760,6 +775,38 @@ export class UIOverlay {
         row(t('an.gateUtil'),   delta.gateUtil == null ? null : delta.gateUtil * 100, '%', false) +
         row(t('an.taxiOut'),    delta.avgTaxiOut, 's', true) +
         row(t('an.avgDepWait'), delta.avgDepWait, 's', true);
+    }
+  }
+
+  // ── ARFF response drill ──────────────────────────────────────────────────────
+  updateARFF(af) {
+    if (!af) return;
+    const st = document.getElementById('arff-status');
+    if (st) {
+      const cat = `<div class="arff-cat">CAT ${af.category} · ${tf('arff.std', { s: af.standardSec })}</div>`;
+      let body;
+      if (af.phase === 'idle') {
+        body = `<div class="arff-idle">${t('arff.idle')}</div>`;
+      } else {
+        const clock = af.responseSec != null ? af.responseSec
+                    : (af.phase === 'alarm' || af.phase === 'enroute') ? af.phaseSec : '—';
+        body = `<div class="arff-live arff-ph-${af.phase}">` +
+               `<span class="arff-rwy">${af.rwy ?? ''}</span>` +
+               `<span class="arff-phase">${t('arff.ph.' + af.phase)}</span>` +
+               `<span class="arff-clock">${typeof clock === 'number' ? clock.toFixed(1) + 's' : clock}</span></div>`;
+      }
+      const rate = af.passRate == null ? '' :
+        `<div class="arff-rate">${tf('arff.passRate', { p: af.passRate, n: af.drills })}</div>`;
+      st.innerHTML = cat + body + rate;
+    }
+    const hs = document.getElementById('arff-history');
+    if (hs) {
+      hs.innerHTML = af.history.length
+        ? af.history.map(h =>
+            `<div class="arff-row ${h.pass ? 'arff-pass' : 'arff-bust'}">` +
+            `<span>${h.rwy}</span><span>${h.responseSec}s</span>` +
+            `<span class="arff-v">${h.pass ? t('arff.pass') : t('arff.bust')}</span></div>`).join('')
+        : `<div class="arff-empty">${t('arff.none')}</div>`;
     }
   }
 

@@ -74,6 +74,12 @@ const KPIS = [
     val: d => d.safety ? d.safety.alarms : 0, na: d => !d.safety,
     fmt: v => String(v),
     rate: v => v === 0 ? RAG.GREEN : RAG.RED },
+  // ARFF response drill — last exercise vs the ICAO 3-minute objective.
+  { id: 'arff', domain: 'safe', dir: 'up', target: '≤ 3min',
+    val: d => d.arff && d.arff.last ? (d.arff.last.pass ? 1 : 0) : null,
+    na: d => !d.arff || !d.arff.last,
+    fmt: v => v === 1 ? 'PASS' : 'BUST',
+    rate: v => v === 1 ? RAG.GREEN : RAG.RED },
   // ALCMS airfield lighting serviceability (ICAO CAT minima).
   { id: 'agl', domain: 'safe', dir: 'up', target: '≥ 95%',
     val: d => d.agl ? d.agl.overallPct / 100 : null, na: d => !d.agl,
