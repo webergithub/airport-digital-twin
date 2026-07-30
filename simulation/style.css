@@ -828,6 +828,43 @@ button:active { transform: scale(0.97); }
 .wi-drow span.wi-bad  { color: #e74c3c; }
 .wi-empty { font-size: 10px; color: var(--muted); }
 
+/* ─── Cold-start overlay（启动模拟按钮） ───────────────────── */
+#start-overlay { position: fixed; inset: 0; z-index: 470; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 14px; background: rgba(4,8,14,0.45);
+  backdrop-filter: blur(2px); pointer-events: all; }
+#start-sim { display: flex; align-items: center; gap: 12px; font: 700 20px/1 var(--font);
+  color: #06111f; background: var(--accent); border: none; border-radius: 14px;
+  padding: 18px 34px; cursor: pointer; box-shadow: 0 10px 40px rgba(74,168,255,0.35);
+  transition: transform 0.12s, box-shadow 0.12s;
+  width: auto; max-width: 92vw; align-self: center; }   /* guard vs global nav button rules */
+#start-sim:hover { transform: scale(1.04); box-shadow: 0 14px 50px rgba(74,168,255,0.5); }
+.ss-ic { font-size: 24px; }
+.ss-hint { font-size: 13px; color: var(--text2); }
+
+/* ─── Apron energy: FEGP vs APU ──────────────────────────── */
+#panel-energy { right: 300px; top: 520px; width: 240px; }
+.en-kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 7px; }
+.en-kpi { display: flex; flex-direction: column; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 4px 7px; }
+.en-kv { font-size: 13px; font-weight: 700; color: var(--accent); line-height: 1.2; }
+.en-kv.en-good { color: var(--green); }
+.en-kv.en-warn { color: var(--orange); }
+.en-kv.en-bad  { color: var(--red); }
+.en-kk { font-size: 7.5px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.3px; }
+.en-lh { font-size: 9px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.4px; margin: 6px 0 3px; }
+.en-live, .en-airlines { display: flex; flex-direction: column; gap: 3px; }
+.en-row { display: flex; align-items: center; gap: 8px; font-size: 10px; font-family: monospace;
+  color: var(--text2); padding: 2px 6px; border-radius: 4px; background: var(--surface2);
+  border-left: 3px solid var(--border); }
+.en-row.en-fegp { border-left-color: var(--green); }
+.en-row.en-apu  { border-left-color: var(--orange); }
+.en-gate { font-weight: 700; color: var(--text); width: 22px; }
+.en-cs { color: var(--text); }
+.en-mode { margin-left: auto; }
+.en-fegp .en-mode { color: var(--green); }
+.en-apu .en-mode { color: var(--orange); }
+.en-empty { font-size: 10px; color: var(--muted); padding: 2px; }
+
 /* ─── GRF runway condition report ────────────────────────── */
 #panel-grf { right: 300px; top: 300px; width: 246px; }
 .grf-runways { display: flex; flex-direction: column; gap: 4px; }

@@ -21,10 +21,11 @@ export class UIOverlay {
     // small default set opens on first load; the rest are one dock-click away.
     this._wm = new WindowManager();
     this._wm.register(document.getElementById('panel-gate-detail'), { hidden: true });   // contextual (gate focus)
-    // Phones fit one bottom-sheet panel; desktop starts with the 4-window set.
+    // Cold start stays minimal: only the mission-critical windows open —
+    // phones get the APOC overview alone, desktop adds the flight board.
     const DEFAULT_OPEN = isMobile()
       ? new Set(['panel-apoc'])
-      : new Set(['panel-apoc', 'panel-config', 'panel-flights', 'panel-radar']);
+      : new Set(['panel-apoc', 'panel-flights']);
     DOCK_ITEMS.forEach(it =>
       this._wm.register(document.getElementById(it.id), { hidden: !DEFAULT_OPEN.has(it.id) }));
     this._dock = new Dock(this._wm);
@@ -39,6 +40,7 @@ export class UIOverlay {
   _bindActions() {
     const on = (id, ev, fn) => { const e = document.getElementById(id); if (e) e.addEventListener(ev, fn); };
     on('act-pause', 'click', () => this._cb('togglePause'));
+    on('start-sim', 'click', () => this._cb('startSim'));
     on('act-live', 'click', () => { const d = document.getElementById('live-dialog'); if (d) d.style.display = 'flex'; });
     on('act-save', 'click', () => this._cb('saveState'));
     on('live-close', 'click', () => { const d = document.getElementById('live-dialog'); if (d) d.style.display = 'none'; });
@@ -46,6 +48,11 @@ export class UIOverlay {
     on('live-disconnect', 'click', () => this._cb('liveDisconnect'));
     on('restore-yes', 'click', () => { this.hideRestore(); this._cb('restoreYes'); });
     on('restore-no', 'click', () => { this.hideRestore(); this._cb('restoreNo'); });
+  }
+
+  hideStartOverlay() {
+    const o = document.getElementById('start-overlay');
+    if (o) o.style.display = 'none';
   }
 
   setPauseLabel(paused) {
@@ -214,6 +221,15 @@ export class UIOverlay {
         <div id="flight-rows"></div>
       </div>
 
+      <!-- Cold-start overlay: the simulation begins only when clicked -->
+      <div id="start-overlay">
+        <button id="start-sim">
+          <span class="ss-ic">▶</span>
+          <span data-i18n="start.btn">${t('start.btn')}</span>
+        </button>
+        <div class="ss-hint" data-i18n="start.hint">${t('start.hint')}</div>
+      </div>
+
       <!-- Bottom: Stats bar -->
       <div id="stats-bar">
         <div class="stat-item"><span class="stat-lbl" data-i18n="stat.arrivals">${t('stat.arrivals')}</span><span id="s-arrivals" class="stat-val">0</span></div>
@@ -333,6 +349,16 @@ export class UIOverlay {
           <div class="deice-lh" data-i18n="deice.inProcess">${t('deice.inProcess')}</div>
           <div id="deice-list" class="deice-list"></div>
         </div>
+      </div>
+
+      <!-- Apron energy: FEGP vs APU (collapsed by default) -->
+      <div id="panel-energy" class="panel">
+        <div class="panel-title" data-i18n="panel.energy">${t('panel.energy')}</div>
+        <div id="en-kpis" class="en-kpis"></div>
+        <div class="en-lh" data-i18n="en.gates">${t('en.gates')}</div>
+        <div id="en-live" class="en-live"></div>
+        <div class="en-lh" data-i18n="en.topApu">${t('en.topApu')}</div>
+        <div id="en-airlines" class="en-airlines"></div>
       </div>
 
       <!-- GRF runway condition report (collapsed by default) -->
@@ -701,6 +727,41 @@ export class UIOverlay {
         row(t('an.gateUtil'),   delta.gateUtil == null ? null : delta.gateUtil * 100, '%', false) +
         row(t('an.taxiOut'),    delta.avgTaxiOut, 's', true) +
         row(t('an.avgDepWait'), delta.avgDepWait, 's', true);
+    }
+  }
+
+  // ── Apron energy: FEGP vs APU ────────────────────────────────────────────────
+  updateEnergy(en) {
+    if (!en) return;
+    const kp = document.getElementById('en-kpis');
+    if (kp) {
+      const cell = (label, val, cls = '') =>
+        `<div class="en-kpi"><span class="en-kv ${cls}">${val}</span>` +
+        `<span class="en-kk">${label}</span></div>`;
+      const share = en.fegpSharePct;
+      kp.innerHTML =
+        cell(t('en.share'), share == null ? '—' : share + '%',
+             share == null ? '' : share >= 70 ? 'en-good' : share >= 40 ? 'en-warn' : 'en-bad') +
+        cell(t('en.apuCo2'), en.apuCO2Kg + 'kg', en.apuCO2Kg > 0 ? 'en-warn' : '') +
+        cell(t('en.avoided'), en.co2AvoidedKg + 'kg', 'en-good') +
+        cell(t('en.kwh'), en.fegpKwh);
+    }
+    const lv = document.getElementById('en-live');
+    if (lv) {
+      lv.innerHTML = en.live.length
+        ? en.live.map(g =>
+            `<div class="en-row en-${g.mode}"><span class="en-gate">${g.gate}</span>` +
+            `<span class="en-cs">${g.cs}</span>` +
+            `<span class="en-mode">${t('en.m.' + g.mode)}</span></div>`).join('')
+        : `<div class="en-empty">${t('en.none')}</div>`;
+    }
+    const al = document.getElementById('en-airlines');
+    if (al) {
+      al.innerHTML = en.byAirline.length
+        ? en.byAirline.map(a =>
+            `<div class="en-row en-apu"><span class="en-cs">${a.airline}</span>` +
+            `<span class="en-mode">${a.co2Kg} kg CO₂</span></div>`).join('')
+        : `<div class="en-empty">${t('en.none')}</div>`;
     }
   }
 

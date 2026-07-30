@@ -32,6 +32,7 @@ import { VDGS }            from '../optimization/vdgs.js';
 import { NoiseMonitor, NMT_SITES } from '../optimization/noise-monitor.js';
 import { SlotMonitor }     from '../optimization/slot-monitor.js';
 import { GRFReporter }     from '../optimization/runway-condition.js';
+import { GateEnergyMonitor } from '../optimization/gate-energy.js';
 import { TaxiGuidance }    from './guidance-lights.js';
 import { LiveSource }      from './live-source.js';
 import { t, tf, onLangChange, toggleLang, getLang } from './i18n.js';
@@ -58,9 +59,10 @@ const vdgs      = new VDGS();                          // A-VDGS 泊位引导（
 const noise     = new NoiseMonitor();                  // ANOMS 噪声监测（NMT 阵列）
 const slots     = new SlotMonitor();                   // ATFM/CTOT 时隙符合性监测
 const grf       = new GRFReporter();                   // GRF 跑道状态报告（RWYCC/RCR）
+const energy    = new GateEnergyMonitor();             // 机坪能源 FEGP/APU 排放
 airport.buildNoiseSites(NMT_SITES);                    // 场内 NMT 立桩 + 实时读数标签
 const liveSource = new LiveSource();                  // 对接真实机场（WS 数据源）
-let simPaused   = false;                              // 暂停/启动模拟
+let simPaused   = true;                               // 冷启动：等待「启动模拟」按钮
 let liveSnapshot = null;                              // 最近一帧外部数据源快照
 const SAVE_KEY  = 'airporttwin_savestate';
 
@@ -200,7 +202,15 @@ const ui = new UIOverlay(document.getElementById('ui-root'), (action, payload) =
     case 'liveDisconnect':
       liveSource.disconnect();
       break;
+    case 'startSim':
+      simPaused = false;
+      seedTraffic();
+      ui.hideStartOverlay();
+      ui.setPauseLabel(false);
+      ui.log(t('log.simStarted'), 'info');
+      break;
     case 'restoreYes':
+      ui.hideStartOverlay();
       restoreRunState();
       break;
     case 'restoreNo':
@@ -301,6 +311,8 @@ function logicTick() {
   const sl       = slots.getStatus();      // ATFM slots — panel + APOC punc domain
   grf.update(snapshot);
   const gr       = grf.getStatus();        // GRF RCR — panel + APOC safety domain
+  energy.update(snapshot);
+  const en       = energy.getStatus();     // FEGP/APU — panel + APOC env domain
 
   ui.updateAnalytics({
     metrics,
@@ -329,12 +341,13 @@ function logicTick() {
   ui.updateNoise(ns);
   ui.updateSlots(sl);
   ui.updateGRF(gr);
+  ui.updateEnergy(en);
   ui.updateAman(api.getArrivalLadder());
   ui.updateDCB(forecast);
 
   // APOC — Total Airport Management: score every domain's KPIs vs target.
   apoc.update({ metrics, safety, dcb: forecast, wall, stats: snapshot.stats,
-                deicing: snapshot.deicing, noise: ns, slots: sl, grf: gr,
+                deicing: snapshot.deicing, noise: ns, slots: sl, grf: gr, energy: en,
                 simTimeSec: snapshot.simTimeSec });
   ui.updateAPOC(apoc.getState());
 
@@ -430,7 +443,7 @@ function connectLive(url) {
         badframe: 'live.st.badframe', error: 'live.st.error', closed: 'live.st.closed' };
       ui.setLiveStatus(map[kind] || 'live.st.idle',
         kind === 'data' ? { n: detail } : (kind === 'badframe' ? { e: detail } : null));
-      if (kind === 'open') { ui.setLiveState(true); ui.log(t('log.liveOn'), 'atc'); }
+      if (kind === 'open') { ui.setLiveState(true); ui.hideStartOverlay(); ui.log(t('log.liveOn'), 'atc'); }
       if (kind === 'closed' || kind === 'error') { ui.setLiveState(false); liveSnapshot = null; ui.log(t('log.liveOff'), 'info'); }
     },
   });
@@ -469,8 +482,15 @@ ui.log(t('boot.hint'), 'info');
   }
 }
 
-scheduler.spawnNow();
-setTimeout(() => scheduler.spawnNow(), 1800);
+// Cold start: no seed traffic — the field stays empty until the user presses
+// the Start button (two seed arrivals then kick things off immediately).
+let _seeded = false;
+function seedTraffic() {
+  if (_seeded) return;
+  _seeded = true;
+  scheduler.spawnNow();
+  setTimeout(() => scheduler.spawnNow(), 1800);
+}
 
 setInterval(logicTick, 50);
 requestAnimationFrame(animate);
@@ -498,9 +518,10 @@ window.__step = (n = 200, dt = 0.5) => {
     slots.update(s);
     vdgs.update(s);
     grf.update(s);
+    energy.update(s);
     apoc.update({ metrics: analytics.getMetrics(), safety: safetyNet.getStatus(),
                   dcb: dcb.getForecast(), wall: api.getTurnaroundWall(),
-                  deicing: s.deicing, noise: noise.getStatus(), slots: slots.getStatus(), grf: grf.getStatus(),
+                  deicing: s.deicing, noise: noise.getStatus(), slots: slots.getStatus(), grf: grf.getStatus(), energy: energy.getStatus(),
                   stats: s.stats, simTimeSec: s.simTimeSec });
     runLog.tick(s, dt);
   }
@@ -510,4 +531,5 @@ window.__dcb = dcb;
 
 // Health watchdog handshake (index.html inline script shows a diagnostic page
 // if this is not set within 12 s — i.e. the CDN/module chain failed to load).
+ui.setPauseLabel(true);   // 冷启动：底部按钮显示 ▶，与启动遮罩一致
 window.__appReady = true;

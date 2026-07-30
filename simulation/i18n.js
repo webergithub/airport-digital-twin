@@ -230,6 +230,25 @@ const DICT = {
   'wi.winter':      { zh: '冬季运行',    en: 'Winter ops' },
   'wi.deice':       { zh: '❄ 冻雨 / 除冰', en: '❄ Freezing / de-icing' },
   'wi.delta':       { zh: '相对基线',    en: 'Δ vs baseline' },
+  // ── 冷启动遮罩 ──
+  'start.btn':      { zh: '启动模拟', en: 'Start simulation' },
+  'start.hint':     { zh: '点击后开始航班起降与地面保障模拟', en: 'Click to start arrivals, departures & ground ops' },
+  'log.simStarted': { zh: '▶ 模拟已启动', en: '▶ Simulation started' },
+
+  // ── 机坪能源 FEGP / APU ──
+  'panel.energy':  { zh: '🔌 机坪能源 (FEGP/APU)', en: '🔌 Apron Energy (FEGP/APU)' },
+  'dock.d.energy': { zh: 'FEGP 覆盖率·APU 排放·避免的 CO₂', en: 'FEGP share, APU burn & avoided CO₂' },
+  'en.share':   { zh: 'FEGP 覆盖率', en: 'FEGP share' },
+  'en.apuCo2':  { zh: 'APU CO₂', en: 'APU CO₂' },
+  'en.avoided': { zh: '已避免 CO₂', en: 'CO₂ avoided' },
+  'en.kwh':     { zh: 'FEGP 电量', en: 'FEGP kWh' },
+  'en.gates':   { zh: '在位供电方式', en: 'Stands on power' },
+  'en.topApu':  { zh: 'APU 排放最多航司', en: 'Top APU emitters' },
+  'en.none':    { zh: '暂无', en: 'None' },
+  'en.m.fegp':  { zh: 'FEGP 岸电', en: 'FEGP' },
+  'en.m.apu':   { zh: 'APU 运转', en: 'APU running' },
+  'apoc.kpi.fegp': { zh: 'FEGP 覆盖率', en: 'FEGP share' },
+
   // ── GRF 跑道状态报告 ──
   'panel.grf':     { zh: '🛞 跑道状态 (GRF)', en: '🛞 Runway Condition (GRF)' },
   'dock.d.grf':    { zh: 'RWYCC 状态码·RCR·刹车效应报告', en: 'RWYCC codes, RCR & braking reports' },

@@ -46,6 +46,7 @@ export const DOCK_ITEMS = [
   { id: 'panel-grf',       side: 'right', icon: '🛞', key: 'panel.grf',       d: 'dock.d.grf' },
   { id: 'panel-oooi',      side: 'right', icon: '📻', key: 'panel.oooi',      d: 'dock.d.oooi' },
   { id: 'panel-noise',     side: 'right', icon: '🔊', key: 'panel.noise',     d: 'dock.d.noise' },
+  { id: 'panel-energy',    side: 'right', icon: '🔌', key: 'panel.energy',    d: 'dock.d.energy' },
   { id: 'panel-replay',    side: 'right', icon: '🎞', key: 'panel.replay',    d: 'dock.d.replay' },
 ];
 
@@ -60,13 +61,13 @@ export class Dock {
     this._wm = wm;
     this._btns = new Map();   // id → button element
     this._solo = false;
-    this._expanded = true;    // default: detail cards (big icon + name + core function); ⇔ collapses to icons
+    this._expanded = false;   // default: macOS-style compact icon rails; ⇔ expands to detail cards
     this._railMin = { top: false, left: false, right: false };   // per-rail collapse (dock minimize)
     this._railVis = { top: true, left: true, right: true };      // per-rail visibility (dock close)
     this._iconPx = 21;                                           // dock icon size (dock resize)
     try {
       this._solo = localStorage.getItem(LS_SOLO) === '1';
-      this._expanded = localStorage.getItem(LS_LABELS) !== '0';
+      this._expanded = localStorage.getItem(LS_LABELS) === '1';
       const rm = JSON.parse(localStorage.getItem(LS_RAILS) || 'null');
       if (rm) for (const k of ['top', 'left', 'right']) this._railMin[k] = !!rm[k];
       const rv = JSON.parse(localStorage.getItem(LS_RAILVIS) || 'null');

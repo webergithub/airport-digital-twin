@@ -22,6 +22,7 @@ import { VDGS, VPH } from '../optimization/vdgs.js';
 import { NoiseMonitor, NMT_SITES } from '../optimization/noise-monitor.js';
 import { SlotMonitor } from '../optimization/slot-monitor.js';
 import { GRFReporter } from '../optimization/runway-condition.js';
+import { GateEnergyMonitor } from '../optimization/gate-energy.js';
 import { RunLogger } from '../optimization/run-logger.js';
 
 // Deterministic PRNG (mulberry32) so the smoke run is reproducible — a flaky
@@ -52,6 +53,7 @@ const vdgs = new VDGS();
 const noise = new NoiseMonitor();
 const slots = new SlotMonitor();
 const grf = new GRFReporter();
+const energy = new GateEnergyMonitor();
 const runLog = new RunLogger(api, { snapshotEverySec: 5 });
 
 // Track one docking episode per gate to assert the countdown is monotonic.
@@ -75,9 +77,10 @@ for (let i = 0; i < STEPS; i++) {
   noise.update(snapshot);
   slots.update(snapshot);
   grf.update(snapshot);
+  energy.update(snapshot);
   apoc.update({ metrics: analytics.getMetrics(), safety: safetyNet.getStatus(),
     dcb: dcb.getForecast(), wall: api.getTurnaroundWall(), noise: noise.getStatus(),
-    slots: slots.getStatus(), grf: grf.getStatus(),
+    slots: slots.getStatus(), grf: grf.getStatus(), energy: energy.getStatus(),
     stats: snapshot.stats, simTimeSec: snapshot.simTimeSec });
   vdgs.update(snapshot);
   for (const g of vdgs.getStatus().gates) {
@@ -297,6 +300,23 @@ console.log('GRF runway condition:');
     gw.aireps.every(a => a.actionKey && a.code <= 5));
   const apG = apoc.getState().domains.find(d => d.id === 'safe').kpis.find(k => k.id === 'rwycc');
   check('APOC safety rates RWYCC', !!apG && apG.rag !== RAG.NA, apG && apG.rag);
+}
+
+// ── 6f. Apron energy (FEGP vs APU) ────────────────────────────────────────────
+console.log('apron energy:');
+{
+  const en = energy.getStatus();
+  check('gate time accrued on both supplies', en.fegpSec > 0 && en.apuSec > 0,
+    JSON.stringify({ fegp: en.fegpSec, apu: en.apuSec }));
+  check('FEGP share within (0,100)', en.fegpSharePct > 0 && en.fegpSharePct < 100,
+    String(en.fegpSharePct));
+  check('APU CO2 consistent with fuel', Math.abs(en.apuCO2Kg - en.apuFuelKg * 3.16) < 0.5,
+    JSON.stringify({ fuel: en.apuFuelKg, co2: en.apuCO2Kg }));
+  check('avoided CO2 positive with FEGP time', en.co2AvoidedKg > 0, String(en.co2AvoidedKg));
+  check('live stand modes valid', en.live.every(g => g.mode === 'fegp' || g.mode === 'apu'));
+  check('APU league consistent', en.byAirline.every(a => a.co2Kg >= 0));
+  const apE = apoc.getState().domains.find(d => d.id === 'env').kpis.find(k => k.id === 'fegp');
+  check('APOC env rates FEGP share', !!apE && apE.rag !== RAG.NA, apE && apE.rag);
 }
 
 // ── 7. Winter de-icing scenario (isolated run) ────────────────────────────────

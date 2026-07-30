@@ -90,6 +90,13 @@ const KPIS = [
     val: d => d.noise ? d.noise.maxDb : 0, na: d => !d.noise,
     fmt: v => v.toFixed(0) + 'dB',
     rate: v => v <= 72 ? RAG.GREEN : v <= 82 ? RAG.AMBER : RAG.RED },
+  // FEGP share of gate time — the ACA "APU off" measure (contact stands supply
+  // fixed power; remote stands burn APU).
+  { id: 'fegp', domain: 'env', dir: 'up', target: '≥ 70%',
+    val: d => d.energy && d.energy.fegpSharePct != null ? d.energy.fegpSharePct / 100 : null,
+    na: d => !d.energy || d.energy.fegpSharePct == null,
+    fmt: v => Math.round(v * 100) + '%',
+    rate: v => v >= 0.70 ? RAG.GREEN : v >= 0.40 ? RAG.AMBER : RAG.RED },
 ];
 
 const DOMAINS = ['cap', 'punc', 'safe', 'env'];
