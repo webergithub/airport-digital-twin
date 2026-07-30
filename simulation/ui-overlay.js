@@ -355,6 +355,15 @@ export class UIOverlay {
         </div>
       </div>
 
+      <!-- Wildlife hazard management (collapsed by default) -->
+      <div id="panel-wildlife" class="panel">
+        <div class="panel-title" data-i18n="panel.wildlife">${t('panel.wildlife')}</div>
+        <div id="wl-kpis" class="wl-kpis"></div>
+        <div id="wl-risk" class="wl-risk"></div>
+        <div class="wl-lh" data-i18n="wl.events">${t('wl.events')}</div>
+        <div id="wl-events" class="wl-events"></div>
+      </div>
+
       <!-- Apron energy: FEGP vs APU (collapsed by default) -->
       <div id="panel-energy" class="panel">
         <div class="panel-title" data-i18n="panel.energy">${t('panel.energy')}</div>
@@ -743,6 +752,38 @@ export class UIOverlay {
         row(t('an.gateUtil'),   delta.gateUtil == null ? null : delta.gateUtil * 100, '%', false) +
         row(t('an.taxiOut'),    delta.avgTaxiOut, 's', true) +
         row(t('an.avgDepWait'), delta.avgDepWait, 's', true);
+    }
+  }
+
+  // ── Wildlife hazard management ───────────────────────────────────────────────
+  updateWildlife(wl) {
+    if (!wl) return;
+    const kp = document.getElementById('wl-kpis');
+    if (kp) {
+      const cell = (label, val, bad) =>
+        `<div class="wl-kpi"><span class="wl-kv${bad ? ' wl-bad' : ''}">${val}</span>` +
+        `<span class="wl-kk">${label}</span></div>`;
+      kp.innerHTML =
+        cell(t('wl.activity'), wl.activityPct + '%') +
+        cell(t('wl.flocks'), wl.flocks.length) +
+        cell(t('wl.dispersals'), wl.dispersals) +
+        cell(t('wl.strikes'), wl.strikes, wl.strikes > 0);
+    }
+    const rk = document.getElementById('wl-risk');
+    if (rk) {
+      rk.innerHTML = Object.entries(wl.risk).map(([rwy, lv]) =>
+        `<div class="wl-rwy wl-${lv}"><span class="wl-id">${rwy}</span>` +
+        `<span class="wl-lv">${t('wl.lv.' + lv)}</span></div>`).join('');
+    }
+    const ev = document.getElementById('wl-events');
+    if (ev) {
+      ev.innerHTML = wl.events.length
+        ? wl.events.map(e => {
+            if (e.kind === 'dispersal') return `<div class="wl-ev wl-ev-d">🔊 ${tf('wl.evDispersal', { rwy: e.rwy, n: e.n })}</div>`;
+            if (e.kind === 'strike')    return `<div class="wl-ev wl-ev-s">💥 ${tf('wl.evStrike', { cs: e.cs, rwy: e.rwy })}</div>`;
+            return `<div class="wl-ev wl-ev-n">⚠ ${tf('wl.evNear', { cs: e.cs, m: e.distM })}</div>`;
+          }).join('')
+        : `<div class="wl-empty">${t('wl.none')}</div>`;
     }
   }
 

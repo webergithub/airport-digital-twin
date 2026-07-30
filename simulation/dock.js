@@ -44,6 +44,7 @@ export const DOCK_ITEMS = [
   { id: 'panel-dcb',       side: 'right', icon: '📊', key: 'panel.dcb',       d: 'dock.d.dcb' },
   { id: 'panel-safetynet', side: 'right', icon: '🚨', key: 'panel.safetynet', d: 'dock.d.safetynet' },
   { id: 'panel-grf',       side: 'right', icon: '🛞', key: 'panel.grf',       d: 'dock.d.grf' },
+  { id: 'panel-wildlife',  side: 'right', icon: '🦅', key: 'panel.wildlife',  d: 'dock.d.wildlife' },
   { id: 'panel-oooi',      side: 'right', icon: '📻', key: 'panel.oooi',      d: 'dock.d.oooi' },
   { id: 'panel-noise',     side: 'right', icon: '🔊', key: 'panel.noise',     d: 'dock.d.noise' },
   { id: 'panel-energy',    side: 'right', icon: '🔌', key: 'panel.energy',    d: 'dock.d.energy' },

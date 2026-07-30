@@ -239,6 +239,23 @@ const DICT = {
   'start.hint':     { zh: '点击后开始航班起降与地面保障模拟', en: 'Click to start arrivals, departures & ground ops' },
   'log.simStarted': { zh: '▶ 模拟已启动', en: '▶ Simulation started' },
 
+  // ── 野生动物危害管理 ──
+  'panel.wildlife': { zh: '🦅 鸟情防控 (WHM)', en: '🦅 Wildlife Hazard (WHM)' },
+  'dock.d.wildlife':{ zh: '鸟情雷达·驱鸟行动·鸟击记录', en: 'Avian radar, dispersals & strike log' },
+  'wl.activity':  { zh: '鸟类活动', en: 'Bird activity' },
+  'wl.flocks':    { zh: '在场鸟群', en: 'Flocks' },
+  'wl.dispersals':{ zh: '驱鸟行动', en: 'Dispersals' },
+  'wl.strikes':   { zh: '鸟击', en: 'Strikes' },
+  'wl.events':    { zh: '事件记录', en: 'Event log' },
+  'wl.none':      { zh: '暂无事件', en: 'No events yet' },
+  'wl.lv.low':    { zh: '低风险', en: 'LOW' },
+  'wl.lv.mod':    { zh: '中风险', en: 'MODERATE' },
+  'wl.lv.high':   { zh: '高风险', en: 'HIGH' },
+  'wl.evDispersal': { zh: '{rwy} 驱鸟队出动，驱散 {n} 群', en: 'Patrol at {rwy} — {n} flock(s) dispersed' },
+  'wl.evStrike':    { zh: '{cs} 于 {rwy} 疑似鸟击，需检查', en: '{cs} suspected strike at {rwy} — inspection required' },
+  'wl.evNear':      { zh: '{cs} 与鸟群近距 {m}m', en: '{cs} near-miss with flock ({m} m)' },
+  'apoc.kpi.wildlife': { zh: '鸟情风险', en: 'Wildlife risk' },
+
   // ── 机坪能源 FEGP / APU ──
   'panel.energy':  { zh: '🔌 机坪能源 (FEGP/APU)', en: '🔌 Apron Energy (FEGP/APU)' },
   'dock.d.energy': { zh: 'FEGP 覆盖率·APU 排放·避免的 CO₂', en: 'FEGP share, APU burn & avoided CO₂' },

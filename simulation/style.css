@@ -842,6 +842,30 @@ button:active { transform: scale(0.97); }
 .ss-ic { font-size: 24px; }
 .ss-hint { font-size: 13px; color: var(--text2); }
 
+/* ─── Wildlife hazard management ─────────────────────────── */
+#panel-wildlife { right: 46px; top: 560px; width: 238px; }
+body.dock-wide #panel-wildlife { right: 110px; }
+.wl-kpis { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 5px; margin-bottom: 7px; }
+.wl-kpi { display: flex; flex-direction: column; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 4px 6px; }
+.wl-kv { font-size: 13px; font-weight: 700; color: var(--accent); line-height: 1.2; }
+.wl-kv.wl-bad { color: var(--red); }
+.wl-kk { font-size: 7.5px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.3px; }
+.wl-risk { display: flex; flex-direction: column; gap: 4px; }
+.wl-rwy { display: flex; align-items: center; gap: 8px; font-size: 10px; padding: 4px 7px;
+  border-radius: 5px; background: var(--surface2); border-left: 3px solid var(--green); }
+.wl-rwy.wl-mod  { border-left-color: var(--orange); }
+.wl-rwy.wl-high { border-left-color: var(--red); background: rgba(231,76,60,0.10); }
+.wl-id { font-family: monospace; font-weight: 700; color: var(--text); }
+.wl-lv { margin-left: auto; font-weight: 700; color: var(--green); }
+.wl-mod .wl-lv { color: var(--orange); }
+.wl-high .wl-lv { color: var(--red); }
+.wl-lh { font-size: 9px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.4px; margin: 7px 0 3px; }
+.wl-events { display: flex; flex-direction: column; gap: 3px; }
+.wl-ev { font-size: 10px; color: var(--text2); padding: 2px 6px; border-radius: 4px; background: var(--surface2); }
+.wl-ev-s { color: #ff8c7a; }
+.wl-empty { font-size: 10px; color: var(--muted); padding: 2px; }
+
 /* ─── Apron energy: FEGP vs APU ──────────────────────────── */
 #panel-energy { right: 300px; top: 520px; width: 240px; }
 .en-kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 7px; }

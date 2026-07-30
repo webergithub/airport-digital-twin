@@ -24,6 +24,7 @@ import { SlotMonitor } from '../optimization/slot-monitor.js';
 import { GRFReporter } from '../optimization/runway-condition.js';
 import { GateEnergyMonitor } from '../optimization/gate-energy.js';
 import { TaxiConflictMonitor } from '../optimization/taxi-conflict.js';
+import { WildlifeMonitor } from '../optimization/wildlife.js';
 import { RunLogger } from '../optimization/run-logger.js';
 
 // Deterministic PRNG (mulberry32) so the smoke run is reproducible — a flaky
@@ -56,6 +57,7 @@ const slots = new SlotMonitor();
 const grf = new GRFReporter();
 const energy = new GateEnergyMonitor();
 const taxiCft = new TaxiConflictMonitor();
+const wildlife = new WildlifeMonitor();
 const runLog = new RunLogger(api, { snapshotEverySec: 5 });
 
 // Track one docking episode per gate to assert the countdown is monotonic.
@@ -81,9 +83,10 @@ for (let i = 0; i < STEPS; i++) {
   grf.update(snapshot);
   energy.update(snapshot);
   taxiCft.update(snapshot);
+  wildlife.update(snapshot);
   apoc.update({ metrics: analytics.getMetrics(), safety: safetyNet.getStatus(),
     dcb: dcb.getForecast(), wall: api.getTurnaroundWall(), noise: noise.getStatus(),
-    slots: slots.getStatus(), grf: grf.getStatus(), energy: energy.getStatus(), taxi: taxiCft.getStatus(),
+    slots: slots.getStatus(), grf: grf.getStatus(), energy: energy.getStatus(), taxi: taxiCft.getStatus(), wildlife: wildlife.getStatus(),
     lightning: snapshot.disruptions.lightning,
     stats: snapshot.stats, simTimeSec: snapshot.simTimeSec });
   vdgs.update(snapshot);
@@ -340,6 +343,23 @@ console.log('taxiway conflicts:');
   check('counters non-negative', tc.alarms >= 0 && tc.cautions >= 0);
   const apT = apoc.getState().domains.find(d => d.id === 'safe').kpis.find(k => k.id === 'taxiCft');
   check('APOC safety rates taxi conflicts', !!apT && apT.rag !== RAG.NA, apT && apT.rag);
+}
+
+// ── 6i. Wildlife hazard management ───────────────────────────────────────────
+console.log('wildlife hazard:');
+{
+  const wl = wildlife.getStatus();
+  check('flocks spawned over the run', wl.spawned >= 3, `spawned=${wl.spawned}`);
+  check('risk levels valid', ['low', 'mod', 'high'].includes(wl.risk.RWY1) &&
+    ['low', 'mod', 'high'].includes(wl.risk.RWY2), JSON.stringify(wl.risk));
+  check('dispersal patrols rolled', wl.dispersals >= 1, `dispersals=${wl.dispersals}`);
+  check('counters non-negative', wl.strikes >= 0 && wl.nearMiss >= 0 && wl.dispersals >= 0);
+  check('activity within 0-100', wl.activityPct >= 0 && wl.activityPct <= 100,
+    String(wl.activityPct));
+  check('event log entries well-formed', wl.events.every(e =>
+    ['dispersal', 'strike', 'nearmiss'].includes(e.kind) && typeof e.sim === 'number'));
+  const apW = apoc.getState().domains.find(d => d.id === 'safe').kpis.find(k => k.id === 'wildlife');
+  check('APOC safety rates wildlife risk', !!apW && apW.rag !== RAG.NA, apW && apW.rag);
 }
 
 // ── 6g. Lightning ramp stop (isolated run) ────────────────────────────────────

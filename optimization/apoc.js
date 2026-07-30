@@ -74,6 +74,12 @@ const KPIS = [
     val: d => d.safety ? d.safety.alarms : 0, na: d => !d.safety,
     fmt: v => String(v),
     rate: v => v === 0 ? RAG.GREEN : RAG.RED },
+  // Wildlife (avian-radar) risk — worst runway level right now.
+  { id: 'wildlife', domain: 'safe', dir: 'down', target: 'LOW',
+    val: d => d.wildlife ? ({ low: 0, mod: 1, high: 2 })[d.wildlife.worst] : 0,
+    na: d => !d.wildlife,
+    fmt: v => v === 2 ? 'HIGH' : v === 1 ? 'MOD' : 'LOW',
+    rate: v => v >= 2 ? RAG.RED : v >= 1 ? RAG.AMBER : RAG.GREEN },
   // A-SMGCS L3 taxiway conflicts — live worst level on the movement area.
   { id: 'taxiCft', domain: 'safe', dir: 'down', target: 'clear',
     val: d => d.taxi ? d.taxi.activeMax : 0, na: d => !d.taxi,
