@@ -5,7 +5,7 @@
 
 import { WindowManager } from './window-manager.js';
 import { SurfaceRadar } from './surface-radar.js';
-import { Dock, DOCK_ITEMS } from './dock.js';
+import { Dock, DOCK_ITEMS, isMobile } from './dock.js';
 import { t, tf } from './i18n.js';
 
 export class UIOverlay {
@@ -21,7 +21,10 @@ export class UIOverlay {
     // small default set opens on first load; the rest are one dock-click away.
     this._wm = new WindowManager();
     this._wm.register(document.getElementById('panel-gate-detail'), { hidden: true });   // contextual (gate focus)
-    const DEFAULT_OPEN = new Set(['panel-apoc', 'panel-config', 'panel-flights', 'panel-radar']);
+    // Phones fit one bottom-sheet panel; desktop starts with the 4-window set.
+    const DEFAULT_OPEN = isMobile()
+      ? new Set(['panel-apoc'])
+      : new Set(['panel-apoc', 'panel-config', 'panel-flights', 'panel-radar']);
     DOCK_ITEMS.forEach(it =>
       this._wm.register(document.getElementById(it.id), { hidden: !DEFAULT_OPEN.has(it.id) }));
     this._dock = new Dock(this._wm);

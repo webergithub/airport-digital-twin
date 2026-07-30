@@ -13,6 +13,11 @@ import { t, onLangChange } from './i18n.js';
 const LS_SOLO = 'airporttwin_dock_solo';
 const LS_LABELS = 'airporttwin_dock_labels';
 const LS_OPEN = 'airporttwin_dock_open';   // remembered window layout (which panels are open)
+const LS_RAILS = 'airporttwin_dock_rails'; // per-rail collapsed state {top:0|1,left:0|1,right:0|1}
+
+// Phone-sized viewport → dock becomes a bottom strip and panels become sheets.
+const MOBILE_MQ = '(max-width: 860px)';
+export const isMobile = () => window.matchMedia(MOBILE_MQ).matches;
 
 // Window → { side, icon, i18n title key, i18n core-function key }. Order
 // defines rail order. gate-detail is contextual (opened by clicking a gate)
@@ -51,9 +56,12 @@ export class Dock {
     this._btns = new Map();   // id → button element
     this._solo = false;
     this._expanded = true;    // default: detail cards (big icon + name + core function); ⇔ collapses to icons
+    this._railMin = { top: false, left: false, right: false };   // per-rail collapse (dock minimize)
     try {
       this._solo = localStorage.getItem(LS_SOLO) === '1';
       this._expanded = localStorage.getItem(LS_LABELS) !== '0';
+      const rm = JSON.parse(localStorage.getItem(LS_RAILS) || 'null');
+      if (rm) for (const k of ['top', 'left', 'right']) this._railMin[k] = !!rm[k];
     } catch (e) {}
     this._build();
     this._applySavedLayout();
@@ -67,7 +75,8 @@ export class Dock {
     let saved = null;
     try { saved = JSON.parse(localStorage.getItem(LS_OPEN) || 'null'); } catch (e) {}
     if (!Array.isArray(saved)) { this._refresh(); return; }
-    const want = new Set(saved);
+    // Phone sheets stack — restore at most the first remembered window there.
+    const want = new Set(isMobile() ? saved.slice(0, 1) : saved);
     for (const it of DOCK_ITEMS) {
       const el = document.getElementById(it.id);
       if (el) this._wm.setVisible(el, want.has(it.id));
@@ -93,7 +102,18 @@ export class Dock {
     for (const side of ['top', 'left', 'right']) {
       const rail = document.createElement('div');
       rail.className = `dock-rail dock-${side}`;
+      if (this._railMin[side]) rail.classList.add('dock-rail-min');
       const items = DOCK_ITEMS.filter(it => it.side === side);
+
+      // Collapse chip — minimizes the whole rail down to this one button.
+      const chip = document.createElement('button');
+      chip.className = 'dock-chip';
+      chip.title = t('dock.railMin');
+      chip.dataset.i18nTitle = 'dock.railMin';
+      chip.textContent = this._chipArrow(side);
+      chip.addEventListener('click', () => this._toggleRail(side, rail, chip));
+      rail.appendChild(chip);
+
       // group header (a role label; only visible when expanded)
       const head = document.createElement('div');
       head.className = 'dock-head';
@@ -164,16 +184,33 @@ export class Dock {
     const el = document.getElementById(id);
     if (!el) return;
     const show = !this._wm.isVisible(el);
-    if (show && this._solo) {
-      // Solo: close every other window in the same rail before opening this one.
+    // Phone layout shows panels as full-width bottom sheets — only one fits, so
+    // opening a window always closes the rest. Desktop solo mode is per-rail.
+    if (show && (this._solo || isMobile())) {
       for (const it of DOCK_ITEMS) {
-        if (it.side === side && it.id !== id) {
-          const o = document.getElementById(it.id);
-          if (o && this._wm.isVisible(o)) this._wm.setVisible(o, false);
-        }
+        if (it.id === id) continue;
+        if (!isMobile() && it.side !== side) continue;
+        const o = document.getElementById(it.id);
+        if (o && this._wm.isVisible(o)) this._wm.setVisible(o, false);
       }
     }
     this._wm.setVisible(el, show);
+  }
+
+  /** Chip arrow points toward the edge when open (collapse) and inward when minimized (restore). */
+  _chipArrow(side) {
+    const min = this._railMin[side];
+    if (side === 'top')   return min ? '▾' : '▴';
+    if (side === 'left')  return min ? '▸' : '◂';
+    return min ? '◂' : '▸';
+  }
+
+  _toggleRail(side, rail, chip) {
+    this._railMin[side] = !this._railMin[side];
+    rail.classList.toggle('dock-rail-min', this._railMin[side]);
+    chip.textContent = this._chipArrow(side);
+    try { localStorage.setItem(LS_RAILS, JSON.stringify(
+      { top: +this._railMin.top, left: +this._railMin.left, right: +this._railMin.right })); } catch (e) {}
   }
 
   _toggleExpand() {
@@ -202,6 +239,7 @@ export class Dock {
     if (exp) exp.title = t('dock.expand');
     const gear = this._root.querySelector('#dock-gear');
     if (gear) gear.title = t('dock.settings');
+    this._root.querySelectorAll('.dock-chip').forEach(c => { c.title = t('dock.railMin'); });
     this._btns.forEach((b, id) => {
       const it = DOCK_ITEMS.find(x => x.id === id);
       if (!it) return;

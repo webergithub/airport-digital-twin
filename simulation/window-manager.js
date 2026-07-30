@@ -25,7 +25,8 @@ export class WindowManager {
     bar.className = 'win-bar';
     bar.innerHTML =
       `<span class="win-title"${i18nKey ? ` data-i18n="${i18nKey}"` : ''}>${titleHTML}</span>` +
-      `<button class="win-min" title="最小化 / 还原" aria-label="minimize">—</button>`;
+      `<button class="win-min" title="最小化 / 还原" aria-label="minimize">—</button>` +
+      `<button class="win-close" title="关闭" aria-label="close">✕</button>`;
 
     // Wrap remaining content into a scrollable body
     const body = document.createElement('div');
@@ -44,6 +45,7 @@ export class WindowManager {
 
     this._bindDrag(el, bar);
     this._bindMinimize(el, bar.querySelector('.win-min'));
+    this._bindClose(el, bar.querySelector('.win-close'));
     el.addEventListener('pointerdown', () => this._raise(el), true);
 
     if (opts.collapsed) el.classList.add('win-collapsed');
@@ -91,7 +93,7 @@ export class WindowManager {
       document.removeEventListener('pointerup', onUp);
     };
     handle.addEventListener('pointerdown', (e) => {
-      if (e.target.closest('.win-min')) return;
+      if (e.target.closest('.win-min, .win-close')) return;
       e.preventDefault();
       this._detach(el);
       this._raise(el);
@@ -137,5 +139,13 @@ export class WindowManager {
       const collapsed = el.classList.toggle('win-collapsed');
       btn.textContent = collapsed ? '▢' : '—';
     });
+  }
+
+  // Close = hide. Goes through setVisible so the dock's active states and the
+  // saved open-layout stay in sync (the window reopens from its dock button).
+  _bindClose(el, btn) {
+    if (!btn) return;
+    btn.addEventListener('pointerdown', (e) => e.stopPropagation());
+    btn.addEventListener('click', (e) => { e.stopPropagation(); this.setVisible(el, false); });
   }
 }

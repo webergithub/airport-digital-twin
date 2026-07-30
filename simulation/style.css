@@ -108,6 +108,19 @@ html, body {
   cursor: pointer;
 }
 .win-min:hover { color: var(--text); border-color: var(--accent); }
+.win-close {
+  flex: 0 0 auto;
+  width: 22px; height: 18px;
+  margin-left: 4px;
+  padding: 0;
+  font-size: 11px; line-height: 1;
+  background: var(--surface2);
+  color: var(--text2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.win-close:hover { color: #ff6a56; border-color: #e74c3c; }
 .win-body {
   flex: 1 1 auto;
   min-height: 0;
@@ -150,6 +163,13 @@ html, body {
 .dock-spacer { flex: none; width: 6px; }
 .dock-left .dock-spacer, .dock-right .dock-spacer { width: auto; height: 6px; }
 .dock-util { color: var(--muted); }
+/* Rail collapse chip — the dock's own minimize control */
+.dock-chip { flex: none; align-self: center; width: 20px; height: 20px; padding: 0;
+  font-size: 11px; line-height: 1; color: var(--text2); background: var(--surface2);
+  border: 1px solid var(--border); border-radius: 5px; cursor: pointer; }
+.dock-chip:hover { color: var(--accent); border-color: var(--accent); }
+.dock-rail-min > :not(.dock-chip) { display: none !important; }
+.dock-rail.dock-rail-min { padding: 4px; background: rgba(10,16,26,0.6); }
 #dock-settings { position: fixed; top: 82px; left: 50%; transform: translateX(-50%); z-index: 360; pointer-events: auto;
   background: var(--surface); border: 1px solid var(--accent); border-radius: 8px; padding: 9px 11px;
   box-shadow: 0 6px 22px rgba(0,0,0,0.5); }
@@ -991,3 +1011,49 @@ body.dock-wide #panel-vdgs { right: 110px; }
 .tw-foot { display: flex; align-items: center; justify-content: flex-end; }
 .tw-pobt { font-size: 9px; color: var(--text2); font-family: monospace; }
 .tw-hold { font-size: 9px; font-weight: 700; color: #f39c12; }
+
+/* ═══ Mobile layout (phones ≤860px) ══════════════════════════════════════════
+   The floating-window desktop doesn't fit a phone: the dock becomes one
+   horizontal icon strip pinned to the bottom, every window opens as a
+   full-width bottom sheet above it (one at a time — dock.js enforces solo),
+   and the stats bar compresses into a scrollable strip. */
+@media (max-width: 860px) {
+  /* Dock → single bottom icon strip (all three rails inline, icon-only) */
+  #dock-root { display: flex; flex-direction: row; align-items: stretch;
+    top: auto; left: 0; right: 0; bottom: 0; height: 52px;
+    background: rgba(10,16,26,0.94); border-top: 1px solid var(--border);
+    overflow-x: auto; overflow-y: hidden; pointer-events: auto; }
+  .dock-rail { position: static !important; transform: none !important;
+    flex-direction: row !important; align-items: center; gap: 2px;
+    background: transparent; border: none; border-radius: 0; padding: 4px 2px;
+    max-width: none; overflow: visible; }
+  .dock-head, .dock-chip, .dock-spacer { display: none !important; }
+  .dock-rail-min > .dock-btn { display: flex !important; }         /* rails can't hide on phones */
+  #dock-root.dock-expanded .dock-btn { flex-direction: row; width: auto; padding: 6px 7px;
+    white-space: nowrap; text-align: left; }
+  .dock-lbl, .dock-dsc { display: none !important; }               /* icons only */
+  .dock-ic { font-size: 22px; }
+  #dock-settings { top: auto; bottom: 60px; }
+
+  /* Windows → full-width bottom sheets above the dock strip */
+  .win { position: fixed !important; left: 2vw !important; right: 2vw !important;
+    top: auto !important; bottom: 106px !important;
+    width: 96vw !important; max-width: 96vw !important;
+    max-height: 52vh; transform: none !important; }
+  .win-body { max-height: calc(52vh - 40px); overflow-y: auto; }
+  .win-resize { display: none; }                                   /* sheets aren't resized */
+  .win-min, .win-close { width: 30px; height: 24px; font-size: 14px; }
+  .win-bar { padding: 7px 9px; }
+
+  /* Stats + run controls → scrollable strip between sheet and dock */
+  #stats-bar { bottom: 54px; left: 0; right: 0; transform: none;
+    border-radius: 0; border-left: none; border-right: none;
+    overflow-x: auto; justify-content: flex-start; }
+  .stat-item { padding: 5px 9px; }
+  .stat-val { font-size: 15px; }
+  .act-btn { padding: 6px 8px; font-size: 11px; }
+
+  /* Misc floating chrome */
+  #restore-bar { bottom: 112px; width: 92vw; flex-wrap: wrap; }
+  #health-banner { font-size: 11px; }
+}

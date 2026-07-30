@@ -138,6 +138,7 @@ const DICT = {
   'dock.ops':      { zh: '运行监控',  en: 'Operations' },
   'dock.analysis': { zh: '分析与安全', en: 'Analysis & Safety' },
   'dock.expand':   { zh: '详细/精简视图', en: 'Detailed / compact view' },
+  'dock.railMin':  { zh: '折叠/展开此栏', en: 'Collapse / expand this rail' },
   'dock.settings': { zh: '全局设置',  en: 'Settings' },
   'dock.solo':     { zh: '单窗模式：调出新窗口时关闭已打开的窗口', en: 'Solo mode: opening a window closes the others' },
   // 各窗口核心功能一句话（dock 详细卡片图标下方展示）
