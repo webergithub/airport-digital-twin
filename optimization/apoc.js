@@ -74,6 +74,11 @@ const KPIS = [
     val: d => d.safety ? d.safety.alarms : 0, na: d => !d.safety,
     fmt: v => String(v),
     rate: v => v === 0 ? RAG.GREEN : RAG.RED },
+  // A-SMGCS L3 taxiway conflicts — live worst level on the movement area.
+  { id: 'taxiCft', domain: 'safe', dir: 'down', target: 'clear',
+    val: d => d.taxi ? d.taxi.activeMax : 0, na: d => !d.taxi,
+    fmt: v => v === 2 ? 'ALARM' : v === 1 ? 'CAUTION' : 'CLEAR',
+    rate: v => v >= 2 ? RAG.RED : v >= 1 ? RAG.AMBER : RAG.GREEN },
   // Lightning ramp status — amber while the ramp is stopped or in all-clear.
   { id: 'ramp', domain: 'safe', dir: 'up', target: 'OPEN',
     val: d => d.lightning ? (d.lightning.phase === 'normal' ? 1 : 0) : 1,

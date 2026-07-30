@@ -429,6 +429,9 @@ export class UIOverlay {
         <div id="sn-kpis" class="sn-kpis"></div>
         <div class="sn-loghead" data-i18n="sn.logHead">${t('sn.logHead')}</div>
         <div id="sn-log" class="sn-log"></div>
+        <div class="sn-loghead" data-i18n="sn.taxiHead">${t('sn.taxiHead')}</div>
+        <div id="sn-taxi-kpis" class="sn-kpis"></div>
+        <div id="sn-taxi" class="sn-log"></div>
       </div>
 
       <!-- APOC — Airport Operations Centre (Total Airport Management roll-up) -->
@@ -632,8 +635,8 @@ export class UIOverlay {
   }
 
   // ── ASDE-X surface surveillance radar ────────────────────────────────────────
-  updateSurfaceRadar(snapshot, stages) {
-    if (this._radar) this._radar.update(snapshot, stages);
+  updateSurfaceRadar(snapshot, stages, conflicts) {
+    if (this._radar) this._radar.update(snapshot, stages, conflicts);
   }
 
   // ── Demand-Capacity Balancing hotspot forecast ───────────────────────────────
@@ -1031,6 +1034,26 @@ export class UIOverlay {
                    `<span class="apoc-a-name">${name}</span><span class="apoc-a-val">${a.text}</span></div>`;
           }).join('')
         : `<div class="apoc-nominal">${t('apoc.nominal')}</div>`;
+    }
+  }
+
+  // ── A-SMGCS L3 taxiway conflicts (renders into the safety-net panel) ─────────
+  updateTaxiConflicts(tc) {
+    if (!tc) return;
+    const kp = document.getElementById('sn-taxi-kpis');
+    if (kp) {
+      kp.innerHTML =
+        `<div class="sn-kpi"><span class="sn-k">${t('tc.alarms')}</span><span class="sn-v${tc.alarms ? ' sn-bad' : ''}">${tc.alarms}</span></div>` +
+        `<div class="sn-kpi"><span class="sn-k">${t('tc.cautions')}</span><span class="sn-v">${tc.cautions}</span></div>` +
+        `<div class="sn-kpi"><span class="sn-k">${t('tc.minSep')}</span><span class="sn-v">${tc.minSepM == null ? '—' : tc.minSepM + 'm'}</span></div>`;
+    }
+    const lg = document.getElementById('sn-taxi');
+    if (lg) {
+      lg.innerHTML = tc.live.length
+        ? tc.live.map(c =>
+            `<div class="sn-logline sn-${c.level === 2 ? 'alarm' : 'caution'}">` +
+            `${c.a} ⇄ ${c.b} · ${c.distM}m${c.ttcSec != null ? ' · TTC ' + c.ttcSec + 's' : ''}</div>`).join('')
+        : `<div class="sn-empty">${t('tc.none')}</div>`;
     }
   }
 

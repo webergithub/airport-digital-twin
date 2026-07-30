@@ -52,7 +52,7 @@ export class SurfaceRadar {
   _tf(x, z, v) { return [(x - WX0) * v.s + v.ox, (z - WZ0) * v.s + v.oy]; }
 
   /** snapshot = api.getSnapshot(); stages = { RWY1: 0|1|2, RWY2: 0|1|2 }. */
-  update(snapshot, stages) {
+  update(snapshot, stages, conflicts) {
     const v = this._fit();
     if (!v) return;                          // panel collapsed / zero-size
     const ctx = this.ctx;
@@ -65,7 +65,21 @@ export class SurfaceRadar {
     this._drawAirfield(ctx, v, snapshot, stages || {});
     this._drawTrails(ctx, v, snapshot);
     this._drawTargets(ctx, v, snapshot, stages || {});
+    this._drawConflicts(ctx, v, conflicts || []);
     ctx.restore();
+  }
+
+  /** A-SMGCS L3: amber/red link between converging taxiing pairs. */
+  _drawConflicts(ctx, v, links) {
+    for (const l of links) {
+      const [x1, y1] = this._tf(l.ax, l.az, v);
+      const [x2, y2] = this._tf(l.bx, l.bz, v);
+      ctx.strokeStyle = l.level === 2 ? '#e74c3c' : '#f0b429';
+      ctx.lineWidth = 1.4;
+      ctx.setLineDash([3, 2]);
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+      ctx.setLineDash([]);
+    }
   }
 
   _rect(ctx, v, x0, x1, z0, z1, fill) {

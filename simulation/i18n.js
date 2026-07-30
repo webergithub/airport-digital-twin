@@ -274,6 +274,12 @@ const DICT = {
   'grf.b.lessPoor':   { zh: '极差', en: 'LESS THAN POOR' },
   'apoc.kpi.rwycc':   { zh: '跑道状态码', en: 'RWYCC' },
   'apoc.kpi.ramp':    { zh: '停机坪状态', en: 'Ramp status' },
+  'apoc.kpi.taxiCft': { zh: '滑行道冲突', en: 'Taxi conflicts' },
+  'sn.taxiHead':  { zh: '滑行道冲突 (A-SMGCS L3)', en: 'Taxiway conflicts (A-SMGCS L3)' },
+  'tc.alarms':    { zh: '告警', en: 'Alarms' },
+  'tc.cautions':  { zh: '注意', en: 'Cautions' },
+  'tc.minSep':    { zh: '最小间距', en: 'Min sep' },
+  'tc.none':      { zh: '✓ 机动区无冲突', en: '✓ Movement area clear' },
 
   // ── ATFM / CTOT 时隙符合性 ──
   'panel.slots':   { zh: '🎫 网络时隙 (CTOT)', en: '🎫 Network Slots (CTOT)' },

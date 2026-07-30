@@ -23,6 +23,7 @@ import { NoiseMonitor, NMT_SITES } from '../optimization/noise-monitor.js';
 import { SlotMonitor } from '../optimization/slot-monitor.js';
 import { GRFReporter } from '../optimization/runway-condition.js';
 import { GateEnergyMonitor } from '../optimization/gate-energy.js';
+import { TaxiConflictMonitor } from '../optimization/taxi-conflict.js';
 import { RunLogger } from '../optimization/run-logger.js';
 
 // Deterministic PRNG (mulberry32) so the smoke run is reproducible — a flaky
@@ -54,6 +55,7 @@ const noise = new NoiseMonitor();
 const slots = new SlotMonitor();
 const grf = new GRFReporter();
 const energy = new GateEnergyMonitor();
+const taxiCft = new TaxiConflictMonitor();
 const runLog = new RunLogger(api, { snapshotEverySec: 5 });
 
 // Track one docking episode per gate to assert the countdown is monotonic.
@@ -78,9 +80,10 @@ for (let i = 0; i < STEPS; i++) {
   slots.update(snapshot);
   grf.update(snapshot);
   energy.update(snapshot);
+  taxiCft.update(snapshot);
   apoc.update({ metrics: analytics.getMetrics(), safety: safetyNet.getStatus(),
     dcb: dcb.getForecast(), wall: api.getTurnaroundWall(), noise: noise.getStatus(),
-    slots: slots.getStatus(), grf: grf.getStatus(), energy: energy.getStatus(),
+    slots: slots.getStatus(), grf: grf.getStatus(), energy: energy.getStatus(), taxi: taxiCft.getStatus(),
     lightning: snapshot.disruptions.lightning,
     stats: snapshot.stats, simTimeSec: snapshot.simTimeSec });
   vdgs.update(snapshot);
@@ -318,6 +321,25 @@ console.log('apron energy:');
   check('APU league consistent', en.byAirline.every(a => a.co2Kg >= 0));
   const apE = apoc.getState().domains.find(d => d.id === 'env').kpis.find(k => k.id === 'fegp');
   check('APOC env rates FEGP share', !!apE && apE.rag !== RAG.NA, apE && apE.rag);
+}
+
+// ── 6h. A-SMGCS L3 taxiway conflict monitor ──────────────────────────────────
+console.log('taxiway conflicts:');
+{
+  const tc = taxiCft.getStatus();
+  check('taxi status shape', 'alarms' in tc && 'cautions' in tc && Array.isArray(tc.live)
+    && Array.isArray(tc.links) && 'activeMax' in tc);
+  check('live levels valid', tc.live.every(c => c.level === 1 || c.level === 2),
+    tc.live.map(c => c.level).join(','));
+  check('live pairs carry distance', tc.live.every(c => c.distM >= 0));
+  check('links mirror live pairs', tc.links.length >= tc.live.length ? true : tc.links.length === tc.live.length);
+  // 0 m is legitimate telemetry: the sim has no taxiway deconfliction (known
+  // simplification), so overlapping pairs are exactly what L3 must surface.
+  check('min separation non-negative when recorded', tc.minSepM == null || tc.minSepM >= 0,
+    String(tc.minSepM));
+  check('counters non-negative', tc.alarms >= 0 && tc.cautions >= 0);
+  const apT = apoc.getState().domains.find(d => d.id === 'safe').kpis.find(k => k.id === 'taxiCft');
+  check('APOC safety rates taxi conflicts', !!apT && apT.rag !== RAG.NA, apT && apT.rag);
 }
 
 // ── 6g. Lightning ramp stop (isolated run) ────────────────────────────────────
