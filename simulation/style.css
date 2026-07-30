@@ -857,6 +857,24 @@ button:active { transform: scale(0.97); }
 .ss-ic { font-size: 24px; }
 .ss-hint { font-size: 13px; color: var(--text2); }
 
+/* ─── GSE pooling ────────────────────────────────────────── */
+#panel-gse { left: 46px; top: 470px; width: 240px; }
+body.dock-wide #panel-gse { left: 110px; }
+.gse-kpis { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-bottom: 7px; }
+.gse-kpi { display: flex; flex-direction: column; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 4px 6px; }
+.gse-kv { font-size: 13px; font-weight: 700; color: var(--accent); line-height: 1.2; }
+.gse-kv.gse-good { color: var(--green); } .gse-kv.gse-warn { color: var(--orange); } .gse-kv.gse-bad { color: var(--red); }
+.gse-kk { font-size: 7.5px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.3px; }
+.gse-fleets { display: flex; flex-direction: column; gap: 3px; }
+.gse-row { display: flex; align-items: center; gap: 8px; font-size: 10px; padding: 3px 7px;
+  border-radius: 5px; background: var(--surface2); border-left: 3px solid var(--green); }
+.gse-row.gse-short { border-left-color: var(--red); background: rgba(231,76,60,0.10); }
+.gse-name { color: var(--text2); width: 92px; }
+.gse-units { font-family: monospace; color: var(--accent); letter-spacing: 2px; }
+.gse-plus { color: var(--red); margin-left: 4px; letter-spacing: 0; }
+.gse-util { margin-left: auto; font-family: monospace; color: var(--text); }
+
 /* ─── Fuel farm & hydrant ────────────────────────────────── */
 #panel-fuel { left: 284px; top: 620px; width: 246px; }
 .fuel-bar { position: relative; height: 12px; background: var(--surface); border: 1px solid var(--border);

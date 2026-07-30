@@ -247,6 +247,19 @@ const DICT = {
   'view.follow':   { zh: '跟拍', en: 'Follow' },
   'log.noFollow':  { zh: '当前无可跟拍航班', en: 'No flight to follow right now' },
 
+  // ── GSE 资源池 ──
+  'panel.gse':   { zh: '🚜 地面设备 (GSE)', en: '🚜 Ground Equipment (GSE)' },
+  'dock.d.gse':  { zh: '车队占用·短缺·利用率', en: 'Fleet busy, shortages & utilisation' },
+  'gse.shortNow': { zh: '当前短缺', en: 'Short now' },
+  'gse.shortSec': { zh: '累计短缺', en: 'Shortage' },
+  'gse.maxUtil':  { zh: '峰值利用率', en: 'Peak util' },
+  'gse.f.tug':        { zh: '牵引车', en: 'Pushback tugs' },
+  'gse.f.baggage':    { zh: '行李车', en: 'Belt loaders' },
+  'gse.f.catering':   { zh: '配餐车', en: 'Catering trucks' },
+  'gse.f.bowser':     { zh: '加油车(远机位)', en: 'Fuel bowsers (remote)' },
+  'gse.f.sanitation': { zh: '清洁保障组', en: 'Water/lav/waste' },
+  'apoc.kpi.gse': { zh: '设备短缺', en: 'GSE shortage' },
+
   // ── 燃油农场 ──
   'panel.fuel':   { zh: '⛽ 燃油供应 (Fuel Farm)', en: '⛽ Fuel Supply (Fuel Farm)' },
   'dock.d.fuel':  { zh: '库存·覆盖时长·管网/加油车·补给', en: 'Stock, cover, hydrant/bowser & deliveries' },

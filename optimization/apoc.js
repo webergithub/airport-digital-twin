@@ -59,6 +59,11 @@ const KPIS = [
     val: d => d.metrics.standContactPct, na: d => (d.metrics.standCount || 0) < 2,
     fmt: v => Math.round(v * 100) + '%',
     rate: v => v >= 0.75 ? RAG.GREEN : v >= 0.5 ? RAG.AMBER : RAG.RED },
+  // GSE pooling — live equipment shortage across the handler fleets.
+  { id: 'gse', domain: 'cap', dir: 'down', target: '0',
+    val: d => d.gse ? d.gse.shortNowTotal : 0, na: d => !d.gse,
+    fmt: v => v === 0 ? 'OK' : '-' + v,
+    rate: v => v === 0 ? RAG.GREEN : v <= 2 ? RAG.AMBER : RAG.RED },
   // Fuel farm resilience — hours of cover at the current burn tempo.
   // Cover thresholds are calibrated to the twin's compressed timescale, where
   // sustained burn is ~1000 kL/h and the tanker chain holds ~0.3-0.5 h.

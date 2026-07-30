@@ -377,6 +377,13 @@ export class UIOverlay {
         </div>
       </div>
 
+      <!-- GSE pooling (collapsed by default) -->
+      <div id="panel-gse" class="panel">
+        <div class="panel-title" data-i18n="panel.gse">${t('panel.gse')}</div>
+        <div id="gse-kpis" class="gse-kpis"></div>
+        <div id="gse-fleets" class="gse-fleets"></div>
+      </div>
+
       <!-- Fuel farm & hydrant (collapsed by default) -->
       <div id="panel-fuel" class="panel">
         <div class="panel-title" data-i18n="panel.fuel">${t('panel.fuel')}</div>
@@ -802,6 +809,30 @@ export class UIOverlay {
         row(t('an.gateUtil'),   delta.gateUtil == null ? null : delta.gateUtil * 100, '%', false) +
         row(t('an.taxiOut'),    delta.avgTaxiOut, 's', true) +
         row(t('an.avgDepWait'), delta.avgDepWait, 's', true);
+    }
+  }
+
+  // ── GSE pooling ──────────────────────────────────────────────────────────────
+  updateGSE(gs) {
+    if (!gs) return;
+    const kp = document.getElementById('gse-kpis');
+    if (kp) {
+      const cell = (label, val, cls = '') =>
+        `<div class="gse-kpi"><span class="gse-kv ${cls}">${val}</span>` +
+        `<span class="gse-kk">${label}</span></div>`;
+      kp.innerHTML =
+        cell(t('gse.shortNow'), gs.shortNowTotal, gs.shortNowTotal ? 'gse-bad' : 'gse-good') +
+        cell(t('gse.shortSec'), gs.shortSecTotal + 's', gs.shortSecTotal > 0 ? 'gse-warn' : '') +
+        cell(t('gse.maxUtil'), gs.maxUtilPct + '%');
+    }
+    const host = document.getElementById('gse-fleets');
+    if (host) {
+      host.innerHTML = gs.fleets.map(f =>
+        `<div class="gse-row${f.shortNow ? ' gse-short' : ''}">` +
+        `<span class="gse-name">${t(f.key)}</span>` +
+        `<span class="gse-units">${'●'.repeat(f.busy)}${'○'.repeat(Math.max(0, f.cap - f.busy))}` +
+        (f.shortNow ? `<b class="gse-plus">+${f.shortNow}</b>` : '') + `</span>` +
+        `<span class="gse-util">${f.utilPct}%</span></div>`).join('');
     }
   }
 

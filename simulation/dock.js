@@ -38,6 +38,7 @@ export const DOCK_ITEMS = [
   { id: 'panel-vdgs',      side: 'left',  icon: '🎯', key: 'panel.vdgs',      d: 'dock.d.vdgs' },
   { id: 'panel-radar',     side: 'left',  icon: '🛰', key: 'panel.radar',     d: 'dock.d.radar' },
   { id: 'panel-deice',     side: 'left',  icon: '❄', key: 'panel.deice',     d: 'dock.d.deice' },
+  { id: 'panel-gse',       side: 'left',  icon: '🚜', key: 'panel.gse',       d: 'dock.d.gse' },
   { id: 'panel-fuel',      side: 'left',  icon: '⛽', key: 'panel.fuel',      d: 'dock.d.fuel' },
   { id: 'panel-alcms',     side: 'left',  icon: '💡', key: 'panel.alcms',     d: 'dock.d.alcms' },
   { id: 'event-log',       side: 'left',  icon: '📝', key: 'panel.log',       d: 'dock.d.log' },

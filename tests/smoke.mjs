@@ -29,6 +29,7 @@ import { ALCMS } from '../optimization/alcms.js';
 import { ARFFService } from '../optimization/arff.js';
 import { FuelFarm } from '../optimization/fuel.js';
 import { viewPose, VIEW_NAMES } from '../simulation/tower-view.js';
+import { GSEPool } from '../optimization/gse.js';
 import { RunLogger } from '../optimization/run-logger.js';
 
 // Deterministic PRNG (mulberry32) so the smoke run is reproducible — a flaky
@@ -64,6 +65,7 @@ const taxiCft = new TaxiConflictMonitor();
 const wildlife = new WildlifeMonitor();
 const alcms = new ALCMS();
 const fuelFarm = new FuelFarm();
+const gsePool = new GSEPool();
 const runLog = new RunLogger(api, { snapshotEverySec: 5 });
 
 // Track one docking episode per gate to assert the countdown is monotonic.
@@ -92,9 +94,10 @@ for (let i = 0; i < STEPS; i++) {
   wildlife.update(snapshot);
   alcms.update(snapshot);
   fuelFarm.update(snapshot);
+  gsePool.update(snapshot);
   apoc.update({ metrics: analytics.getMetrics(), safety: safetyNet.getStatus(),
     dcb: dcb.getForecast(), wall: api.getTurnaroundWall(), noise: noise.getStatus(),
-    slots: slots.getStatus(), grf: grf.getStatus(), energy: energy.getStatus(), taxi: taxiCft.getStatus(), wildlife: wildlife.getStatus(), agl: alcms.getStatus(snapshot.disruptions.weather), fuel: fuelFarm.getStatus(),
+    slots: slots.getStatus(), grf: grf.getStatus(), energy: energy.getStatus(), taxi: taxiCft.getStatus(), wildlife: wildlife.getStatus(), agl: alcms.getStatus(snapshot.disruptions.weather), fuel: fuelFarm.getStatus(), gse: gsePool.getStatus(),
     lightning: snapshot.disruptions.lightning,
     stats: snapshot.stats, simTimeSec: snapshot.simTimeSec });
   vdgs.update(snapshot);
@@ -459,6 +462,22 @@ console.log('ARFF drill:');
   step(45);
   check('user-closed runway stays closed after drill', aApi.runwaysClosed.RWY1 === true);
   check('pass rate reported', drill.getStatus().passRate != null);
+}
+
+// ── 6n. GSE pooling ───────────────────────────────────────────────────────────
+console.log('GSE pooling:');
+{
+  const gs = gsePool.getStatus();
+  check('five fleets reported', gs.fleets.length === 5, String(gs.fleets.length));
+  check('busy never exceeds capacity', gs.fleets.every(f => f.busy <= f.cap));
+  check('utilisation within [0,100]', gs.fleets.every(f => f.utilPct >= 0 && f.utilPct <= 100),
+    gs.fleets.map(f => f.utilPct).join(','));
+  check('equipment actually used over the run', gs.fleets.some(f => f.utilPct > 0));
+  check('shortage seconds non-negative', gs.fleets.every(f => f.shortSec >= 0));
+  check('shortNow consistent with demand-cap', gs.fleets.every(f =>
+    f.shortNow === Math.max(0, f.demand - f.cap)));
+  const apG = apoc.getState().domains.find(d => d.id === 'cap').kpis.find(k => k.id === 'gse');
+  check('APOC capacity rates GSE shortage', !!apG && apG.rag !== RAG.NA, apG && apG.rag);
 }
 
 // ── 6m. Digital-tower view poses (pure math) ─────────────────────────────────
