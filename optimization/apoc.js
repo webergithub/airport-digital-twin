@@ -74,6 +74,11 @@ const KPIS = [
     val: d => d.safety ? d.safety.alarms : 0, na: d => !d.safety,
     fmt: v => String(v),
     rate: v => v === 0 ? RAG.GREEN : RAG.RED },
+  // GRF runway condition — worst published RWYCC across all runway thirds.
+  { id: 'rwycc', domain: 'safe', dir: 'up', target: '≥ 5',
+    val: d => d.grf ? d.grf.minCode : 6, na: d => !d.grf,
+    fmt: v => 'RWYCC ' + v,
+    rate: v => v >= 5 ? RAG.GREEN : v >= 3 ? RAG.AMBER : RAG.RED },
 
   // ── Environment (Airport Carbon Accreditation + noise abatement) ──────────
   { id: 'setCut', domain: 'env', dir: 'up', target: '≥ 30%',

@@ -335,6 +335,16 @@ export class UIOverlay {
         </div>
       </div>
 
+      <!-- GRF runway condition report (collapsed by default) -->
+      <div id="panel-grf" class="panel">
+        <div class="panel-title" data-i18n="panel.grf">${t('panel.grf')}</div>
+        <div id="grf-runways" class="grf-runways"></div>
+        <div class="grf-lh" data-i18n="grf.aireps">${t('grf.aireps')}</div>
+        <div id="grf-aireps" class="grf-aireps"></div>
+        <div class="grf-lh" data-i18n="grf.changes">${t('grf.changes')}</div>
+        <div id="grf-changes" class="grf-changes"></div>
+      </div>
+
       <!-- ATFM / CTOT slot adherence (collapsed by default) -->
       <div id="panel-slots" class="panel">
         <div class="panel-title" data-i18n="panel.slots">${t('panel.slots')}</div>
@@ -691,6 +701,37 @@ export class UIOverlay {
         row(t('an.gateUtil'),   delta.gateUtil == null ? null : delta.gateUtil * 100, '%', false) +
         row(t('an.taxiOut'),    delta.avgTaxiOut, 's', true) +
         row(t('an.avgDepWait'), delta.avgDepWait, 's', true);
+    }
+  }
+
+  // ── GRF runway condition report ──────────────────────────────────────────────
+  updateGRF(gr) {
+    if (!gr) return;
+    const host = document.getElementById('grf-runways');
+    if (host) {
+      host.innerHTML = gr.runways.map(r =>
+        `<div class="grf-rwy"><span class="grf-id">${r.rwy}</span>` +
+        r.codes.map(c => `<span class="grf-code grf-c${c}">${c}</span>`).join('') +
+        `<span class="grf-contam">${t(r.contamKey)}</span>` +
+        `<span class="grf-upd">T+${Math.round(r.updatedSim)}</span></div>`).join('');
+    }
+    const ar = document.getElementById('grf-aireps');
+    if (ar) {
+      ar.innerHTML = gr.aireps.length
+        ? gr.aireps.map(a =>
+            `<div class="grf-airep"><span class="grf-cs">${a.cs}</span>` +
+            `<span class="grf-arwy">${a.rwy}</span>` +
+            `<span class="grf-act grf-c${a.code}-t">${t(a.actionKey)}</span></div>`).join('')
+        : `<div class="grf-empty">${t('grf.noAireps')}</div>`;
+    }
+    const ch = document.getElementById('grf-changes');
+    if (ch) {
+      ch.innerHTML = gr.changes.length
+        ? gr.changes.map(c =>
+            `<div class="grf-change${c.to < c.from ? ' grf-down' : ' grf-up'}">` +
+            `<span>${c.rwy}</span><span>RWYCC ${c.from} → ${c.to}</span>` +
+            `<span class="grf-upd">T+${Math.round(c.sim)}</span></div>`).join('')
+        : `<div class="grf-empty">${t('grf.noChanges')}</div>`;
     }
   }
 

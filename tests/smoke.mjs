@@ -21,6 +21,7 @@ import { APOC, RAG } from '../optimization/apoc.js';
 import { VDGS, VPH } from '../optimization/vdgs.js';
 import { NoiseMonitor, NMT_SITES } from '../optimization/noise-monitor.js';
 import { SlotMonitor } from '../optimization/slot-monitor.js';
+import { GRFReporter } from '../optimization/runway-condition.js';
 import { RunLogger } from '../optimization/run-logger.js';
 
 // Deterministic PRNG (mulberry32) so the smoke run is reproducible — a flaky
@@ -50,6 +51,7 @@ const apoc = new APOC();
 const vdgs = new VDGS();
 const noise = new NoiseMonitor();
 const slots = new SlotMonitor();
+const grf = new GRFReporter();
 const runLog = new RunLogger(api, { snapshotEverySec: 5 });
 
 // Track one docking episode per gate to assert the countdown is monotonic.
@@ -72,9 +74,11 @@ for (let i = 0; i < STEPS; i++) {
   dcb.update(snapshot);
   noise.update(snapshot);
   slots.update(snapshot);
+  grf.update(snapshot);
   apoc.update({ metrics: analytics.getMetrics(), safety: safetyNet.getStatus(),
     dcb: dcb.getForecast(), wall: api.getTurnaroundWall(), noise: noise.getStatus(),
-    slots: slots.getStatus(), stats: snapshot.stats, simTimeSec: snapshot.simTimeSec });
+    slots: slots.getStatus(), grf: grf.getStatus(),
+    stats: snapshot.stats, simTimeSec: snapshot.simTimeSec });
   vdgs.update(snapshot);
   for (const g of vdgs.getStatus().gates) {
     if (g.phase === VPH.CLOSE || g.phase === VPH.SLOW) {
@@ -260,6 +264,39 @@ console.log('slot adherence:');
   const apSlot = apoc.getState().domains.find(d => d.id === 'punc').kpis.find(k => k.id === 'slotAdh');
   check('APOC punctuality rates slot adherence', !!apSlot && (st.closed < 3 || apSlot.rag !== RAG.NA),
     apSlot && apSlot.rag);
+}
+
+// ── 6e. GRF runway condition reporting ────────────────────────────────────────
+console.log('GRF runway condition:');
+{
+  const g0 = grf.getStatus();
+  check('RCR published for both runways', g0.runways.length === 2,
+    `runways=${g0.runways.length}`);
+  check('dry VMC baseline → RWYCC 6 everywhere', g0.minCode === 6,
+    `minCode=${g0.minCode}`);
+  check('three thirds per runway', g0.runways.every(r => r.codes.length === 3));
+
+  // Weather + winter scenario on an isolated pipeline.
+  const wApi = new AirportAPI({ runways: 2 });
+  const wSch = new Scheduler(wApi, { arrivalInterval: 18 });
+  const wGrf = new GRFReporter();
+  const run = (mins) => { for (let i = 0; i < mins * 120; i++) {
+    wApi.update(0.5); wSch.update(0.5); wGrf.update(wApi.getSnapshot()); } };
+  run(6);
+  wApi.setWeather(2);  run(4);                       // IMC → 4 WET(heavy)
+  check('IMC downgrades to RWYCC 4', wGrf.getStatus().minCode === 4,
+    String(wGrf.getStatus().minCode));
+  wApi.setDeicing(true); run(8);                     // freezing → 2 SLUSH
+  const gw = wGrf.getStatus();
+  check('freezing precip downgrades to RWYCC ≤2', gw.minCode <= 2, String(gw.minCode));
+  check('downgrade transitions recorded', gw.changes.length >= 2,
+    `changes=${gw.changes.length}`);
+  check('braking AIREPs generated on degraded runway', gw.aireps.length >= 1,
+    `aireps=${gw.aireps.length}`);
+  check('AIREP actions map to RCAM equivalence',
+    gw.aireps.every(a => a.actionKey && a.code <= 5));
+  const apG = apoc.getState().domains.find(d => d.id === 'safe').kpis.find(k => k.id === 'rwycc');
+  check('APOC safety rates RWYCC', !!apG && apG.rag !== RAG.NA, apG && apG.rag);
 }
 
 // ── 7. Winter de-icing scenario (isolated run) ────────────────────────────────

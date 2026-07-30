@@ -14,6 +14,8 @@ const LS_SOLO = 'airporttwin_dock_solo';
 const LS_LABELS = 'airporttwin_dock_labels';
 const LS_OPEN = 'airporttwin_dock_open';   // remembered window layout (which panels are open)
 const LS_RAILS = 'airporttwin_dock_rails'; // per-rail collapsed state {top:0|1,left:0|1,right:0|1}
+const LS_RAILVIS = 'airporttwin_dock_railvis'; // per-rail visibility (settings "close rail")
+const LS_ICON = 'airporttwin_dock_icon';   // dock icon size in px (resize control)
 
 // Phone-sized viewport → dock becomes a bottom strip and panels become sheets.
 const MOBILE_MQ = '(max-width: 860px)';
@@ -41,6 +43,7 @@ export const DOCK_ITEMS = [
   { id: 'panel-analytics', side: 'right', icon: '📈', key: 'panel.analytics', d: 'dock.d.analytics' },
   { id: 'panel-dcb',       side: 'right', icon: '📊', key: 'panel.dcb',       d: 'dock.d.dcb' },
   { id: 'panel-safetynet', side: 'right', icon: '🚨', key: 'panel.safetynet', d: 'dock.d.safetynet' },
+  { id: 'panel-grf',       side: 'right', icon: '🛞', key: 'panel.grf',       d: 'dock.d.grf' },
   { id: 'panel-oooi',      side: 'right', icon: '📻', key: 'panel.oooi',      d: 'dock.d.oooi' },
   { id: 'panel-noise',     side: 'right', icon: '🔊', key: 'panel.noise',     d: 'dock.d.noise' },
   { id: 'panel-replay',    side: 'right', icon: '🎞', key: 'panel.replay',    d: 'dock.d.replay' },
@@ -59,11 +62,17 @@ export class Dock {
     this._solo = false;
     this._expanded = true;    // default: detail cards (big icon + name + core function); ⇔ collapses to icons
     this._railMin = { top: false, left: false, right: false };   // per-rail collapse (dock minimize)
+    this._railVis = { top: true, left: true, right: true };      // per-rail visibility (dock close)
+    this._iconPx = 21;                                           // dock icon size (dock resize)
     try {
       this._solo = localStorage.getItem(LS_SOLO) === '1';
       this._expanded = localStorage.getItem(LS_LABELS) !== '0';
       const rm = JSON.parse(localStorage.getItem(LS_RAILS) || 'null');
       if (rm) for (const k of ['top', 'left', 'right']) this._railMin[k] = !!rm[k];
+      const rv = JSON.parse(localStorage.getItem(LS_RAILVIS) || 'null');
+      if (rv) for (const k of ['top', 'left', 'right']) this._railVis[k] = rv[k] !== 0;
+      const ip = parseInt(localStorage.getItem(LS_ICON) || '21', 10);
+      if (ip >= 14 && ip <= 30) this._iconPx = ip;
     } catch (e) {}
     this._build();
     this._applySavedLayout();
@@ -98,6 +107,8 @@ export class Dock {
     const root = document.createElement('div');
     root.id = 'dock-root';
     root.className = this._expanded ? 'dock-expanded' : '';
+    root.style.setProperty('--dock-ic', this._iconPx + 'px');
+    this._rails = {};
     // Edge panels shift outward to clear the wider detail-card rails.
     document.body.classList.toggle('dock-wide', this._expanded);
 
@@ -105,6 +116,8 @@ export class Dock {
       const rail = document.createElement('div');
       rail.className = `dock-rail dock-${side}`;
       if (this._railMin[side]) rail.classList.add('dock-rail-min');
+      if (!this._railVis[side]) rail.classList.add('dock-rail-off');
+      this._rails[side] = rail;
       const items = DOCK_ITEMS.filter(it => it.side === side);
 
       // Collapse chip — minimizes the whole rail down to this one button.
@@ -164,12 +177,30 @@ export class Dock {
     pop.innerHTML =
       `<button id="dock-set-close" class="dock-set-close" title="✕">✕</button>` +
       `<label class="dock-set-row"><input type="checkbox" id="dock-solo"${this._solo ? ' checked' : ''}>` +
-      `<span data-i18n="dock.solo">${t('dock.solo')}</span></label>`;
+      `<span data-i18n="dock.solo">${t('dock.solo')}</span></label>` +
+      `<div class="dock-set-h" data-i18n="dock.rails">${t('dock.rails')}</div>` +
+      ['top', 'left', 'right'].map(sd =>
+        `<label class="dock-set-row"><input type="checkbox" class="dock-railvis" data-side="${sd}"` +
+        `${this._railVis[sd] ? ' checked' : ''}><span data-i18n="${SIDE_TITLE[sd]}">${t(SIDE_TITLE[sd])}</span></label>`).join('') +
+      `<div class="dock-set-h" data-i18n="dock.iconSize">${t('dock.iconSize')}</div>` +
+      `<input type="range" id="dock-icsz" class="dock-icsz" min="14" max="30" step="1" value="${this._iconPx}">`;
     root.appendChild(pop);
 
     document.body.appendChild(root);
     this._root = root; this._pop = pop;
     pop.querySelector('#dock-set-close').addEventListener('click', () => { pop.style.display = 'none'; });
+    pop.querySelectorAll('.dock-railvis').forEach(cb => cb.addEventListener('change', (e) => {
+      const sd = e.target.dataset.side;
+      this._railVis[sd] = e.target.checked;
+      this._rails[sd].classList.toggle('dock-rail-off', !e.target.checked);
+      try { localStorage.setItem(LS_RAILVIS, JSON.stringify(
+        { top: +this._railVis.top, left: +this._railVis.left, right: +this._railVis.right })); } catch (er) {}
+    }));
+    pop.querySelector('#dock-icsz').addEventListener('input', (e) => {
+      this._iconPx = +e.target.value;
+      this._root.style.setProperty('--dock-ic', this._iconPx + 'px');
+      try { localStorage.setItem(LS_ICON, String(this._iconPx)); } catch (er) {}
+    });
     pop.querySelector('#dock-solo').addEventListener('change', (e) => {
       this._solo = e.target.checked;
       try { localStorage.setItem(LS_SOLO, this._solo ? '1' : '0'); } catch (er) {}

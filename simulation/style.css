@@ -150,7 +150,7 @@ html, body {
   white-space: nowrap; max-width: 100%; }
 .dock-btn:hover { background: var(--surface2); color: var(--text); }
 .dock-btn.dock-active { background: rgba(74,168,255,0.16); border-color: var(--accent); color: var(--accent); }
-.dock-ic { font-size: 21px; line-height: 1.15; flex: none; }
+.dock-ic { font-size: var(--dock-ic, 21px); line-height: 1.15; flex: none; }
 .dock-lbl { display: none; overflow: hidden; text-overflow: ellipsis; }
 .dock-dsc { display: none; }
 /* Detailed card view: big icon on top, window name + core function below */
@@ -170,6 +170,10 @@ html, body {
 .dock-chip:hover { color: var(--accent); border-color: var(--accent); }
 .dock-rail-min > :not(.dock-chip) { display: none !important; }
 .dock-rail.dock-rail-min { padding: 4px; background: rgba(10,16,26,0.6); }
+.dock-rail-off { display: none !important; }
+.dock-set-h { font-size: 8.5px; font-weight: 700; color: var(--text2); text-transform: uppercase;
+  letter-spacing: 0.4px; margin: 8px 0 3px; }
+.dock-icsz { width: 100%; accent-color: var(--accent); cursor: pointer; }
 #dock-settings { position: fixed; top: 82px; left: 50%; transform: translateX(-50%); z-index: 360; pointer-events: auto;
   background: var(--surface); border: 1px solid var(--accent); border-radius: 8px; padding: 9px 11px;
   box-shadow: 0 6px 22px rgba(0,0,0,0.5); }
@@ -824,6 +828,33 @@ button:active { transform: scale(0.97); }
 .wi-drow span.wi-bad  { color: #e74c3c; }
 .wi-empty { font-size: 10px; color: var(--muted); }
 
+/* ─── GRF runway condition report ────────────────────────── */
+#panel-grf { right: 300px; top: 300px; width: 246px; }
+.grf-runways { display: flex; flex-direction: column; gap: 4px; }
+.grf-rwy { display: flex; align-items: center; gap: 5px; font-size: 10px; padding: 4px 6px;
+  border-radius: 5px; background: var(--surface2); }
+.grf-id { font-family: monospace; font-weight: 700; color: var(--text); width: 38px; }
+.grf-code { width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;
+  font: 700 11px monospace; border-radius: 4px; color: #06111f; }
+.grf-c6 { background: #2ecc71; } .grf-c5 { background: #7bd88f; }
+.grf-c4 { background: #f0c419; } .grf-c3 { background: #e67e22; }
+.grf-c2 { background: #e74c3c; } .grf-c1 { background: #c0392b; color: #ffd; }
+.grf-c0 { background: #7b241c; color: #ffd; }
+.grf-contam { color: var(--text2); font-size: 9px; flex: 1; text-align: right; }
+.grf-upd { font-family: monospace; font-size: 8.5px; color: var(--muted); }
+.grf-lh { font-size: 9px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.4px; margin: 7px 0 3px; }
+.grf-aireps, .grf-changes { display: flex; flex-direction: column; gap: 3px; }
+.grf-airep, .grf-change { display: flex; align-items: center; gap: 8px; font-size: 10px; font-family: monospace;
+  color: var(--text2); padding: 2px 6px; border-radius: 4px; background: var(--surface2); }
+.grf-cs { color: var(--text); font-weight: 700; }
+.grf-act { margin-left: auto; font-weight: 700; }
+.grf-c5-t { color: var(--green); } .grf-c4-t { color: #f0c419; } .grf-c3-t { color: var(--orange); }
+.grf-c2-t, .grf-c1-t, .grf-c0-t { color: var(--red); }
+.grf-change span:last-child { margin-left: auto; }
+.grf-down { border-left: 3px solid var(--red); }
+.grf-up   { border-left: 3px solid var(--green); }
+.grf-empty { font-size: 10px; color: var(--muted); padding: 2px; }
+
 /* ─── ATFM / CTOT slot adherence ─────────────────────────── */
 #panel-slots { left: 284px; top: 60px; width: 252px; }
 .slots-kpis { display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr; gap: 5px; margin-bottom: 7px; }
@@ -1106,6 +1137,7 @@ body.dock-wide #panel-vdgs { right: 110px; }
     white-space: nowrap; text-align: left; }
   .dock-lbl, .dock-dsc { display: none !important; }               /* icons only */
   .dock-ic { font-size: 22px; }
+  .dock-rail-off { display: flex !important; }
   #dock-settings { top: auto; bottom: 60px; }
 
   /* Windows → full-width bottom sheets above the dock strip */
