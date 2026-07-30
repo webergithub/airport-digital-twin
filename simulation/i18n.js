@@ -239,6 +239,14 @@ const DICT = {
   'start.hint':     { zh: '点击后开始航班起降与地面保障模拟', en: 'Click to start arrivals, departures & ground ops' },
   'log.simStarted': { zh: '▶ 模拟已启动', en: '▶ Simulation started' },
 
+  // ── 数字塔台视角 ──
+  'view.overview': { zh: '总览', en: 'Overview' },
+  'view.tower':    { zh: '塔台', en: 'Tower' },
+  'view.apron':    { zh: '机坪', en: 'Apron' },
+  'view.approach': { zh: '进近', en: 'Approach' },
+  'view.follow':   { zh: '跟拍', en: 'Follow' },
+  'log.noFollow':  { zh: '当前无可跟拍航班', en: 'No flight to follow right now' },
+
   // ── 燃油农场 ──
   'panel.fuel':   { zh: '⛽ 燃油供应 (Fuel Farm)', en: '⛽ Fuel Supply (Fuel Farm)' },
   'dock.d.fuel':  { zh: '库存·覆盖时长·管网/加油车·补给', en: 'Stock, cover, hydrant/bowser & deliveries' },

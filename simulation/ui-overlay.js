@@ -41,6 +41,11 @@ export class UIOverlay {
     const on = (id, ev, fn) => { const e = document.getElementById(id); if (e) e.addEventListener(ev, fn); };
     on('act-pause', 'click', () => this._cb('togglePause'));
     on('start-sim', 'click', () => this._cb('startSim'));
+    const vb = document.getElementById('view-bar');
+    if (vb) vb.addEventListener('click', (e) => {
+      const b = e.target.closest('.vw-btn');
+      if (b) this._cb('setView', { name: b.dataset.view });
+    });
     on('act-live', 'click', () => { const d = document.getElementById('live-dialog'); if (d) d.style.display = 'flex'; });
     on('act-save', 'click', () => this._cb('saveState'));
     on('live-close', 'click', () => { const d = document.getElementById('live-dialog'); if (d) d.style.display = 'none'; });
@@ -48,6 +53,11 @@ export class UIOverlay {
     on('live-disconnect', 'click', () => this._cb('liveDisconnect'));
     on('restore-yes', 'click', () => { this.hideRestore(); this._cb('restoreYes'); });
     on('restore-no', 'click', () => { this.hideRestore(); this._cb('restoreNo'); });
+  }
+
+  setViewActive(name) {
+    document.querySelectorAll('#view-bar .vw-btn').forEach(b =>
+      b.classList.toggle('vw-on', b.dataset.view === name));
   }
 
   hideStartOverlay() {
@@ -219,6 +229,14 @@ export class UIOverlay {
           <span data-i18n="fids.flight">${t('fids.flight')}</span><span data-i18n="fids.airline">${t('fids.airline')}</span><span data-i18n="fids.state">${t('fids.state')}</span><span data-i18n="fids.gate">${t('fids.gate')}</span>
         </div>
         <div id="flight-rows"></div>
+      </div>
+
+      <!-- Digital-tower view switcher -->
+      <div id="view-bar">
+        ${['overview', 'tower', 'apron', 'approach', 'follow'].map(v =>
+          `<button class="vw-btn" data-view="${v}" title="${t('view.' + v)}">` +
+          `<span class="vw-ic">${({ overview: '🌐', tower: '🗼', apron: '🅿', approach: '🛬', follow: '🎥' })[v]}</span>` +
+          `<span class="vw-lbl" data-i18n="view.${v}">${t('view.' + v)}</span></button>`).join('')}
       </div>
 
       <!-- Cold-start overlay: the simulation begins only when clicked -->

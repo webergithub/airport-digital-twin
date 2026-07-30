@@ -829,6 +829,21 @@ button:active { transform: scale(0.97); }
 .wi-drow span.wi-bad  { color: #e74c3c; }
 .wi-empty { font-size: 10px; color: var(--muted); }
 
+/* ─── Digital-tower view switcher ────────────────────────── */
+#view-bar { position: fixed; right: 10px; bottom: 74px; z-index: 340; display: flex;
+  flex-direction: column; gap: 3px; background: rgba(10,16,26,0.88); border: 1px solid var(--border);
+  border-radius: 9px; padding: 4px; pointer-events: auto; }
+.vw-btn { display: flex; align-items: center; gap: 6px; background: transparent;
+  border: 1px solid transparent; border-radius: 6px; color: var(--text2); cursor: pointer;
+  padding: 4px 7px; font: 10px/1.2 system-ui; }
+.vw-btn:hover { background: var(--surface2); color: var(--text); }
+.vw-btn.vw-on { background: rgba(74,168,255,0.16); border-color: var(--accent); color: var(--accent); }
+.vw-ic { font-size: 14px; }
+@media (max-width: 860px) {
+  #view-bar { flex-direction: row; right: auto; left: 2vw; bottom: 106px; }
+  .vw-lbl { display: none; }
+}
+
 /* ─── Cold-start overlay（启动模拟按钮） ───────────────────── */
 #start-overlay { position: fixed; inset: 0; z-index: 470; display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 14px; background: rgba(4,8,14,0.45);

@@ -39,6 +39,7 @@ import { ALCMS } from '../optimization/alcms.js';
 import { ARFFService } from '../optimization/arff.js';
 import { FuelFarm } from '../optimization/fuel.js';
 import { TaxiGuidance }    from './guidance-lights.js';
+import { ViewDirector }    from './tower-view.js';
 import { LiveSource }      from './live-source.js';
 import { t, tf, onLangChange, toggleLang, getLang } from './i18n.js';
 
@@ -70,6 +71,12 @@ const wildlife  = new WildlifeMonitor();               // 野生动物危害管�
 const alcms     = new ALCMS();                          // 助航灯光监控（预测性维护）
 const arff      = new ARFFService();                    // 应急救援演练（ICAO 3 分钟）
 const fuel      = new FuelFarm();                       // 燃油农场与管网加油
+// 数字塔台视角：跟拍优先选空中进场，其次任意活动航班
+const views = new ViewDirector(camera, controls, () => {
+  const fs = (window.__snapshot && window.__snapshot.flights) || [];
+  return fs.find(f => f.state === 'TAXIING_IN' && f.altitudeM > 8)
+      || fs.find(f => f.state !== 'DONE') || null;
+});
 airport.buildNoiseSites(NMT_SITES);                    // 场内 NMT 立桩 + 实时读数标签
 const liveSource = new LiveSource();                  // 对接真实机场（WS 数据源）
 let simPaused   = true;                               // 冷启动：等待「启动模拟」按钮
@@ -181,6 +188,10 @@ const ui = new UIOverlay(document.getElementById('ui-root'), (action, payload) =
       if (payload.closed) api.closeRunway(payload.runway); else api.openRunway(payload.runway);
       ui.log(tf(payload.closed ? 'log.rwyClosed' : 'log.rwyOpened', { r: payload.runway }), payload.closed ? 'warn' : 'info');
       syncScenarioBaseline();
+      break;
+    }
+    case 'setView': {
+      if (!views.go(payload.name)) ui.log(t('log.noFollow'), 'info');
       break;
     }
     case 'arffDrill': {
@@ -408,6 +419,7 @@ function logicTick() {
 let lastFrame = performance.now();
 
 function renderFrame(frameDt) {
+  views.update(frameDt);              // digital-tower camera easing / follow
   for (const [id, ac3d] of aircraft3dMap) {
     const flight = api.getActiveFlight(id);
     if (flight) ac3d.update();
@@ -577,5 +589,6 @@ window.__dcb = dcb;
 
 // Health watchdog handshake (index.html inline script shows a diagnostic page
 // if this is not set within 12 s — i.e. the CDN/module chain failed to load).
+views.onChange((v) => ui.setViewActive(v));
 ui.setPauseLabel(true);   // 冷启动：底部按钮显示 ▶，与启动遮罩一致
 window.__appReady = true;

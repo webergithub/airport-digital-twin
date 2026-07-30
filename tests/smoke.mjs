@@ -28,6 +28,7 @@ import { WildlifeMonitor } from '../optimization/wildlife.js';
 import { ALCMS } from '../optimization/alcms.js';
 import { ARFFService } from '../optimization/arff.js';
 import { FuelFarm } from '../optimization/fuel.js';
+import { viewPose, VIEW_NAMES } from '../simulation/tower-view.js';
 import { RunLogger } from '../optimization/run-logger.js';
 
 // Deterministic PRNG (mulberry32) so the smoke run is reproducible — a flaky
@@ -458,6 +459,24 @@ console.log('ARFF drill:');
   step(45);
   check('user-closed runway stays closed after drill', aApi.runwaysClosed.RWY1 === true);
   check('pass rate reported', drill.getStatus().passRate != null);
+}
+
+// ── 6m. Digital-tower view poses (pure math) ─────────────────────────────────
+console.log('tower views:');
+{
+  const finite = (p) => [...p.pos, ...p.tgt].every(Number.isFinite);
+  check('all presets produce finite poses', VIEW_NAMES.filter(v => v !== 'follow')
+    .every(v => finite(viewPose(v))));
+  const uniq = new Set(VIEW_NAMES.filter(v => v !== 'follow')
+    .map(v => viewPose(v).pos.join(',')));
+  check('preset positions are distinct', uniq.size === 4, String(uniq.size));
+  const fA = { position: { x: -100, y: 20, z: -25 } };
+  const fB = { position: { x: -80, y: 16, z: -25 } };
+  const pA = viewPose('follow', fA), pB = viewPose('follow', fB);
+  check('follow pose tracks the aircraft', finite(pA) && finite(pB) &&
+    pA.pos.join() !== pB.pos.join() && pA.tgt[0] === -100 && pB.tgt[0] === -80);
+  check('follow without a flight falls back to overview',
+    viewPose('follow', null).pos.join() === viewPose('overview').pos.join());
 }
 
 // ── 7. Winter de-icing scenario (isolated run) ────────────────────────────────
