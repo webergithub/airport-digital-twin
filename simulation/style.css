@@ -842,6 +842,31 @@ button:active { transform: scale(0.97); }
 .ss-ic { font-size: 24px; }
 .ss-hint { font-size: 13px; color: var(--text2); }
 
+/* ─── Fuel farm & hydrant ────────────────────────────────── */
+#panel-fuel { left: 284px; top: 620px; width: 246px; }
+.fuel-bar { position: relative; height: 12px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; overflow: hidden; }
+.fuel-bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--green); }
+.fuel-bar.fuel-mid i { background: var(--accent); }
+.fuel-bar.fuel-low i { background: var(--red); }
+.fuel-gtxt { margin-top: 3px; font-size: 10px; color: var(--text2); font-family: monospace; }
+.fuel-gtxt b { color: var(--text); }
+.fuel-lowtag { color: var(--red); font-weight: 700; }
+.fuel-kpis { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 5px; margin: 7px 0; }
+.fuel-kpi { display: flex; flex-direction: column; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 4px 6px; }
+.fuel-kv { font-size: 12px; font-weight: 700; color: var(--accent); line-height: 1.2; }
+.fuel-kv.fuel-good { color: var(--green); } .fuel-kv.fuel-warn { color: var(--orange); } .fuel-kv.fuel-bad { color: var(--red); }
+.fuel-kk { font-size: 7.5px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.3px; }
+.fuel-lh { font-size: 9px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.4px; margin: 6px 0 3px; }
+.fuel-recent { display: flex; flex-direction: column; gap: 3px; }
+.fuel-row { display: flex; gap: 10px; font-size: 10px; font-family: monospace; color: var(--text2);
+  padding: 2px 6px; border-radius: 4px; background: var(--surface2); border-left: 3px solid var(--green); }
+.fuel-row.fuel-bw { border-left-color: var(--orange); }
+.fuel-cs { color: var(--text); font-weight: 700; }
+.fuel-mode { margin-left: auto; }
+.fuel-empty { font-size: 10px; color: var(--muted); padding: 2px; }
+
 /* ─── ARFF response drill ────────────────────────────────── */
 #panel-arff { right: 300px; top: 690px; width: 236px; }
 .arff-cat { font-size: 9px; color: var(--text2); margin-bottom: 5px; }

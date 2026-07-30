@@ -239,6 +239,21 @@ const DICT = {
   'start.hint':     { zh: '点击后开始航班起降与地面保障模拟', en: 'Click to start arrivals, departures & ground ops' },
   'log.simStarted': { zh: '▶ 模拟已启动', en: '▶ Simulation started' },
 
+  // ── 燃油农场 ──
+  'panel.fuel':   { zh: '⛽ 燃油供应 (Fuel Farm)', en: '⛽ Fuel Supply (Fuel Farm)' },
+  'dock.d.fuel':  { zh: '库存·覆盖时长·管网/加油车·补给', en: 'Stock, cover, hydrant/bowser & deliveries' },
+  'fuel.cover':   { zh: '覆盖时长', en: 'Cover' },
+  'fuel.burn':    { zh: '当前油耗', en: 'Burn rate' },
+  'fuel.hydrant': { zh: '管网占比', en: 'Hydrant share' },
+  'fuel.deliveries': { zh: '补给次数', en: 'Deliveries' },
+  'fuel.recent':  { zh: '最近加油', en: 'Recent uplifts' },
+  'fuel.none':    { zh: '暂无', en: 'None yet' },
+  'fuel.low':     { zh: '低库存', en: 'LOW STOCK' },
+  'fuel.eta':     { zh: '油罐车 {s}s 后到', en: 'tanker in {s}s' },
+  'fuel.viaHydrant': { zh: '管网', en: 'hydrant' },
+  'fuel.viaBowser':  { zh: '加油车', en: 'bowser' },
+  'apoc.kpi.fuel': { zh: '燃油覆盖', en: 'Fuel cover' },
+
   // ── ARFF 应急救援 ──
   'panel.arff':   { zh: '🚒 应急救援 (ARFF)', en: '🚒 Rescue & Fire (ARFF)' },
   'dock.d.arff':  { zh: '响应演练·3 分钟标准·通过率', en: 'Response drills vs the 3-min objective' },

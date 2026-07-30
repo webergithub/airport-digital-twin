@@ -27,6 +27,7 @@ import { TaxiConflictMonitor } from '../optimization/taxi-conflict.js';
 import { WildlifeMonitor } from '../optimization/wildlife.js';
 import { ALCMS } from '../optimization/alcms.js';
 import { ARFFService } from '../optimization/arff.js';
+import { FuelFarm } from '../optimization/fuel.js';
 import { RunLogger } from '../optimization/run-logger.js';
 
 // Deterministic PRNG (mulberry32) so the smoke run is reproducible — a flaky
@@ -61,6 +62,7 @@ const energy = new GateEnergyMonitor();
 const taxiCft = new TaxiConflictMonitor();
 const wildlife = new WildlifeMonitor();
 const alcms = new ALCMS();
+const fuelFarm = new FuelFarm();
 const runLog = new RunLogger(api, { snapshotEverySec: 5 });
 
 // Track one docking episode per gate to assert the countdown is monotonic.
@@ -88,9 +90,10 @@ for (let i = 0; i < STEPS; i++) {
   taxiCft.update(snapshot);
   wildlife.update(snapshot);
   alcms.update(snapshot);
+  fuelFarm.update(snapshot);
   apoc.update({ metrics: analytics.getMetrics(), safety: safetyNet.getStatus(),
     dcb: dcb.getForecast(), wall: api.getTurnaroundWall(), noise: noise.getStatus(),
-    slots: slots.getStatus(), grf: grf.getStatus(), energy: energy.getStatus(), taxi: taxiCft.getStatus(), wildlife: wildlife.getStatus(), agl: alcms.getStatus(snapshot.disruptions.weather),
+    slots: slots.getStatus(), grf: grf.getStatus(), energy: energy.getStatus(), taxi: taxiCft.getStatus(), wildlife: wildlife.getStatus(), agl: alcms.getStatus(snapshot.disruptions.weather), fuel: fuelFarm.getStatus(),
     lightning: snapshot.disruptions.lightning,
     stats: snapshot.stats, simTimeSec: snapshot.simTimeSec });
   vdgs.update(snapshot);
@@ -411,6 +414,24 @@ console.log('lightning ramp stop:');
     `C=${depC} end=${lApi.getSnapshot().stats.departures}`);
   const apR = apoc.getState().domains.find(d => d.id === 'safe').kpis.find(k => k.id === 'ramp');
   check('APOC safety rates ramp status', !!apR && apR.rag === RAG.GREEN, apR && apR.rag);
+}
+
+// ── 6l. Fuel farm & hydrant ───────────────────────────────────────────────────
+console.log('fuel farm:');
+{
+  const fu = fuelFarm.getStatus();
+  check('uplifts booked over the run', fu.uplifts >= 10, `uplifts=${fu.uplifts}`);
+  check('stock within [0, capacity]', fu.stockKL >= 0 && fu.stockKL <= fu.capacityKL,
+    String(fu.stockKL));
+  check('stock depleted from initial or replenished', fu.upliftKL > 0, String(fu.upliftKL));
+  check('hydrant share within (0,100]', fu.hydrantSharePct == null ||
+    (fu.hydrantSharePct >= 0 && fu.hydrantSharePct <= 100), String(fu.hydrantSharePct));
+  check('cover hours positive at active burn', fu.coverHours == null || fu.coverHours >= 0,
+    String(fu.coverHours));
+  check('deliveries triggered by reorder point', fu.deliveries >= 1, `deliveries=${fu.deliveries}`);
+  check('recent uplift shapes valid', fu.recent.every(r => r.cs && r.kl > 0 && typeof r.hydrant === 'boolean'));
+  const apF = apoc.getState().domains.find(d => d.id === 'cap').kpis.find(k => k.id === 'fuel');
+  check('APOC capacity rates fuel cover', !!apF && apF.rag !== RAG.NA, apF && apF.rag);
 }
 
 // ── 6k. ARFF response drill (isolated run) ────────────────────────────────────

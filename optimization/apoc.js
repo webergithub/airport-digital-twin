@@ -59,6 +59,14 @@ const KPIS = [
     val: d => d.metrics.standContactPct, na: d => (d.metrics.standCount || 0) < 2,
     fmt: v => Math.round(v * 100) + '%',
     rate: v => v >= 0.75 ? RAG.GREEN : v >= 0.5 ? RAG.AMBER : RAG.RED },
+  // Fuel farm resilience — hours of cover at the current burn tempo.
+  // Cover thresholds are calibrated to the twin's compressed timescale, where
+  // sustained burn is ~1000 kL/h and the tanker chain holds ~0.3-0.5 h.
+  { id: 'fuel', domain: 'cap', dir: 'up', target: '≥ 0.3h',
+    val: d => d.fuel ? d.fuel.coverHours : null,
+    na: d => !d.fuel || d.fuel.coverHours == null,
+    fmt: v => v.toFixed(2) + 'h',
+    rate: v => v >= 0.3 ? RAG.GREEN : v >= 0.15 ? RAG.AMBER : RAG.RED },
   // Only rated while winter de-icing is active — otherwise N/A (excluded).
   { id: 'deiceQueue', domain: 'cap', dir: 'down', target: '0',
     val: d => d.deicing ? d.deicing.queueLen : 0, na: d => !d.deicing || !d.deicing.active,

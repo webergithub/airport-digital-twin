@@ -359,6 +359,15 @@ export class UIOverlay {
         </div>
       </div>
 
+      <!-- Fuel farm & hydrant (collapsed by default) -->
+      <div id="panel-fuel" class="panel">
+        <div class="panel-title" data-i18n="panel.fuel">${t('panel.fuel')}</div>
+        <div id="fuel-gauge" class="fuel-gauge"></div>
+        <div id="fuel-kpis" class="fuel-kpis"></div>
+        <div class="fuel-lh" data-i18n="fuel.recent">${t('fuel.recent')}</div>
+        <div id="fuel-recent" class="fuel-recent"></div>
+      </div>
+
       <!-- ARFF response drill (collapsed by default) -->
       <div id="panel-arff" class="panel">
         <div class="panel-title" data-i18n="panel.arff">${t('panel.arff')}</div>
@@ -775,6 +784,41 @@ export class UIOverlay {
         row(t('an.gateUtil'),   delta.gateUtil == null ? null : delta.gateUtil * 100, '%', false) +
         row(t('an.taxiOut'),    delta.avgTaxiOut, 's', true) +
         row(t('an.avgDepWait'), delta.avgDepWait, 's', true);
+    }
+  }
+
+  // ── Fuel farm & hydrant ──────────────────────────────────────────────────────
+  updateFuel(fu) {
+    if (!fu) return;
+    const gg = document.getElementById('fuel-gauge');
+    if (gg) {
+      const cls = fu.low ? 'fuel-low' : fu.stockPct < 60 ? 'fuel-mid' : '';
+      gg.innerHTML =
+        `<div class="fuel-bar ${cls}"><i style="width:${fu.stockPct}%"></i></div>` +
+        `<div class="fuel-gtxt"><b>${fu.stockKL}</b> / ${fu.capacityKL} kL` +
+        (fu.pendingEtaSec != null ? ` · 🚛 ${tf('fuel.eta', { s: fu.pendingEtaSec })}` : '') +
+        (fu.low ? ` · <span class="fuel-lowtag">${t('fuel.low')}</span>` : '') + `</div>`;
+    }
+    const kp = document.getElementById('fuel-kpis');
+    if (kp) {
+      const cell = (label, val, cls = '') =>
+        `<div class="fuel-kpi"><span class="fuel-kv ${cls}">${val}</span>` +
+        `<span class="fuel-kk">${label}</span></div>`;
+      kp.innerHTML =
+        cell(t('fuel.cover'), fu.coverHours == null ? '—' : fu.coverHours + 'h',
+             fu.coverHours == null ? '' : fu.coverHours >= 0.3 ? 'fuel-good' : fu.coverHours >= 0.15 ? 'fuel-warn' : 'fuel-bad') +
+        cell(t('fuel.burn'), fu.hourlyBurnKL + ' kL/h') +
+        cell(t('fuel.hydrant'), fu.hydrantSharePct == null ? '—' : fu.hydrantSharePct + '%') +
+        cell(t('fuel.deliveries'), fu.deliveries);
+    }
+    const rc = document.getElementById('fuel-recent');
+    if (rc) {
+      rc.innerHTML = fu.recent.length
+        ? fu.recent.map(r =>
+            `<div class="fuel-row ${r.hydrant ? 'fuel-hy' : 'fuel-bw'}">` +
+            `<span class="fuel-cs">${r.cs}</span><span>${r.kl} kL</span>` +
+            `<span class="fuel-mode">${t(r.hydrant ? 'fuel.viaHydrant' : 'fuel.viaBowser')}</span></div>`).join('')
+        : `<div class="fuel-empty">${t('fuel.none')}</div>`;
     }
   }
 
