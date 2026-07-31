@@ -266,6 +266,22 @@ const DICT = {
   'ntm.wildlife':  { zh: '鸟情高风险（{rwy}）', en: 'Bird activity HIGH ({rwy})' },
   'ntm.fuelLow':   { zh: '燃油库存偏低·可能限供', en: 'Fuel stock low — uplift may be restricted' },
 
+  // ── 行李系统 BHS / IATA 753 ──
+  'panel.bags':  { zh: '🧳 行李系统 (BHS)', en: '🧳 Baggage (BHS)' },
+  'dock.d.bags': { zh: '分拣积压·错运率·IATA 753 追踪', en: 'Sortation, mishandling & IATA 753 scans' },
+  'bag.rate':       { zh: '错运率/千客', en: 'Mishandle ‰' },
+  'bag.handled':    { zh: '已处理', en: 'Handled' },
+  'bag.backlog':    { zh: '分拣在途', en: 'In sorter' },
+  'bag.mishandled': { zh: '错运件数', en: 'Mishandled' },
+  'bag.scans':      { zh: 'IATA 753 四点追踪', en: 'IATA 753 tracking points' },
+  'bag.incidents':  { zh: '错运事件', en: 'Mishandling events' },
+  'bag.missed':     { zh: '{cs} 有 {n} 件行李未及装机', en: '{cs} — {n} bag(s) missed the flight' },
+  'bag.p.acceptance': { zh: '① 收运', en: '① Acceptance' },
+  'bag.p.loaded':     { zh: '② 装机', en: '② Loaded' },
+  'bag.p.transfer':   { zh: '③ 中转交接', en: '③ Transfer' },
+  'bag.p.delivery':   { zh: '④ 交付旅客', en: '④ Delivery' },
+  'apoc.kpi.bags': { zh: '行李错运率', en: 'Bag mishandling' },
+
   // ── GSE 资源池 ──
   'panel.gse':   { zh: '🚜 地面设备 (GSE)', en: '🚜 Ground Equipment (GSE)' },
   'dock.d.gse':  { zh: '车队占用·短缺·利用率', en: 'Fleet busy, shortages & utilisation' },

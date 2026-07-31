@@ -31,6 +31,7 @@ import { FuelFarm } from '../optimization/fuel.js';
 import { viewPose, VIEW_NAMES } from '../simulation/tower-view.js';
 import { GSEPool } from '../optimization/gse.js';
 import { NOTAMBoard } from '../optimization/notam.js';
+import { BaggageSystem } from '../optimization/baggage.js';
 import { RunLogger } from '../optimization/run-logger.js';
 
 // Deterministic PRNG (mulberry32) so the smoke run is reproducible — a flaky
@@ -67,6 +68,7 @@ const wildlife = new WildlifeMonitor();
 const alcms = new ALCMS();
 const fuelFarm = new FuelFarm();
 const gsePool = new GSEPool();
+const bags = new BaggageSystem();
 const runLog = new RunLogger(api, { snapshotEverySec: 5 });
 
 // Track one docking episode per gate to assert the countdown is monotonic.
@@ -100,9 +102,10 @@ for (let i = 0; i < STEPS; i++) {
   alcms.update(snapshot);
   fuelFarm.update(snapshot);
   gsePool.update(snapshot);
+  bags.update(snapshot);
   apoc.update({ metrics: analytics.getMetrics(), safety: safetyNet.getStatus(),
     dcb: dcb.getForecast(), wall: api.getTurnaroundWall(), noise: noise.getStatus(),
-    slots: slots.getStatus(), grf: grf.getStatus(), energy: energy.getStatus(), taxi: taxiCft.getStatus(), wildlife: wildlife.getStatus(), agl: alcms.getStatus(snapshot.disruptions.weather), fuel: fuelFarm.getStatus(), gse: gsePool.getStatus(),
+    slots: slots.getStatus(), grf: grf.getStatus(), energy: energy.getStatus(), taxi: taxiCft.getStatus(), wildlife: wildlife.getStatus(), agl: alcms.getStatus(snapshot.disruptions.weather), fuel: fuelFarm.getStatus(), gse: gsePool.getStatus(), bags: bags.getStatus(),
     lightning: snapshot.disruptions.lightning,
     stats: snapshot.stats, simTimeSec: snapshot.simTimeSec });
   vdgs.update(snapshot);
@@ -484,6 +487,25 @@ console.log('ARFF drill:');
   step(45);
   check('user-closed runway stays closed after drill', aApi.runwaysClosed.RWY1 === true);
   check('pass rate reported', drill.getStatus().passRate != null);
+}
+
+// ── 6p. Baggage BHS + IATA 753 ───────────────────────────────────────────────
+console.log('baggage system:');
+{
+  const b = bags.getStatus();
+  check('bags flowed through the BHS', b.totalBags > 100, `total=${b.totalBags}`);
+  check('all four 753 scan points recorded',
+    b.scans.acceptance > 0 && b.scans.loaded > 0 && b.scans.transfer > 0 && b.scans.delivery > 0,
+    JSON.stringify(b.scans));
+  check('mishandle rate non-negative and bounded', b.mishandleRate >= 0 && b.mishandleRate < 1000,
+    String(b.mishandleRate));
+  check('handled + mishandled equals total', b.handled + b.mishandled === b.totalBags,
+    JSON.stringify({ h: b.handled, m: b.mishandled, t: b.totalBags }));
+  check('sorter backlog never negative', b.backlog >= 0, String(b.backlog));
+  check('loaded scans never exceed acceptance', b.scans.loaded <= b.scans.acceptance,
+    JSON.stringify(b.scans));
+  const apB = apoc.getState().domains.find(d => d.id === 'cap').kpis.find(k => k.id === 'bags');
+  check('APOC capacity rates bag mishandling', !!apB && apB.rag !== RAG.NA, apB && apB.rag);
 }
 
 // ── 6n. GSE pooling ───────────────────────────────────────────────────────────

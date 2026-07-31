@@ -59,6 +59,12 @@ const KPIS = [
     val: d => d.metrics.standContactPct, na: d => (d.metrics.standCount || 0) < 2,
     fmt: v => Math.round(v * 100) + '%',
     rate: v => v >= 0.75 ? RAG.GREEN : v >= 0.5 ? RAG.AMBER : RAG.RED },
+  // Baggage mishandling — the industry headline KPI (bags per 1000 pax).
+  { id: 'bags', domain: 'cap', dir: 'down', target: '≤ 5.5‰',
+    val: d => d.bags ? d.bags.mishandleRate : null,
+    na: d => !d.bags || d.bags.totalBags < 50,
+    fmt: v => v.toFixed(1) + '‰',
+    rate: v => v <= 5.5 ? RAG.GREEN : v <= 15 ? RAG.AMBER : RAG.RED },
   // GSE pooling — live equipment shortage across the handler fleets.
   { id: 'gse', domain: 'cap', dir: 'down', target: '0',
     val: d => d.gse ? d.gse.shortNowTotal : 0, na: d => !d.gse,

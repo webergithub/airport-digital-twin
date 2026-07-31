@@ -390,6 +390,15 @@ export class UIOverlay {
         <div id="ntm-cancelled" class="ntm-cancelled"></div>
       </div>
 
+      <!-- Baggage: BHS + IATA 753 (collapsed by default) -->
+      <div id="panel-bags" class="panel">
+        <div class="panel-title" data-i18n="panel.bags">${t('panel.bags')}</div>
+        <div id="bag-kpis" class="bag-kpis"></div>
+        <div class="bag-lh" data-i18n="bag.scans">${t('bag.scans')}</div>
+        <div id="bag-scans" class="bag-scans"></div>
+        <div id="bag-recent" class="bag-recent"></div>
+      </div>
+
       <!-- GSE pooling (collapsed by default) -->
       <div id="panel-gse" class="panel">
         <div class="panel-title" data-i18n="panel.gse">${t('panel.gse')}</div>
@@ -855,6 +864,39 @@ export class UIOverlay {
             `<span class="ntm-q">NOTAMC</span>` +
             `<span class="ntm-txt">${tf(n.key, n.params)}</span></div>`).join('')
         : `<div class="ntm-empty">—</div>`;
+    }
+  }
+
+  // ── Baggage: BHS sortation + IATA Resolution 753 ─────────────────────────────
+  updateBaggage(bg) {
+    if (!bg) return;
+    const kp = document.getElementById('bag-kpis');
+    if (kp) {
+      const cell = (label, val, cls = '') =>
+        `<div class="bag-kpi"><span class="bag-kv ${cls}">${val}</span>` +
+        `<span class="bag-kk">${label}</span></div>`;
+      const r = bg.mishandleRate;
+      kp.innerHTML =
+        cell(t('bag.rate'), r.toFixed(1) + '‰',
+             r <= 5.5 ? 'bag-good' : r <= 15 ? 'bag-warn' : 'bag-bad') +
+        cell(t('bag.handled'), bg.handled) +
+        cell(t('bag.backlog'), bg.backlog, bg.backlog > 300 ? 'bag-warn' : '') +
+        cell(t('bag.mishandled'), bg.mishandled, bg.mishandled ? 'bag-bad' : '');
+    }
+    const sc = document.getElementById('bag-scans');
+    if (sc) {
+      const s = bg.scans;
+      sc.innerHTML = [['acceptance', s.acceptance], ['loaded', s.loaded],
+                      ['transfer', s.transfer], ['delivery', s.delivery]]
+        .map(([k, v]) => `<div class="bag-scan"><span class="bag-sk">${t('bag.p.' + k)}</span>` +
+                         `<b>${v}</b></div>`).join('');
+    }
+    const rc = document.getElementById('bag-recent');
+    if (rc) {
+      rc.innerHTML = bg.recent.length
+        ? `<div class="bag-lh">${t('bag.incidents')}</div>` + bg.recent.map(x =>
+            `<div class="bag-row">${tf('bag.missed', { cs: x.cs, n: x.missed })}</div>`).join('')
+        : '';
     }
   }
 

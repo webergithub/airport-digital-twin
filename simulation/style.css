@@ -891,6 +891,23 @@ body.dock-wide #panel-notam { right: 110px; }
 .ntm-lh { font-size: 9px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.4px; margin: 7px 0 3px; }
 .ntm-empty { font-size: 10px; color: var(--muted); padding: 2px; }
 
+/* ─── Baggage: BHS + IATA 753 ────────────────────────────── */
+#panel-bags { left: 46px; top: 200px; width: 244px; }
+body.dock-wide #panel-bags { left: 110px; }
+.bag-kpis { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 5px; margin-bottom: 7px; }
+.bag-kpi { display: flex; flex-direction: column; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 4px 6px; }
+.bag-kv { font-size: 13px; font-weight: 700; color: var(--accent); line-height: 1.2; }
+.bag-kv.bag-good { color: var(--green); } .bag-kv.bag-warn { color: var(--orange); } .bag-kv.bag-bad { color: var(--red); }
+.bag-kk { font-size: 7.5px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.3px; }
+.bag-lh { font-size: 9px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.4px; margin: 6px 0 3px; }
+.bag-scans { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.bag-scan { display: flex; justify-content: space-between; font-size: 10px; color: var(--text2);
+  background: var(--surface2); border-radius: 4px; padding: 2px 7px; border-left: 3px solid var(--accent); }
+.bag-scan b { color: var(--text); font-family: monospace; }
+.bag-row { font-size: 10px; color: #ff8c7a; padding: 2px 6px; border-radius: 4px;
+  background: rgba(231,76,60,0.10); margin-top: 2px; }
+
 /* ─── GSE pooling ────────────────────────────────────────── */
 #panel-gse { left: 46px; top: 470px; width: 240px; }
 body.dock-wide #panel-gse { left: 110px; }
