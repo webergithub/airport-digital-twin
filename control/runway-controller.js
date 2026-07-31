@@ -50,7 +50,21 @@ export class RunwayController {
       if (!rf || rf.done || rf.x > CLEAR_X) this.rolling = null;
     }
 
-    // 3. Renumber slots in queue order; shuffle flights forward as gaps open.
+    // 3. Order the queue by PHYSICAL position, then renumber slots.
+    //    The hold-short line is at the west end and slots stack eastward, so
+    //    the aircraft furthest west is the front. Ordering by arrival-into-the-
+    //    queue instead would hand slot 0 to an aircraft physically BEHIND a
+    //    higher-slot one — which only worked while aircraft could drive through
+    //    each other. With real separation that is a permanent deadlock, so
+    //    sequence must follow geometry: already on the taxiway (z ≤ -9) ranks
+    //    ahead of still-on-the-apron, then west-to-east.
+    this.queue.sort((idA, idB) => {
+      const a = flights.get(idA), b = flights.get(idB);
+      if (!a || !b) return 0;
+      const onTwyA = a.z <= -9 ? 0 : 1, onTwyB = b.z <= -9 ? 0 : 1;
+      if (onTwyA !== onTwyB) return onTwyA - onTwyB;
+      return a.x - b.x;
+    });
     this.queue.forEach((id, i) => {
       const f = flights.get(id);
       if (f && f.slot !== i) f.retargetSlot(i);

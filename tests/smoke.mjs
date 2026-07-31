@@ -74,6 +74,10 @@ const vdgsEpisodes = new Map();   // gateId → last distM while closing
 let vdgsMonotonic = true;
 
 const seenStates = new Set();
+// Physical-realism telemetry: closest any two ground movers (both y<1, neither
+// parked at a stand, neither DONE) ever get during the whole run.
+let minGroundSep = Infinity;
+let minGroundPair = '';
 const departures = [];                 // { simT, milestones } per completed flight
 api.on('flight_departed', f => departures.push({ simT: api.getSnapshot().simTimeSec, ms: f.milestones }));
 
@@ -112,6 +116,16 @@ for (let i = 0; i < STEPS; i++) {
     }
   }
   runLog.tick(snapshot, DT);
+  {
+    const g = snapshot.flights.filter(f =>
+      f.position.y < 1 && f.state !== 'DONE' && f.state !== 'AT_GATE');
+    for (let i = 0; i < g.length; i++) for (let j = i + 1; j < g.length; j++) {
+      const d = Math.hypot(g[i].position.x - g[j].position.x,
+                           g[i].position.z - g[j].position.z);
+      if (d < minGroundSep) { minGroundSep = d;
+        minGroundPair = `${g[i].callsign}(${g[i].state})~${g[j].callsign}(${g[j].state})`; }
+    }
+  }
   for (const f of snapshot.flights) seenStates.add(f.state);
 }
 console.log(`ran ${MINUTES} sim-min (${STEPS} steps), simTimeSec=${snapshot.simTimeSec}`);
@@ -229,6 +243,13 @@ check('APOC alerts trace back to breached KPIs',
 const exported = runLog.toJSON();
 check('run-log export sections', ['meta', 'events', 'snapshots', 'turnarounds', 'oooi']
   .every(k => k in exported));
+
+// ── 6a2. Physical realism: ground anti-overlap ───────────────────────────────
+console.log('ground separation:');
+check('no two ground movers ever overlap (min sep > 1.8u ≈ 14m)',
+  minGroundSep === Infinity || minGroundSep > 1.8,
+  `minSep=${minGroundSep.toFixed(2)}u pair=${minGroundPair}`);
+console.log(`  (record ground min-sep: ${minGroundSep === Infinity ? 'n/a' : minGroundSep.toFixed(2) + 'u'} — ${minGroundPair})`);
 
 // ── 6b. A-VDGS docking guidance ───────────────────────────────────────────────
 console.log('A-VDGS:');

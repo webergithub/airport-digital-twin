@@ -196,8 +196,34 @@ export class AirportAPI {
     }
     const rampStopped = this.rampStopped();
 
+    // ── Ground anti-overlap (physical realism) ────────────────────────────────
+    // Enforced at MOVE TIME by the guard installed below — an aircraft simply
+    // cannot be advanced into another one. Natural car-following and hold-short
+    // behaviour emerge from that single rule; no pre-pass heuristics needed.
+    const HARD_MIN = 2.2;   // safety bubble ≈ 18 m (wingspan + margin)
+
+    // Install the move-time separation guard: a proposed position is rejected
+    // if it would put this aircraft inside another ground aircraft's safety
+    // bubble while CLOSING on it. Evaluated against live positions as the loop
+    // advances each flight, so it is airtight regardless of tick length.
+    // A departure that cannot proceed simply stays where it is — which, by the
+    // path design, is its hold-short slot at the taxiway/runway boundary.
+    const sepGuard = (self, nx, nz, ny) => {
+      if (self.state === FS.TAKEOFF || (ny || 0) >= 1) return true;   // rolling/airborne
+      for (const [, o] of this._flights) {
+        if (o === self || o.state === FS.DONE || o.state === FS.TAKEOFF) continue;
+        if ((o.y || 0) >= 1) continue;
+        const dNew = Math.hypot(nx - o.x, nz - o.z);
+        if (dNew >= HARD_MIN) continue;
+        const dOld = Math.hypot(self.x - o.x, self.z - o.z);
+        if (dNew < dOld) return false;      // closing inside the bubble → hold
+      }
+      return true;
+    };
+
     for (const [id, flight] of this._flights) {
       const prevState = flight.state;
+      flight._sepGuard = sepGuard;
       flight._rampHold = rampStopped;        // freezes gate handling only (see flight-manager)
       flight.update(dt);
 

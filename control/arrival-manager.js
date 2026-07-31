@@ -27,8 +27,9 @@ const SEP = {
   M: { H: 7, M: 8,  S: 11 },
   S: { H: 6, M: 7,  S: 8  },
 };
-const RWY_GUARD = 4;    // an arrival within this many sec of the threshold blocks departures
-                        // (short-final only — matches the compressed approach timescale)
+const RWY_GUARD = 12;   // an arrival within this many sec of the threshold blocks
+                        // departures — MUST cover a full takeoff roll (~10 s) so a
+                        // landing can never catch a departure still on the strip.
 
 export class ArrivalManager {
   constructor() {
@@ -70,6 +71,15 @@ export class ArrivalManager {
         prevSta = sta; prevCat = cat;
       });
 
+      // A landed aircraft still ROLLING OUT on the strip keeps the runway
+      // occupied until it has turned off — physics: nothing may depart into it.
+      if (!busy) {
+        for (const [, f] of flights) {
+          if (f.runway !== key || f.state !== 'TAXIING_IN') continue;
+          if ((f.y || 0) >= 1) continue;
+          if (Math.abs(f.z - RZ[key]) < 4 && f.x > -90 && f.x < 60) { busy = true; break; }
+        }
+      }
       this._busy[key] = busy;
       this._ladder[key] = inbound.map(it => ({
         cs: it.f.callsign, cat: it.f.wakeCat, seq: it.f.seqIdx,

@@ -64,10 +64,18 @@ function buildArrivalPath(runway, gateId) {
     { x: -130,   z: rz, y: 16, speed: FAST, tag: 'approach'   }, // on final, high
     { x: -72,    z: rz, y: 0,  speed: FAST, tag: 'land_start' }, // touchdown (threshold)
     { x: exitX,  z: rz, y: 0,  speed: TAXI, tag: 'land_end'   }, // roll out / brake
-    { x: exitX,  z: -10, y: 0                                  },
-    { x: cx,     z: -10, y: 0                                  },
-    { x: cx,     z:  0,  y: 0                                  },
-    { x: gate.x, z:  0,  y: 0                                  },
+    // Arrivals taxi west on their OWN inner taxiway (z=-6.5) — the outer one
+    // (z=-10) belongs to the departure queue; sharing it deadlocks the field.
+    { x: exitX,  z: -6.5, y: 0                                 },
+    // The apron connector is dual-lane too: arrivals climb on the east side
+    // (cx+1.6), departures descend on the west side (cx-1.6). Sharing one
+    // connector puts an inbound and an outbound nose-to-nose on it, which real
+    // separation can only resolve by both stopping — a permanent deadlock.
+    { x: cx + 1.6, z: -6.5, y: 0                               },
+    // Main-taxiway leg uses the RIGHT-HAND lane for its direction of travel
+    // (dual-lane z=±1.1): head-on traffic is separated by geometry.
+    { x: cx + 1.6, z: (gate.x > cx ? 1.1 : -1.1), y: 0         },
+    { x: gate.x,   z: (gate.x > cx ? 1.1 : -1.1), y: 0         },
     { x: gate.x, z: 12,  y: 0, speed: 0, tag: 'at_gate'        },
   ];
 }
@@ -81,9 +89,14 @@ function buildDeparturePath(runway, gateId, slot = 0) {
 
   const path = [
     { x: gate.x, z: 12, y: 0, speed: TAXI * 0.45, tag: 'pushback' },
-    { x: gate.x, z:  0, y: 0, speed: TAXI,        tag: 'taxi_out' },  // → TAXIING_OUT (enqueue trigger)
-    { x: cx,     z:  0, y: 0                                        },
-    { x: cx,     z: -10, y: 0                                       },
+    // Main-taxiway leg takes the right-hand lane FOR ITS DIRECTION OF TRAVEL,
+    // mirroring the arrival rule. A departure runs gate→cx, i.e. exactly
+    // opposite to the arrival serving the same gate, so it must take the OTHER
+    // lane — hard-coding one lane put both on the same strip of asphalt and,
+    // with real separation, deadlocked every gate west of the connector.
+    { x: gate.x,   z: (gate.x > cx ? -1.1 : 1.1), y: 0, speed: TAXI, tag: 'taxi_out' },
+    { x: cx - 1.6, z: (gate.x > cx ? -1.1 : 1.1), y: 0                              },
+    { x: cx - 1.6, z: -10, y: 0                                     },
   ];
   // ALL holds are hold-short ON THE TAXIWAY (z=-10) — never on the runway. Slot 0
   // is the hold-short line at holdX; waiting slots stack EAST of it (behind), so
@@ -106,11 +119,16 @@ function buildDepartureTail(runway, slot, fromX, fromZ) {
   const holdX = holdXof(runway);
   const path  = [{ x: fromX, z: fromZ, y: 0 }];
 
-  // Still on the apron? Route via the connector before the taxiway.
+  // Not yet on the departure taxiway? Route down via the connector — using the
+  // SAME departure-side lane as buildDeparturePath (cx-1.6). Re-slotting must
+  // never rewrite the route back through geometry the aircraft already passed:
+  // if it is already west of the connector, it simply turns south where it is,
+  // otherwise it would double back into oncoming traffic.
   if (fromZ > -9) {
-    const cx = connX(fromX);
-    path.push({ x: cx, z: 0, y: 0 });
-    path.push({ x: cx, z: -10, y: 0 });
+    const cxD = connX(fromX) - 1.6;
+    const turnX = fromX <= cxD ? fromX : cxD;
+    if (turnX !== fromX) path.push({ x: turnX, z: fromZ, y: 0 });
+    path.push({ x: turnX, z: -10, y: 0 });
   }
   // Hold-short on the taxiway (never on the runway); waiting slots stack east.
   const slotX = slot === 0 ? holdX : holdX + slot * SLOT_GAP;
@@ -202,6 +220,10 @@ export class Flight {
     // Only ever set on a departing flight while TAXIING_OUT (DeiceManager).
     if (this._deiceHold) { this.currentSpeed = 0; return; }
 
+    // Ground anti-overlap: traffic close ahead in this lane — hold position
+    // (set per tick by AirportAPI; never set during TAKEOFF).
+    if (this._blockAhead) { this.currentSpeed = 0; return; }
+
     const cur = this._wps[this._wi];
     const nxt = this._wps[this._wi + 1];
     if (!nxt) { this._onEnd(); return; }
@@ -222,11 +244,22 @@ export class Flight {
       spd = Math.max(MIN_APPROACH, Math.min(FAST, this._amanSpeed));
     }
 
+    // Remember the path cursor so a rejected move can be rolled back exactly.
+    const wi0 = this._wi, wp0 = this._wp;
     this.currentSpeed = spd;
     this._wp += (spd * dt) / seg;
     if (this._wp >= 1) { this._wp = 0; this._advance(); }
 
     const p = this.getPosition();
+    // Move-time separation guard (installed by AirportAPI): committed against
+    // LIVE positions, so no aircraft can ever be driven through another —
+    // a snapshot taken at the top of the tick would leave a gap where two
+    // fast movers jump past each other between frames.
+    if (this._sepGuard && !this._sepGuard(this, p.x, p.z, p.y)) {
+      this._wi = wi0; this._wp = wp0;      // roll back: hold position this tick
+      this.currentSpeed = 0;
+      return;
+    }
     this.x  = p.x;
     this.z  = p.z;
     this.y  = p.y;
