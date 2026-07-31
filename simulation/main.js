@@ -85,6 +85,9 @@ airport.buildNoiseSites(NMT_SITES);                    // 场内 NMT 立桩 + �
 const liveSource = new LiveSource();                  // 对接真实机场（WS 数据源）
 let simPaused   = true;                               // 冷启动：等待「启动模拟」按钮
 let liveSnapshot = null;                              // 最近一帧外部数据源快照
+let liveDemo    = false;                              // 演示数据源（回放近 2 分钟）
+let demoIdx     = 0;
+const demoBuf   = [];                                 // 本地快照环形缓冲（~2 分钟）
 const SAVE_KEY  = 'airporttwin_savestate';
 
 // ── 3D aircraft + jet bridges ─────────────────────────────────────────────────────
@@ -236,10 +239,25 @@ const ui = new UIOverlay(document.getElementById('ui-root'), (action, payload) =
     case 'saveState':
       saveRunState();
       break;
+    case 'liveDemo':
+      if (demoBuf.length < 40) { ui.log(t('live.demoNeed'), 'warn'); break; }
+      liveDemo = true; demoIdx = 0;
+      simPaused = true; ui.setPauseLabel(true);
+      ui.setLiveState(true); ui.setLiveStatus('live.st.demo');
+      ui.hideStartOverlay();
+      ui.log(t('log.demoOn'), 'atc');
+      break;
     case 'liveConnect':
       connectLive(payload.url);
       break;
     case 'liveDisconnect':
+      if (liveDemo) {
+        liveDemo = false;
+        simPaused = false; ui.setPauseLabel(false);
+        ui.setLiveState(false); ui.setLiveStatus('live.st.closed');
+        ui.log(t('log.demoOff'), 'info');
+        break;
+      }
       liveSource.disconnect();
       break;
     case 'startSim':
@@ -316,7 +334,9 @@ function logicTick() {
   // ── Data layer: advance the local sim (unless paused or driven by live data),
   //    then publish the standard snapshot ──
   let snapshot;
-  if (liveSource.connected && liveSnapshot) {
+  if (liveDemo && demoBuf.length) {
+    snapshot = demoBuf[demoIdx++ % demoBuf.length];   // demo source: replay loop
+  } else if (liveSource.connected && liveSnapshot) {
     snapshot = liveSnapshot;                 // external feed drives the views
   } else {
     if (!simPaused) { api.update(dt); scheduler.update(dt); }
@@ -324,6 +344,10 @@ function logicTick() {
   }
   syncAircraft();
   window.__snapshot = snapshot;              // exposed for external/API consumers
+  if (!liveDemo && !liveSource.connected && !simPaused) {
+    demoBuf.push(snapshot);                  // feed the demo ring buffer (~2 min)
+    if (demoBuf.length > 240) demoBuf.shift();
+  }
 
   // ── Algorithm layer: ingest snapshot → metrics + auto-optimization + logging ─
   // Analytics is event-driven off the LOCAL api, so it is skipped under a live

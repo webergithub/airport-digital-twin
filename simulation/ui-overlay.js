@@ -50,6 +50,8 @@ export class UIOverlay {
     on('act-save', 'click', () => this._cb('saveState'));
     on('live-close', 'click', () => { const d = document.getElementById('live-dialog'); if (d) d.style.display = 'none'; });
     on('live-connect', 'click', () => this._cb('liveConnect', { url: (document.getElementById('live-url') || {}).value || '' }));
+    on('live-demo', 'click', () => { this._cb('liveDemo');
+      const d = document.getElementById('live-dialog'); if (d) d.style.display = 'none'; });
     on('live-disconnect', 'click', () => this._cb('liveDisconnect'));
     on('restore-yes', 'click', () => { this.hideRestore(); this._cb('restoreYes'); });
     on('restore-no', 'click', () => { this.hideRestore(); this._cb('restoreNo'); });
@@ -269,6 +271,7 @@ export class UIOverlay {
           <input id="live-url" class="live-url" type="text" placeholder="wss://…/airport-feed" value="wss://">
           <div class="live-status" id="live-status" data-i18n="live.st.idle">${t('live.st.idle')}</div>
           <div class="live-btns">
+            <button id="live-demo" class="act-btn" data-i18n="live.demo">${t('live.demo')}</button>
             <button id="live-connect" class="act-btn" data-i18n="live.connect">${t('live.connect')}</button>
             <button id="live-disconnect" class="btn-secondary" data-i18n="live.disconnect">${t('live.disconnect')}</button>
             <button id="live-close" class="btn-secondary" data-i18n="live.close">${t('live.close')}</button>

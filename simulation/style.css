@@ -171,6 +171,20 @@ html, body {
 .dock-rail-min > :not(.dock-chip) { display: none !important; }
 .dock-rail.dock-rail-min { padding: 4px; background: rgba(10,16,26,0.6); }
 .dock-rail-off { display: none !important; }
+/* Per-rail label expansion: left grows rightward, right leftward, top downward */
+.dock-rail.rail-labels .dock-lbl { display: inline; font-size: 10px; font-weight: 600; }
+.dock-top.rail-labels .dock-btn { flex-direction: column; gap: 2px; }
+.dock-top.rail-labels .dock-lbl { display: block; font-size: 9px; }
+.dock-right.rail-labels .dock-btn { flex-direction: row-reverse; }
+body.rail-left-labels #panel-config,
+body.rail-left-labels #panel-analytics,
+body.rail-left-labels #panel-gse       { left: 158px; }
+body.rail-right-labels #panel-flights,
+body.rail-right-labels #event-log,
+body.rail-right-labels #panel-aman,
+body.rail-right-labels #panel-safetynet,
+body.rail-right-labels #panel-notam,
+body.rail-right-labels #panel-wildlife { right: 158px; }
 .dock-set-h { font-size: 8.5px; font-weight: 700; color: var(--text2); text-transform: uppercase;
   letter-spacing: 0.4px; margin: 8px 0 3px; }
 .dock-icsz { width: 100%; accent-color: var(--accent); cursor: pointer; }
@@ -388,6 +402,8 @@ button:active { transform: scale(0.97); }
   overflow: hidden;
   pointer-events: none;
 }
+
+#stats-bar .act-btn { pointer-events: auto; }   /* the bar itself is hit-through */
 
 .stat-item {
   display: flex;

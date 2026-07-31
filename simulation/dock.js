@@ -16,6 +16,7 @@ const LS_OPEN = 'airporttwin_dock_open';   // remembered window layout (which pa
 const LS_RAILS = 'airporttwin_dock_rails'; // per-rail collapsed state {top:0|1,left:0|1,right:0|1}
 const LS_RAILVIS = 'airporttwin_dock_railvis'; // per-rail visibility (settings "close rail")
 const LS_ICON = 'airporttwin_dock_icon';   // dock icon size in px (resize control)
+const LS_RAILLBL = 'airporttwin_dock_raillbl'; // per-rail label expansion {top,left,right}
 
 // Phone-sized viewport → dock becomes a bottom strip and panels become sheets.
 const MOBILE_MQ = '(max-width: 860px)';
@@ -70,6 +71,7 @@ export class Dock {
     this._expanded = false;   // default: macOS-style compact icon rails; ⇔ expands to detail cards
     this._railMin = { top: false, left: false, right: false };   // per-rail collapse (dock minimize)
     this._railVis = { top: true, left: true, right: true };      // per-rail visibility (dock close)
+    this._railLbl = { top: false, left: false, right: false };   // per-rail full-name expansion
     this._iconPx = 21;                                           // dock icon size (dock resize)
     try {
       this._solo = localStorage.getItem(LS_SOLO) === '1';
@@ -78,6 +80,8 @@ export class Dock {
       if (rm) for (const k of ['top', 'left', 'right']) this._railMin[k] = !!rm[k];
       const rv = JSON.parse(localStorage.getItem(LS_RAILVIS) || 'null');
       if (rv) for (const k of ['top', 'left', 'right']) this._railVis[k] = rv[k] !== 0;
+      const rl = JSON.parse(localStorage.getItem(LS_RAILLBL) || 'null');
+      if (rl) for (const k of ['top', 'left', 'right']) this._railLbl[k] = !!rl[k];
       const ip = parseInt(localStorage.getItem(LS_ICON) || '21', 10);
       if (ip >= 14 && ip <= 30) this._iconPx = ip;
     } catch (e) {}
@@ -124,6 +128,8 @@ export class Dock {
       rail.className = `dock-rail dock-${side}`;
       if (this._railMin[side]) rail.classList.add('dock-rail-min');
       if (!this._railVis[side]) rail.classList.add('dock-rail-off');
+      if (this._railLbl[side]) { rail.classList.add('rail-labels');
+        document.body.classList.add(`rail-${side}-labels`); }
       this._rails[side] = rail;
       const items = DOCK_ITEMS.filter(it => it.side === side);
 
@@ -135,6 +141,15 @@ export class Dock {
       chip.textContent = this._chipArrow(side);
       chip.addEventListener('click', () => this._toggleRail(side, rail, chip));
       rail.appendChild(chip);
+
+      // Label-expansion chip: expands THIS rail's full names toward its open
+      // side (left rail → rightward, right rail → leftward, top rail → down).
+      const lch = document.createElement('button');
+      lch.className = 'dock-chip dock-lblchip';
+      lch.title = t('dock.railLbl');
+      lch.textContent = this._lblArrow(side);
+      lch.addEventListener('click', () => this._toggleRailLabels(side, rail, lch));
+      rail.appendChild(lch);
 
       // group header (a role label; only visible when expanded)
       const head = document.createElement('div');
@@ -247,6 +262,27 @@ export class Dock {
     return min ? '◂' : '▸';
   }
 
+  _lblArrow(side) {
+    const on = this._railLbl[side];
+    if (side === 'top')  return on ? '⇡' : '⇣';
+    if (side === 'left') return on ? '⇠' : '⇢';
+    return on ? '⇢' : '⇠';
+  }
+
+  _toggleRailLabels(side, rail, chip) {
+    this._railLbl[side] = !this._railLbl[side];
+    // Showing names implies the rail itself must be open.
+    if (this._railLbl[side] && this._railMin[side]) {
+      const minChip = rail.querySelector('.dock-chip:not(.dock-lblchip)');
+      this._toggleRail(side, rail, minChip);
+    }
+    rail.classList.toggle('rail-labels', this._railLbl[side]);
+    document.body.classList.toggle(`rail-${side}-labels`, this._railLbl[side]);
+    chip.textContent = this._lblArrow(side);
+    try { localStorage.setItem(LS_RAILLBL, JSON.stringify(
+      { top: +this._railLbl.top, left: +this._railLbl.left, right: +this._railLbl.right })); } catch (e) {}
+  }
+
   _toggleRail(side, rail, chip) {
     this._railMin[side] = !this._railMin[side];
     rail.classList.toggle('dock-rail-min', this._railMin[side]);
@@ -281,7 +317,8 @@ export class Dock {
     if (exp) exp.title = t('dock.expand');
     const gear = this._root.querySelector('#dock-gear');
     if (gear) gear.title = t('dock.settings');
-    this._root.querySelectorAll('.dock-chip').forEach(c => { c.title = t('dock.railMin'); });
+    this._root.querySelectorAll('.dock-chip:not(.dock-lblchip)').forEach(c => { c.title = t('dock.railMin'); });
+    this._root.querySelectorAll('.dock-lblchip').forEach(c => { c.title = t('dock.railLbl'); });
     this._btns.forEach((b, id) => {
       const it = DOCK_ITEMS.find(x => x.id === id);
       if (!it) return;
