@@ -30,6 +30,20 @@ import { Scheduler } from '../optimization/scheduler.js';
 import { AnalyticsEngine } from '../optimization/analytics.js';
 import { RunwaySafetyNet } from '../optimization/safety-nets.js';
 import { DCBForecaster } from '../optimization/dcb-forecaster.js';
+import { APOC } from '../optimization/apoc.js';
+import { VDGS } from '../optimization/vdgs.js';
+import { NoiseMonitor } from '../optimization/noise-monitor.js';
+import { SlotMonitor } from '../optimization/slot-monitor.js';
+import { GRFReporter } from '../optimization/runway-condition.js';
+import { GateEnergyMonitor } from '../optimization/gate-energy.js';
+import { TaxiConflictMonitor } from '../optimization/taxi-conflict.js';
+import { WildlifeMonitor } from '../optimization/wildlife.js';
+import { ALCMS } from '../optimization/alcms.js';
+import { FuelFarm } from '../optimization/fuel.js';
+import { GSEPool } from '../optimization/gse.js';
+import { BaggageSystem } from '../optimization/baggage.js';
+import { SlotCoordination } from '../optimization/slot-coordination.js';
+import { NOTAMBoard } from '../optimization/notam.js';
 
 const PORT = Number(process.argv[2] || process.env.PORT || 3600);
 const DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -46,6 +60,24 @@ const scheduler = new Scheduler(api, { arrivalInterval: 25 });
 const analytics = new AnalyticsEngine(api, scheduler, { targetUtil: 0.6 });
 const safetyNet = new RunwaySafetyNet(api);
 const dcb = new DCBForecaster(api, scheduler);
+// The browser runs the full analysis stack; the server is the AUTHORITATIVE
+// twin, so it must run the same set or its published KPIs are a subset of what
+// the UI shows — the two would disagree about the same operation.
+const apoc = new APOC();
+const vdgs = new VDGS();
+const noise = new NoiseMonitor();
+const slotMon = new SlotMonitor();
+const grf = new GRFReporter();
+const energy = new GateEnergyMonitor();
+const taxiCft = new TaxiConflictMonitor();
+const wildlife = new WildlifeMonitor();
+const alcms = new ALCMS();
+const fuel = new FuelFarm();
+const gse = new GSEPool();
+const baggage = new BaggageSystem();
+const wasg = new SlotCoordination();
+const notam = new NOTAMBoard();
+let kpi = null;                 // last full analysis roll-up
 
 let snapshot = api.getSnapshot();
 let ticks = 0;
@@ -70,6 +102,40 @@ function tick() {
   analytics.update(snapshot, dt);
   safetyNet.update(snapshot);
   dcb.update(snapshot);
+  vdgs.update(snapshot);
+  noise.update(snapshot);
+  slotMon.update(snapshot);
+  grf.update(snapshot);
+  energy.update(snapshot);
+  taxiCft.update(snapshot);
+  wildlife.update(snapshot);
+  alcms.update(snapshot);
+  fuel.update(snapshot);
+  gse.update(snapshot);
+  baggage.update(snapshot);
+  wasg.update(snapshot);
+
+  const grfS = grf.getStatus(), aglS = alcms.getStatus(snapshot.disruptions.weather);
+  const wlS = wildlife.getStatus(), fuS = fuel.getStatus();
+  apoc.update({ metrics: analytics.getMetrics(), safety: safetyNet.getStatus(),
+    dcb: dcb.getForecast(), wall: api.getTurnaroundWall(), deicing: snapshot.deicing,
+    lightning: snapshot.disruptions.lightning, noise: noise.getStatus(),
+    slots: slotMon.getStatus(), grf: grfS, energy: energy.getStatus(),
+    taxi: taxiCft.getStatus(), wildlife: wlS, agl: aglS, fuel: fuS,
+    gse: gse.getStatus(), bags: baggage.getStatus(), wasg: wasg.getStatus(),
+    stats: snapshot.stats, simTimeSec: snapshot.simTimeSec });
+  notam.update({ snapshot, grf: grfS, agl: aglS, wildlife: wlS, fuel: fuS });
+
+  kpi = {
+    simTimeSec: snapshot.simTimeSec,
+    apoc: apoc.getState(),
+    metrics: analytics.getMetrics(),
+    safety: safetyNet.getStatus(), dcb: dcb.getForecast(), grf: grfS, agl: aglS,
+    wildlife: wlS, fuel: fuS, energy: energy.getStatus(), noise: noise.getStatus(),
+    taxi: taxiCft.getStatus(), gse: gse.getStatus(), bags: baggage.getStatus(),
+    wasg: wasg.getStatus(), slots: slotMon.getStatus(), vdgs: vdgs.getStatus(),
+    notam: notam.getStatus(),
+  };
   broadcast(snapshot);
   if (++ticks % HIST_EVERY === 0) persist(snapshot);
   if (ticks % FRAME_EVERY === 0) keepFrame(snapshot);
@@ -166,6 +232,17 @@ const server = http.createServer((req, res) => {
 
   if (url.pathname === '/api/snapshot') return json(res, 200, snapshot);
 
+  if (url.pathname === '/api/kpi') {
+    if (!kpi) return json(res, 503, { error: 'warming up' });
+    const only = url.searchParams.get('only');
+    if (only) {
+      const pick = {};
+      for (const k of only.split(',')) if (k in kpi) pick[k] = kpi[k];
+      return json(res, 200, { simTimeSec: kpi.simTimeSec, ...pick });
+    }
+    return json(res, 200, kpi);
+  }
+
   if (url.pathname === '/api/events')
     return json(res, 200, { events: events.slice(0, Number(url.searchParams.get('limit') || 50)) });
 
@@ -214,6 +291,6 @@ const server = http.createServer((req, res) => {
 
 server.on('upgrade', onUpgrade);
 server.listen(PORT, () => {
-  console.log(`AirportTwin server on :${PORT} — ws://…/feed, GET /api/{health,snapshot,history,events}, POST /api/control`);
+  console.log(`AirportTwin server on :${PORT} — ws://…/feed, GET /api/{health,snapshot,kpi,replay,history,events}, POST /api/control`);
   setInterval(tick, TICK_MS);
 });
