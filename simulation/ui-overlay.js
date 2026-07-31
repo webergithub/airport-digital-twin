@@ -390,6 +390,16 @@ export class UIOverlay {
         <div id="ntm-cancelled" class="ntm-cancelled"></div>
       </div>
 
+      <!-- WASG capacity declaration & slot coordination (collapsed by default) -->
+      <div id="panel-wasg" class="panel">
+        <div class="panel-title" data-i18n="panel.wasg">${t('panel.wasg')}</div>
+        <div id="wasg-head" class="wasg-head"></div>
+        <div class="wasg-lh" data-i18n="wasg.intervals">${t('wasg.intervals')}</div>
+        <div id="wasg-ivs" class="wasg-ivs"></div>
+        <div class="wasg-lh" data-i18n="wasg.recent">${t('wasg.recent')}</div>
+        <div id="wasg-recent" class="wasg-recent"></div>
+      </div>
+
       <!-- Baggage: BHS + IATA 753 (collapsed by default) -->
       <div id="panel-bags" class="panel">
         <div class="panel-title" data-i18n="panel.bags">${t('panel.bags')}</div>
@@ -864,6 +874,51 @@ export class UIOverlay {
             `<span class="ntm-q">NOTAMC</span>` +
             `<span class="ntm-txt">${tf(n.key, n.params)}</span></div>`).join('')
         : `<div class="ntm-empty">—</div>`;
+    }
+  }
+
+  // ── WASG capacity declaration & slot coordination ────────────────────────────
+  updateWASG(w) {
+    if (!w) return;
+    const hd = document.getElementById('wasg-head');
+    if (hd) {
+      const adh = w.adherencePct;
+      const acls = adh == null ? '' : adh >= 70 ? 'wasg-good' : adh >= 45 ? 'wasg-warn' : 'wasg-bad';
+      const cell = (label, val, c = '') =>
+        `<div class="wasg-kpi"><span class="wasg-kv ${c}">${val}</span>` +
+        `<span class="wasg-kk">${label}</span></div>`;
+      hd.innerHTML =
+        `<div class="wasg-lvl wasg-l${w.level}">${tf('wasg.level', { n: w.level })}</div>` +
+        `<div class="wasg-kpis">` +
+        cell(t('wasg.adherence'), adh == null ? '—' : adh + '%', acls) +
+        cell(t('wasg.allocated'), w.allocated) +
+        cell(t('wasg.rejected'), w.refused, w.refused ? 'wasg-bad' : '') +
+        cell(t('wasg.meanSd'), `${w.meanDevSec}/${w.sdDevSec}s`) +
+        `</div>` +
+        `<div class="wasg-verdict wasg-v-${w.verdict}">${t('wasg.v.' + w.verdict)}</div>` +
+        (w.structuralMisuse ? `<div class="wasg-misuse">${t('wasg.misuse')}</div>` : '');
+    }
+    const iv = document.getElementById('wasg-ivs');
+    if (iv) {
+      const row = (key, live, lim, span) =>
+        `<div class="wasg-iv${live.total >= lim.total ? ' wasg-full' : ''}">` +
+        `<span class="wasg-it">${key}</span>` +
+        `<span class="wasg-bar"><i style="width:${Math.min(100, live.total / lim.total * 100)}%"></i></span>` +
+        `<span class="wasg-n">${live.total}/${lim.total}</span>` +
+        `<span class="wasg-sub">A ${live.arr}/${lim.arr} · D ${live.dep}/${lim.dep}</span></div>`;
+      iv.innerHTML = row('R60', w.live.r60, w.params.r60) + row('R10', w.live.r10, w.params.r10) +
+        `<div class="wasg-mean">${tf('wasg.rwyMode', { n: w.runways })}</div>`;
+    }
+    const rc = document.getElementById('wasg-recent');
+    if (rc) {
+      rc.innerHTML = w.recent.length
+        ? w.recent.map(r =>
+            `<div class="wasg-row ${r.onSlot ? 'wasg-on' : 'wasg-off'}">` +
+            `<span class="wasg-cs">${r.cs}</span>` +
+            `<span class="wasg-kind">${t('wasg.k.' + r.kind)}</span>` +
+            `<span>${r.devSec > 0 ? '+' : ''}${r.devSec}s</span>` +
+            `<span class="wasg-v2">${r.onSlot ? t('wasg.onSlot') : t('wasg.offSlot')}</span></div>`).join('')
+        : `<div class="wasg-empty">${t('wasg.none')}</div>`;
     }
   }
 

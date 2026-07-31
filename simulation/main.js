@@ -41,6 +41,7 @@ import { FuelFarm } from '../optimization/fuel.js';
 import { GSEPool } from '../optimization/gse.js';
 import { NOTAMBoard } from '../optimization/notam.js';
 import { BaggageSystem } from '../optimization/baggage.js';
+import { SlotCoordination } from '../optimization/slot-coordination.js';
 import { TaxiGuidance }    from './guidance-lights.js';
 import { ViewDirector }    from './tower-view.js';
 import { LiveSource }      from './live-source.js';
@@ -77,6 +78,7 @@ const fuel      = new FuelFarm();                       // 燃油农场与管网
 const gse       = new GSEPool();                        // GSE 地面设备资源池
 const notam     = new NOTAMBoard();                     // NOTAM/SNOWTAM 发布板
 const baggage   = new BaggageSystem();                  // 行李系统 BHS + IATA 753
+const wasg      = new SlotCoordination();               // 容量申报与时刻协调 (WASG)
 // 数字塔台视角：跟拍优先选空中进场，其次任意活动航班
 const views = new ViewDirector(camera, controls, () => {
   const fs = (window.__snapshot && window.__snapshot.flights) || [];
@@ -394,6 +396,8 @@ function logicTick() {
   const gs       = gse.getStatus();        // GSE — panel + APOC
   baggage.update(snapshot);
   const bg       = baggage.getStatus();    // 行李 — panel + APOC
+  wasg.update(snapshot);
+  const wg       = wasg.getStatus();       // 容量申报/时刻 — panel + APOC
   notam.update({ snapshot, grf: gr, agl: ag, wildlife: wl, fuel: fu });
   ui.updateNOTAM(notam.getStatus());
 
@@ -413,6 +417,7 @@ function logicTick() {
   ui.updateFuel(fu);
   ui.updateGSE(gs);
   ui.updateBaggage(bg);
+  ui.updateWASG(wg);
   ui.updateSurfaceRadar(snapshot, { RWY1: safetyNet.stage('RWY1'), RWY2: safetyNet.stage('RWY2') }, tc.links);
   ui.updateDisruption(snapshot.disruptions, analytics.getScenarioDelta());
   ui.updateDeice(api.getDeicing());          // includes the per-flight in-process list
@@ -437,7 +442,7 @@ function logicTick() {
 
   // APOC — Total Airport Management: score every domain's KPIs vs target.
   apoc.update({ metrics, safety, dcb: forecast, wall, stats: snapshot.stats,
-                deicing: snapshot.deicing, lightning: snapshot.disruptions.lightning, noise: ns, slots: sl, grf: gr, energy: en, taxi: tc, wildlife: wl, agl: ag, arff: af, fuel: fu, gse: gs, bags: bg,
+                deicing: snapshot.deicing, lightning: snapshot.disruptions.lightning, noise: ns, slots: sl, grf: gr, energy: en, taxi: tc, wildlife: wl, agl: ag, arff: af, fuel: fu, gse: gs, bags: bg, wasg: wg,
                 simTimeSec: snapshot.simTimeSec });
   ui.updateAPOC(apoc.getState());
 
@@ -617,11 +622,12 @@ window.__step = (n = 200, dt = 0.5) => {
     fuel.update(s);
     gse.update(s);
     baggage.update(s);
+    wasg.update(s);
     notam.update({ snapshot: s, grf: grf.getStatus(), agl: alcms.getStatus(s.disruptions.weather),
                    wildlife: wildlife.getStatus(), fuel: fuel.getStatus() });
     apoc.update({ metrics: analytics.getMetrics(), safety: safetyNet.getStatus(),
                   dcb: dcb.getForecast(), wall: api.getTurnaroundWall(),
-                  deicing: s.deicing, lightning: s.disruptions.lightning, noise: noise.getStatus(), slots: slots.getStatus(), grf: grf.getStatus(), energy: energy.getStatus(), taxi: taxiCft.getStatus(), wildlife: wildlife.getStatus(), agl: alcms.getStatus(s.disruptions.weather), arff: arff.getStatus(), fuel: fuel.getStatus(), gse: gse.getStatus(), bags: baggage.getStatus(),
+                  deicing: s.deicing, lightning: s.disruptions.lightning, noise: noise.getStatus(), slots: slots.getStatus(), grf: grf.getStatus(), energy: energy.getStatus(), taxi: taxiCft.getStatus(), wildlife: wildlife.getStatus(), agl: alcms.getStatus(s.disruptions.weather), arff: arff.getStatus(), fuel: fuel.getStatus(), gse: gse.getStatus(), bags: baggage.getStatus(), wasg: wasg.getStatus(),
                   stats: s.stats, simTimeSec: s.simTimeSec });
     runLog.tick(s, dt);
   }

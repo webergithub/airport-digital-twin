@@ -59,6 +59,13 @@ const KPIS = [
     val: d => d.metrics.standContactPct, na: d => (d.metrics.standCount || 0) < 2,
     fmt: v => Math.round(v * 100) + '%',
     rate: v => v >= 0.75 ? RAG.GREEN : v >= 0.5 ? RAG.AMBER : RAG.RED },
+  // WASG schedule adherence — how far the operation drifts from the slot plan
+  // the airport published (the coordinator's slot-performance view).
+  { id: 'wasg', domain: 'cap', dir: 'up', target: '≥ 70%',
+    val: d => d.wasg && d.wasg.adherencePct != null ? d.wasg.adherencePct / 100 : null,
+    na: d => !d.wasg || d.wasg.closed < 5,
+    fmt: v => Math.round(v * 100) + '%',
+    rate: v => v >= 0.70 ? RAG.GREEN : v >= 0.45 ? RAG.AMBER : RAG.RED },
   // Baggage mishandling — the industry headline KPI (bags per 1000 pax).
   { id: 'bags', domain: 'cap', dir: 'down', target: '≤ 5.5‰',
     val: d => d.bags ? d.bags.mishandleRate : null,

@@ -32,6 +32,7 @@ import { viewPose, VIEW_NAMES } from '../simulation/tower-view.js';
 import { GSEPool } from '../optimization/gse.js';
 import { NOTAMBoard } from '../optimization/notam.js';
 import { BaggageSystem } from '../optimization/baggage.js';
+import { SlotCoordination } from '../optimization/slot-coordination.js';
 import { RunLogger } from '../optimization/run-logger.js';
 
 // Deterministic PRNG (mulberry32) so the smoke run is reproducible — a flaky
@@ -69,6 +70,7 @@ const alcms = new ALCMS();
 const fuelFarm = new FuelFarm();
 const gsePool = new GSEPool();
 const bags = new BaggageSystem();
+const wasgCoord = new SlotCoordination();
 const runLog = new RunLogger(api, { snapshotEverySec: 5 });
 
 // Track one docking episode per gate to assert the countdown is monotonic.
@@ -103,9 +105,10 @@ for (let i = 0; i < STEPS; i++) {
   fuelFarm.update(snapshot);
   gsePool.update(snapshot);
   bags.update(snapshot);
+  wasgCoord.update(snapshot);
   apoc.update({ metrics: analytics.getMetrics(), safety: safetyNet.getStatus(),
     dcb: dcb.getForecast(), wall: api.getTurnaroundWall(), noise: noise.getStatus(),
-    slots: slots.getStatus(), grf: grf.getStatus(), energy: energy.getStatus(), taxi: taxiCft.getStatus(), wildlife: wildlife.getStatus(), agl: alcms.getStatus(snapshot.disruptions.weather), fuel: fuelFarm.getStatus(), gse: gsePool.getStatus(), bags: bags.getStatus(),
+    slots: slots.getStatus(), grf: grf.getStatus(), energy: energy.getStatus(), taxi: taxiCft.getStatus(), wildlife: wildlife.getStatus(), agl: alcms.getStatus(snapshot.disruptions.weather), fuel: fuelFarm.getStatus(), gse: gsePool.getStatus(), bags: bags.getStatus(), wasg: wasgCoord.getStatus(),
     lightning: snapshot.disruptions.lightning,
     stats: snapshot.stats, simTimeSec: snapshot.simTimeSec });
   vdgs.update(snapshot);
@@ -487,6 +490,45 @@ console.log('ARFF drill:');
   step(45);
   check('user-closed runway stays closed after drill', aApi.runwaysClosed.RWY1 === true);
   check('pass rate reported', drill.getStatus().passRate != null);
+}
+
+// ── 6q. WASG capacity declaration & slot coordination ────────────────────────
+console.log('WASG slots:');
+{
+  const w = wasgCoord.getStatus();
+  check('slots allocated over the run', w.allocated >= 20, `allocated=${w.allocated}`);
+  check('R60 never exceeds the declared total',
+    w.live.r60.total <= w.params.r60.total,
+    `${w.live.r60.total}/${w.params.r60.total}`);
+  check('R10 never exceeds the declared total',
+    w.live.r10.total <= w.params.r10.total,
+    `${w.live.r10.total}/${w.params.r10.total}`);
+  check('arrival/departure sub-limits respected',
+    w.live.r60.arr <= w.params.r60.arr && w.live.r60.dep <= w.params.r60.dep &&
+    w.live.r10.arr <= w.params.r10.arr && w.live.r10.dep <= w.params.r10.dep,
+    JSON.stringify(w.live));
+  check('declared sub-limits sum above the total (Dublin shape)',
+    w.params.r60.arr + w.params.r60.dep > w.params.r60.total &&
+    w.params.r10.arr + w.params.r10.dep > w.params.r10.total);
+  check('on-slot count never exceeds closed records', w.onSlot <= w.closed,
+    JSON.stringify({ on: w.onSlot, closed: w.closed }));
+  check('both arrival and departure slots monitored',
+    w.recent.length === 0 || new Set(w.recent.map(r => r.kind)).size >= 1);
+  check('standard deviation non-negative and finite',
+    w.sdDevSec >= 0 && Number.isFinite(w.sdDevSec), String(w.sdDevSec));
+  check('capacity verdict is one of the defined outcomes',
+    ['pending', 'overDeclared', 'balanced', 'headroom'].includes(w.verdict), w.verdict);
+  check('WASG level is 1, 2 or 3', [1, 2, 3].includes(w.level), String(w.level));
+  // A slot is a planned ON-BLOCK time: nominal ops must not show a systematic
+  // bias, or the schedule itself is wrong (this caught a real modelling bug —
+  // SIBT built from ETA rather than ETA + taxi-in was late by the taxi-in on
+  // every single arrival, which the Annex 12.9 screen then flagged as misuse).
+  check('no systematic schedule bias in nominal ops',
+    Math.abs(w.meanDevSec) < 20, `mean=${w.meanDevSec}s`);
+  check('nominal ops are not flagged as structural misuse',
+    w.structuralMisuse === false, `mean=${w.meanDevSec} sd=${w.sdDevSec}`);
+  const apW = apoc.getState().domains.find(d => d.id === 'cap').kpis.find(k => k.id === 'wasg');
+  check('APOC capacity rates slot adherence', !!apW, apW && apW.rag);
 }
 
 // ── 6p. Baggage BHS + IATA 753 ───────────────────────────────────────────────

@@ -891,6 +891,48 @@ body.dock-wide #panel-notam { right: 110px; }
 .ntm-lh { font-size: 9px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.4px; margin: 7px 0 3px; }
 .ntm-empty { font-size: 10px; color: var(--muted); padding: 2px; }
 
+/* ─── WASG capacity declaration & slots ──────────────────── */
+#panel-wasg { left: 46px; top: 330px; width: 250px; }
+body.dock-wide #panel-wasg { left: 110px; }
+.wasg-lvl { display: inline-block; font: 700 10px/1 system-ui; padding: 3px 8px; border-radius: 5px;
+  margin-bottom: 6px; border: 1px solid var(--border); color: var(--text2); }
+.wasg-lvl.wasg-l2 { color: var(--orange); border-color: var(--orange); }
+.wasg-lvl.wasg-l3 { color: var(--red); border-color: var(--red); background: rgba(231,76,60,0.10); }
+.wasg-kpis { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 5px; }
+.wasg-kpi { display: flex; flex-direction: column; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 4px 6px; }
+.wasg-kv { font-size: 13px; font-weight: 700; color: var(--accent); line-height: 1.2; }
+.wasg-kv.wasg-good { color: var(--green); } .wasg-kv.wasg-warn { color: var(--orange); } .wasg-kv.wasg-bad { color: var(--red); }
+.wasg-kk { font-size: 7.5px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.3px; }
+.wasg-mean { font-size: 9.5px; color: var(--text2); margin-top: 5px; }
+.wasg-lh { font-size: 9px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.4px; margin: 7px 0 3px; }
+.wasg-ivs { display: flex; flex-direction: column; gap: 3px; }
+.wasg-iv { display: flex; align-items: center; gap: 6px; font-size: 9.5px; font-family: monospace; color: var(--text2); }
+.wasg-it { width: 42px; }
+.wasg-bar { flex: 1; height: 7px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 4px; overflow: hidden; position: relative; }
+.wasg-bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); }
+.wasg-full .wasg-bar i { background: var(--red); }
+.wasg-n { width: 34px; text-align: right; color: var(--text); }
+.wasg-recent { display: flex; flex-direction: column; gap: 3px; }
+.wasg-row { display: flex; gap: 9px; font-size: 10px; font-family: monospace; color: var(--text2);
+  padding: 2px 6px; border-radius: 4px; background: var(--surface2); border-left: 3px solid var(--green); }
+.wasg-row.wasg-off { border-left-color: var(--orange); }
+.wasg-cs { color: var(--text); font-weight: 700; }
+.wasg-v { margin-left: auto; font-weight: 700; }
+.wasg-on .wasg-v { color: var(--green); } .wasg-off .wasg-v { color: var(--orange); }
+.wasg-empty { font-size: 10px; color: var(--muted); padding: 2px; }
+.wasg-sub { font-size: 8.5px; color: var(--muted); width: 84px; text-align: right; }
+.wasg-kind { color: var(--muted); font-size: 9px; }
+.wasg-v2 { margin-left: auto; font-weight: 700; }
+.wasg-on .wasg-v2 { color: var(--green); } .wasg-off .wasg-v2 { color: var(--orange); }
+.wasg-verdict { margin-top: 6px; font-size: 10px; padding: 3px 7px; border-radius: 5px;
+  background: var(--surface2); border-left: 3px solid var(--border); color: var(--text2); }
+.wasg-v-overDeclared { border-left-color: var(--red); color: #ff8c7a; }
+.wasg-v-balanced { border-left-color: var(--green); }
+.wasg-v-headroom { border-left-color: var(--accent); }
+.wasg-misuse { margin-top: 4px; font-size: 9.5px; color: var(--orange); }
+
 /* ─── Baggage: BHS + IATA 753 ────────────────────────────── */
 #panel-bags { left: 46px; top: 200px; width: 244px; }
 body.dock-wide #panel-bags { left: 110px; }

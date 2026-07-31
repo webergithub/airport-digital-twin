@@ -34,6 +34,7 @@ export const DOCK_ITEMS = [
   { id: 'panel-flights',   side: 'left',  icon: '🛬', key: 'panel.flights',   d: 'dock.d.flights' },
   { id: 'panel-aman',      side: 'left',  icon: '🛫', key: 'panel.aman',      d: 'dock.d.aman' },
   { id: 'panel-slots',     side: 'left',  icon: '🎫', key: 'panel.slots',     d: 'dock.d.slots' },
+  { id: 'panel-wasg',      side: 'left',  icon: '📅', key: 'panel.wasg',      d: 'dock.d.wasg' },
   { id: 'panel-turnwall',  side: 'left',  icon: '🕑', key: 'panel.turnwall',  d: 'dock.d.turnwall' },
   { id: 'panel-standplan', side: 'left',  icon: '🅿', key: 'panel.standplan', d: 'dock.d.standplan' },
   { id: 'panel-vdgs',      side: 'left',  icon: '🎯', key: 'panel.vdgs',      d: 'dock.d.vdgs' },
