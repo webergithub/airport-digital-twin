@@ -36,7 +36,9 @@ const DIR = path.dirname(fileURLToPath(import.meta.url));
 const HIST_FILE = path.join(DIR, 'history.jsonl');
 const TICK_MS = 500;            // 2 Hz authoritative tick
 const HIST_EVERY = 4;           // persist every Nth tick (~2 s)
-const HIST_MAX = 4000;          // bounded history (~2.2 h)
+const HIST_MAX = 4000;          // bounded summary history (~2.2 h)
+const FRAME_EVERY = 4;          // full-fidelity replay frames, same cadence
+const FRAME_MAX = 900;          // ~30 min of replay frames held in memory
 
 // ── Business-logic tier: the authoritative simulation ────────────────────────
 const api = new AirportAPI({ runways: 2 });
@@ -47,7 +49,8 @@ const dcb = new DCBForecaster(api, scheduler);
 
 let snapshot = api.getSnapshot();
 let ticks = 0;
-const history = [];             // in-memory mirror of the persisted tail
+const history = [];             // in-memory mirror of the persisted summary tail
+const frames = [];              // full replay frames (positions) — memory only
 const events = [];              // recent control-plane events
 
 for (const ev of ['flight_spawned', 'flight_departed', 'rimcas_alert', 'lightning_stop',
@@ -69,6 +72,7 @@ function tick() {
   dcb.update(snapshot);
   broadcast(snapshot);
   if (++ticks % HIST_EVERY === 0) persist(snapshot);
+  if (ticks % FRAME_EVERY === 0) keepFrame(snapshot);
 }
 
 // ── Persistence tier ─────────────────────────────────────────────────────────
@@ -82,6 +86,23 @@ function persist(s) {
   if (history.length === HIST_MAX && ticks % (HIST_EVERY * 500) === 0) {
     try { fs.writeFileSync(HIST_FILE, history.map(r => JSON.stringify(r)).join('\n') + '\n'); } catch (e) {}
   }
+}
+
+/**
+ * Replay frames: the summary history above is deliberately light (and the only
+ * thing written to disk), so it cannot drive a positional replay. These frames
+ * keep just what a replay needs — id, callsign, state, position, runway, gate —
+ * in memory, bounded to ~30 min.
+ */
+function keepFrame(s) {
+  frames.push({
+    sim: s.simTimeSec,
+    flights: s.flights
+      .filter(f => f.state !== 'DONE')
+      .map(f => ({ id: f.id, cs: f.callsign, st: f.state, rwy: f.runway, gate: f.gate,
+                   x: f.position.x, y: f.position.y, z: f.position.z })),
+  });
+  if (frames.length > FRAME_MAX) frames.shift();
 }
 
 // ── Minimal RFC 6455 (server → client text frames) ───────────────────────────
@@ -140,12 +161,24 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/api/health')
     return json(res, 200, { ok: true, uptimeSec: +process.uptime().toFixed(1),
                             simTimeSec: snapshot.simTimeSec, clients: clients.size,
-                            historyRows: history.length, schemaVersion: snapshot.schemaVersion });
+                            historyRows: history.length, replayFrames: frames.length,
+                            schemaVersion: snapshot.schemaVersion });
 
   if (url.pathname === '/api/snapshot') return json(res, 200, snapshot);
 
   if (url.pathname === '/api/events')
     return json(res, 200, { events: events.slice(0, Number(url.searchParams.get('limit') || 50)) });
+
+  if (url.pathname === '/api/replay') {
+    if (!frames.length) return json(res, 200, { frames: [], span: null });
+    const from = Number(url.searchParams.get('from') ?? frames[0].sim);
+    const to = Number(url.searchParams.get('to') ?? frames[frames.length - 1].sim);
+    const sel = frames.filter(f => f.sim >= from && f.sim <= to);
+    return json(res, 200, {
+      span: { min: frames[0].sim, max: frames[frames.length - 1].sim, held: frames.length },
+      count: sel.length, frames: sel.slice(-600),
+    });
+  }
 
   if (url.pathname === '/api/history') {
     const from = Number(url.searchParams.get('from') || 0);
