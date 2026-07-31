@@ -268,7 +268,8 @@ export class UIOverlay {
         <div class="live-card">
           <div class="live-h" data-i18n="live.title">${t('live.title')}</div>
           <div class="live-desc" data-i18n="live.desc">${t('live.desc')}</div>
-          <input id="live-url" class="live-url" type="text" placeholder="wss://…/airport-feed" value="wss://">
+          <input id="live-url" class="live-url" type="text" placeholder="wss://…/airport-feed"
+                 value="${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/airport-twin/feed">
           <div class="live-status" id="live-status" data-i18n="live.st.idle">${t('live.st.idle')}</div>
           <div class="live-btns">
             <button id="live-demo" class="act-btn" data-i18n="live.demo">${t('live.demo')}</button>

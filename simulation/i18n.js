@@ -197,7 +197,7 @@ const DICT = {
 
   // ── LIVE 数据源 ──
   'live.title':   { zh: '对接真实机场运行（预览版）', en: 'Connect live airport data (preview)' },
-  'live.desc':    { zh: '通过 WebSocket 接入外部数据源：对端按本产品的标准快照契约（schemaVersion 1.0，见 GitHub 文档 §6.1）持续推送 JSON。连接期间本地模拟暂停，快照直接驱动航班动态、统计条与场面雷达；其余面板保持冻结。', en: 'Connect a WebSocket source that streams JSON snapshots in this product\'s standard contract (schemaVersion 1.0, see docs §6.1). While connected the local sim pauses; snapshots drive the flight board, stats bar and surface radar; other panels freeze.' },
+  'live.desc':    { zh: '默认已填入本站自带的孪生服务端（服务端权威仿真，多客户端共享同一份运行状态；也可改填任意外部源）。通过 WebSocket 接入：对端按本产品的标准快照契约（schemaVersion 1.0，见 GitHub 文档 §6.1）持续推送 JSON。连接期间本地模拟暂停，快照直接驱动航班动态、统计条与场面雷达；其余面板保持冻结。', en: 'Pre-filled with this site\'s own twin server (server-authoritative simulation shared by all clients); any external source works too. Connect a WebSocket source that streams JSON snapshots in this product\'s standard contract (schemaVersion 1.0, see docs §6.1). While connected the local sim pauses; snapshots drive the flight board, stats bar and surface radar; other panels freeze.' },
   'live.connect': { zh: '连接', en: 'Connect' },
   'live.disconnect': { zh: '断开', en: 'Disconnect' },
   'live.close':   { zh: '关闭', en: 'Close' },
