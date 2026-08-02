@@ -8,7 +8,7 @@
  *   api.getAllFlights()
  */
 
-import { Flight, FS } from './flight-manager.js';
+import { Flight, FS, TURN_BY_TYPE } from './flight-manager.js';
 import { GateManager } from './gate-manager.js';
 import { RunwayController } from './runway-controller.js';
 import { ArrivalManager } from './arrival-manager.js';
@@ -19,7 +19,8 @@ const METER_DEPTH = 3;  // hold at gate while runway demand (queue+rolling+pushb
 const RELEASE_GAP = 8;  // min sim-seconds between successive TSAT start-up approvals
 
 // ── Disruption / what-if (weather + closures) ────────────────────────────────
-// Weather → capacity model (FAA AAR / ICAO LVP): each level widens runway
+// Weather → capacity model (FAA AAR / ICAO LVP INSPIRED — values are scaled
+// to the twin's compressed timescale, NOT published FAA/ICAO figures): each level widens runway
 // separation (sep×), floors the arrival interval (aar = min seconds between
 // arrivals, i.e. reduced Airport Acceptance Rate), and thickens scene fog.
 const WEATHER = [
@@ -173,7 +174,8 @@ export class AirportAPI {
     }
     const alloc = this._gates.lastAllocation();
 
-    const flight = new Flight({ callsign, airline, type, runway: rwy, gateId: gate.id, color });
+    const turnaroundTime = TURN_BY_TYPE[type] ?? TURN_BY_TYPE.MEDIUM;
+    const flight = new Flight({ callsign, airline, type, runway: rwy, gateId: gate.id, color, turnaroundTime });
     flight.stand = alloc                       // stand-allocation rationale (RMS)
       ? { contact: alloc.contact, wide: alloc.wide, classMatch: alloc.classMatch, score: alloc.score }
       : { contact: !!gate.hasBridge, wide: !!gate.wide, classMatch: true, score: 1 };
@@ -372,7 +374,9 @@ export class AirportAPI {
   getStats() {
     const occ    = this._gates.getOccupancy();
     const active = Array.from(this._flights.values()).filter(f => f.state !== FS.DONE);
-    // Simple hourly throughput from log
+    // Movements in the last SIM-hour. All feeding processes run on the twin's
+    // compressed timescale, so this is NOT comparable to a real airport's
+    // movements-per-wall-hour — labelled 'per sim-hour' in every UI surface.
     const recent = this._throughputLog.filter(t => t > this._clock - 3600).length;
     return {
       arrivals:   this._stats.arrivals,
@@ -398,9 +402,26 @@ export class AirportAPI {
   // Returns null when the flight is not in an active turnaround.
   _pobt(f) {
     if (f.state !== FS.AT_GATE || !f.turnaround) return null;
+    const tp = f.turnaround;
     const tobtSim = f.milestones?.TOBT?.sim ?? null;
     const aibtSim = f.milestones?.AIBT?.sim ?? this._clock;
-    const pobtSim = +(aibtSim + f.turnaround.totalSec).toFixed(1);
+    // PREDICTED readiness from OBSERVED progress — not the ground-truth draw
+    // (which a real APOC never has). Early on, the best estimate is the filed
+    // plan; as handling progresses, extrapolate the observed service rate
+    // (elapsed / fraction-complete) with confidence ramping in. The prediction
+    // starts wrong and converges, like a real A-CDM POBT feed. Once handling
+    // completes the estimate equals the realised duration, so a subsequent
+    // DMAN gate hold still never inflates riskSec.
+    const planned = f.turnaroundTime;
+    let estTotal;
+    if (tp.overall >= 1) estTotal = tp.totalSec;
+    else if (tp.overall < 0.15) estTotal = planned;
+    else {
+      const rate = tp.t / Math.max(0.05, tp.overall);
+      const w = Math.min(1, (tp.overall - 0.15) / 0.6);
+      estTotal = planned * (1 - w) + rate * w;
+    }
+    const pobtSim = +(aibtSim + estTotal).toFixed(1);
     const tol = Math.max(6, 0.1 * f.turnaroundTime);
     const riskSec = tobtSim == null ? 0 : +(pobtSim - tobtSim).toFixed(1);
     return { pobtSim, tobtSim, riskSec, tol, atRisk: riskSec > tol };
@@ -461,7 +482,9 @@ export class AirportAPI {
   // A complete, serializable snapshot of all running data: aircraft positions,
   // speeds, altitudes, headings, gate/runway state, and per-flight turnaround.
   getSnapshot() {
-    const UNIT_M = 8;                       // 1 world unit ≈ 8 m
+    const UNIT_M = 8;                       // 1 world unit ≈ 8 m (LENGTH scale only —
+    // speeds are timescale-compressed, so speedMps/altitudeM are sim-scale SI,
+    // not real airspeeds; a 'taxi' reads ~25 m/s because time runs fast here)
     const R2D = 180 / Math.PI;
     const flights = this._flightObjects().map(f => {
       const dir = f.getDirection();

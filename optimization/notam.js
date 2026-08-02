@@ -17,6 +17,12 @@
  * Pure consumer: it never changes what it reports on.
  */
 
+// Real NOTAM offices take time to originate and distribute a bulletin, and
+// longer to process the cancellation. The board therefore legitimately LAGS
+// the live condition instead of mirroring it in the same tick.
+const ISSUE_DELAY_SEC = 3;
+const CANCEL_DELAY_SEC = 6;
+
 const RULES = [
   { id: 'rwy1', q: 'QMRLC', key: 'ntm.rwyClosed', p: () => ({ rwy: 'RWY1' }),
     when: (d) => d.snapshot.disruptions.runwaysClosed.RWY1 },
@@ -51,7 +57,13 @@ export class NOTAMBoard {
     for (const r of RULES) {
       const on = !!r.when(d);
       const cur = this._active.get(r.id);
-      if (on && !cur) {
+      // Debounce through origination latency: track when the condition rose /
+      // fell and act only after the office would have processed it.
+      this._edges ??= new Map();
+      const e = this._edges.get(r.id) ?? { since: null, offSince: null };
+      if (on) { e.since ??= now; e.offSince = null; } else { e.offSince ??= now; e.since = null; }
+      this._edges.set(r.id, e);
+      if (on && !cur && now - e.since >= ISSUE_DELAY_SEC) {
         this._serial++;
         this._active.set(r.id, {
           serial: `A${String(this._serial).padStart(4, '0')}/26`,
@@ -59,7 +71,7 @@ export class NOTAMBoard {
         });
       } else if (on && cur && r.p) {
         cur.params = r.p(d);               // live params (e.g. which circuits)
-      } else if (!on && cur) {
+      } else if (!on && cur && now - e.offSince >= CANCEL_DELAY_SEC) {
         this._active.delete(r.id);
         this._cancelled.unshift({ ...cur, cancelledSim: +now.toFixed(1) });
         if (this._cancelled.length > 6) this._cancelled.pop();

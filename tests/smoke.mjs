@@ -592,16 +592,18 @@ console.log('NOTAM board:');
   const board = new NOTAMBoard();
   const feed = () => board.update({ snapshot: nApi.getSnapshot(), grf: nGrf.getStatus(),
     agl: null, wildlife: null, fuel: null });
-  const run = (sec) => { for (let i = 0; i < sec * 2; i++) { nApi.update(0.5); nGrf.update(nApi.getSnapshot()); } feed(); };
+  // The board carries origination latency, so it must be updated every tick —
+  // a single end-of-window update would never see the delay elapse.
+  const run = (sec) => { for (let i = 0; i < sec * 2; i++) { nApi.update(0.5); nGrf.update(nApi.getSnapshot()); feed(); } };
   run(5);
   check('board empty in normal ops', board.getStatus().active.length === 0 &&
     board.getStatus().snowtam == null);
-  nApi.closeRunway('RWY2'); run(2);
+  nApi.closeRunway('RWY2'); run(5);   // > issue latency (bulletins lag reality)
   let st = board.getStatus();
   check('runway closure published with serial+Q', st.active.length === 1 &&
     st.active[0].q === 'QMRLC' && /^A\d{4}\/26$/.test(st.active[0].serial),
     JSON.stringify(st.active[0] || null));
-  nApi.setWeather(3); run(2);
+  nApi.setWeather(3); run(5);
   st = board.getStatus();
   check('LVP NOTAM added', st.active.some(n => n.q === 'QFALV'), st.active.map(n => n.q).join(','));
   nApi.setDeicing(true); run(4);
@@ -609,7 +611,7 @@ console.log('NOTAM board:');
   check('winter NOTAM + SNOWTAM published', st.active.some(n => n.q === 'QFAFP') &&
     !!st.snowtam && st.snowtam.runways.every(r => /\d\/\d\/\d/.test(r.codes)),
     JSON.stringify(st.snowtam));
-  nApi.openRunway('RWY2'); run(2);
+  nApi.openRunway('RWY2'); run(8);    // > cancel latency
   st = board.getStatus();
   check('cleared condition moves to NOTAMC', st.active.every(n => n.q !== 'QMRLC') &&
     st.cancelled.some(n => n.q === 'QMRLC'));

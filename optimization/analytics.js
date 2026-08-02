@@ -140,7 +140,7 @@ export class AnalyticsEngine {
         if (held > 0.5) {
           this._push(this._gateHold, held);
           this._holdCount++;
-          this._fuelKg += held * IDLE_BURN_KG_S;
+          this._fuelKg += held * IDLE_BURN_KG_S * 0.85   /* est.: displacement factor — not every held second displaces a queue-idle second */;
         }
       }
     });

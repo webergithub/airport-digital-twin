@@ -24,7 +24,7 @@ const FLOCK_TTL    = 140;    // sim-s before a flock departs on its own
 const HIGH_SUSTAIN = 6;      // sim-s of HIGH before a patrol rolls
 const PATROL_COOLDOWN = 25;  // sim-s between dispersal actions per runway
 const NEAR_U   = 6;          // world units (≈48 m) → near-miss
-const STRIKE_U = 2.5;        // world units (≈20 m) → strike
+const STRIKE_U = 0.6;        // world units (≈5 m ≈ half-span) → geometric CONTACT = strike
 
 export class WildlifeMonitor {
   constructor() {

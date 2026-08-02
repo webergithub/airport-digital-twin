@@ -28,7 +28,10 @@ const TAXI     = 3.2;
 export const FAST = 14.0;  // landing deceleration start / takeoff end (also nominal approach)
 const SLOT_GAP = 9;     // departure queue slot spacing (center-to-center)
 export const THRESHOLD_X = -72;      // touchdown x (arrivals cross the threshold here)
-const MIN_APPROACH = 6.5;            // slowest metered approach speed (AMAN absorption floor)
+// Planned turnaround by aircraft class, sim-s (real equivalents ~25/45/90 min).
+// This is the PLAN (drives TOBT); the realised duration draws the multiplier.
+export const TURN_BY_TYPE = { SMALL: 45, MEDIUM: 60, LARGE: 85 };
+const MIN_APPROACH = 6.5;            // sim-units/s (timescale-compressed); NOT a real airspeed
 
 // Right-skewed turnaround multiplier: ~60% near-target, ~25% minor overrun,
 // ~15% significant overrun — mirrors real ground-handling delay distributions.
@@ -96,7 +99,11 @@ function buildDeparturePath(runway, gateId, slot = 0) {
     // with real separation, deadlocked every gate west of the connector.
     { x: gate.x,   z: (gate.x > cx ? -1.1 : 1.1), y: 0, speed: TAXI, tag: 'taxi_out' },
     { x: cx - 1.6, z: (gate.x > cx ? -1.1 : 1.1), y: 0                              },
-    { x: cx - 1.6, z: -10, y: 0                                     },
+    // Merge SOUTH of the queue line (z=-13), run west there, and only then step
+    // up into the hold line. Dropping straight onto z=-10 parks the connector
+    // exit on top of the queue's tail — two aircraft then block each other at
+    // ninety degrees and the whole departure flow gridlocks.
+    { x: cx - 1.6, z: -13, y: 0                                     },
   ];
   // ALL holds are hold-short ON THE TAXIWAY (z=-10) — never on the runway. Slot 0
   // is the hold-short line at holdX; waiting slots stack EAST of it (behind), so
@@ -104,7 +111,8 @@ function buildDeparturePath(runway, gateId, slot = 0) {
   // clearance does the front flight enter the runway and roll (the runway holds
   // at most one aircraft at a time — see RunwayController).
   const slotX = slot === 0 ? holdX : holdX + slot * SLOT_GAP;
-  path.push({ x: slotX, z: -10, y: 0, speed: 0,    tag: 'holding' });
+  path.push({ x: slotX, z: -13, y: 0                              }); // west along the merge lane
+  path.push({ x: slotX, z: -10, y: 0, speed: 0,    tag: 'holding' }); // step up into the queue
   path.push({ x: holdX, z: rz,  y: 0, speed: TAXI, tag: 'takeoff' }); // enter runway + line up
   path.push({ x: 30,    z: rz,  y: 0,  speed: FAST });                // ground roll, accelerating
   path.push({ x: 75,    z: rz,  y: 9,  speed: FAST });                // rotate + initial climb
@@ -128,10 +136,13 @@ function buildDepartureTail(runway, slot, fromX, fromZ) {
     const cxD = connX(fromX) - 1.6;
     const turnX = fromX <= cxD ? fromX : cxD;
     if (turnX !== fromX) path.push({ x: turnX, z: fromZ, y: 0 });
-    path.push({ x: turnX, z: -10, y: 0 });
+    path.push({ x: turnX, z: -13, y: 0 });     // down to the merge lane first
+  } else if (fromZ > -12) {
+    path.push({ x: fromX, z: -13, y: 0 });     // already near the queue: sidestep south
   }
   // Hold-short on the taxiway (never on the runway); waiting slots stack east.
   const slotX = slot === 0 ? holdX : holdX + slot * SLOT_GAP;
+  path.push({ x: slotX, z: -13, y: 0                              });
   path.push({ x: slotX, z: -10, y: 0, speed: 0,    tag: 'holding' });
   path.push({ x: holdX, z: rz,  y: 0, speed: TAXI, tag: 'takeoff' });
   path.push({ x: 30,    z: rz,  y: 0,  speed: FAST });
@@ -170,6 +181,9 @@ export class Flight {
 
     // AMAN arrival management (set by ArrivalManager each tick while on approach)
     this.wakeCat    = { SMALL: 'S', MEDIUM: 'M', LARGE: 'H' }[this.type] || 'M';
+    // Speed-compliance factor: crews do not fly a metered speed exactly. Drawn
+    // once per flight (±4%), it makes every ETA/STA carry real execution error.
+    this._spdComply = 0.96 + Math.random() * 0.08;
     this.eta = null; this.sta = null; this.timeToLose = null; this.seqIdx = null;
     this._amanSpeed = 0;       // metered approach speed to hit the STA (0 = unmetered)
 
@@ -241,7 +255,7 @@ export class Flight {
     } else if (this.state === FS.TAXIING_IN && this.y > 1 && this._amanSpeed > 0) {
       // AMAN: fly the metered approach speed to absorb the assigned delay and
       // hit the Scheduled Time of Arrival, spacing arrivals on final.
-      spd = Math.max(MIN_APPROACH, Math.min(FAST, this._amanSpeed));
+      spd = Math.max(MIN_APPROACH, Math.min(FAST, this._amanSpeed * this._spdComply));
     }
 
     // Remember the path cursor so a rejected move can be rolled back exactly.

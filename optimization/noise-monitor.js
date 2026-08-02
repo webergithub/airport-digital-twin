@@ -42,7 +42,8 @@ function baseDb(f) {
   return 0;                                                  // at gate / done → negligible
 }
 const CAT_DB = { H: 4, M: 0, S: -5 };                        // wake class loudness offset
-const QC     = { H: 2, M: 1, S: 0.5 };                       // Quota Count points per event
+const QC     = { H: 2, M: 1, S: 0.5 };  // illustrative QC-style points by wake class
+                                        // (real QC is per certificated type, not wake)
 
 export class NoiseMonitor {
   constructor() {

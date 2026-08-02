@@ -82,7 +82,10 @@ export class ARFFService {
       phase: this._phase,
       rwy: this._rwy,
       phaseSec: +this._t.toFixed(1),
-      enrouteDur: this.active ? +this._enrouteDur.toFixed(1) : null,
+      // The run time is not knowable while the trucks are still rolling — it is
+      // published only once they arrive (phase onscene/standdown).
+      enrouteDur: (this._phase === 'onscene' || this._phase === 'standdown')
+        ? +this._enrouteDur.toFixed(1) : null,
       responseSec: this._responseSec,
       last,
       drills: this._history.length,

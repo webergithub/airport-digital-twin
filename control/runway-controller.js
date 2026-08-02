@@ -12,7 +12,7 @@
 import { FS } from './flight-manager.js';
 
 const MAX_QUEUE   = 4;   // bounded visible line-up (deepest slot stays on taxiway)
-const MIN_SEP_SEC = 6;   // minimum time between successive takeoff clearances
+const MIN_SEP_SEC = 6;   // sim-s — scaled departure separation (real: 60–120 s)
 const CLEAR_X     = 55;  // previous departure must roll past this (near the east end,
                          // ≈ airborne) before the next may enter the runway — keeps
                          // at most one aircraft on the runway at a time.

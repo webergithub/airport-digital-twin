@@ -34,6 +34,8 @@ const KPIS = [
     val: d => d.metrics.otp, na: d => (d.metrics.otpCount || 0) < 3,
     fmt: v => Math.round(v * 100) + '%',
     rate: v => v >= 0.80 ? RAG.GREEN : v >= 0.65 ? RAG.AMBER : RAG.RED },
+  // Threshold calibrated to the twin's compressed timescale (real equivalent
+  // gate-in→wheels-off spans are tens of minutes) — shape, not benchmark.
   { id: 'depWait', domain: 'punc', dir: 'down', target: '≤ 120s',
     val: d => d.metrics.avgDepWait, na: d => (d.metrics.completed?.dep || 0) < 2,
     fmt: v => Math.round(v) + 's',
@@ -66,7 +68,8 @@ const KPIS = [
     na: d => !d.wasg || d.wasg.closed < 5,
     fmt: v => Math.round(v * 100) + '%',
     rate: v => v >= 0.70 ? RAG.GREEN : v >= 0.45 ? RAG.AMBER : RAG.RED },
-  // Baggage mishandling — the industry headline KPI (bags per 1000 pax).
+  // Baggage mishandling — headline KPI; the rate comes from the twin's scaled
+  // sorter capacity, so the 5.5‰ IATA figure is shown for shape, not benchmarking.
   { id: 'bags', domain: 'cap', dir: 'down', target: '≤ 5.5‰',
     val: d => d.bags ? d.bags.mishandleRate : null,
     na: d => !d.bags || d.bags.totalBags < 50,

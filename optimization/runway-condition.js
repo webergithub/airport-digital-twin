@@ -81,8 +81,13 @@ export class GRFReporter {
         if (!aldt || now - aldt.sim > AIREP_WINDOW) continue;
         if (this._seenAirep.has(f.id)) continue;
         this._seenAirep.add(f.id);
-        this._aireps.unshift({ cs: f.callsign, rwy: f.runway, code: eff.code,
-                               actionKey: BRAKING[eff.code], sim: +now.toFixed(1) });
+        // A pilot report is an observation, not a copy of the published code:
+        // sample ±1 around it (clamped), so the loop carries information and
+        // can disagree with the RCR — as real AIREPs do.
+        const jitter = Math.random() < 0.25 ? (Math.random() < 0.5 ? -1 : 1) : 0;
+        const repCode = Math.max(0, Math.min(5, eff.code + jitter));
+        this._aireps.unshift({ cs: f.callsign, rwy: f.runway, code: repCode,
+                               actionKey: BRAKING[repCode] ?? BRAKING[5], sim: +now.toFixed(1) });
         if (this._aireps.length > 10) this._aireps.pop();
       }
     }

@@ -81,7 +81,9 @@ export class DCBForecaster {
     const eff = Math.max(st.interval || 20, st.floor || 0);
     const openRw = ['RWY1', 'RWY2'].filter(k => !runways[k].closed);
     for (let k = 0; k < FUTURE_ARR && openRw.length; k++) {
-      const landT = now + (st.nextIn || 0) + k * eff + APPROACH_LEAD;
+      // Forecast from the PUBLISHED cadence only — a real DCB extrapolates the
+      // schedule, it cannot read the future spawner's internal countdown.
+      const landT = now + eff * (k + 0.5) + APPROACH_LEAD;
       put(openRw[k % openRw.length], landT, 'arr');
     }
 
