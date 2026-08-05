@@ -17,7 +17,10 @@
 const UNIT_M     = 8;      // world unit → metres
 const CAUTION_M  = 70;     // closing inside this range → caution (amber)
 const ALARM_M    = 36;     // closing inside this range → alarm (red)
-const ANYWAY_M   = 18;     // closer than this → alarm even without closure
+// Two aircraft legitimately sit AT the enforced separation bubble (~17.6 m)
+// when car-following — that is normal ops, not a conflict. The 'anyway' tier
+// therefore also requires actual closure, like the other tiers.
+const ANYWAY_M = 18;     // closer than this → alarm even without closure
 const MIN_CLOSE  = 0.4;    // m/s of closure below which a pair is "not closing"
 const TTC_MAX    = 10;     // s — predicted-conflict horizon (time to CPA)
 
@@ -55,7 +58,10 @@ export class TaxiConflictMonitor {
           ? -((dx * (va.x - vb.x) + dz * (va.z - vb.z)) / distM) : 0;
 
         let level = 0;
-        if (distM < ANYWAY_M) level = 2;
+        // Two aircraft parked AT the enforced separation bubble (~17.6 m) while
+        // car-following are normal ops, not a conflict — the proximity tier
+        // therefore also demands actual closure.
+        if (distM < ANYWAY_M && closing > 0.2) level = 2;
         else if (closing > MIN_CLOSE) {
           const ttc = distM / closing;
           if (distM < ALARM_M || ttc < TTC_MAX * 0.4) level = 2;

@@ -25,6 +25,7 @@ const CRIT_MIN = 0.95;      // ICAO minima for critical circuits (approach/CL/st
 const GEN_MIN  = 0.85;      // general circuits
 const CRIT_DISPATCH = 0.98; // crew rolls before minima are threatened
 const GEN_DISPATCH  = 0.92;
+const DETECT_SEC = 6;       // real ALCMS single-lamp detection <60 s → ~6 sim-s
 
 const CIRCUITS = [
   { id: 'R1E', key: 'agl.c.r1e', lamps: 72, critical: false },
@@ -40,7 +41,7 @@ const CIRCUITS = [
 
 export class ALCMS {
   constructor() {
-    this._c = CIRCUITS.map(c => ({ ...c, failed: new Set() }));
+    this._c = CIRCUITS.map(c => ({ ...c, failed: new Set(), reported: new Set(), pending: [] }));
     this._lastSim = null;
     this._crew = { busy: false, circuit: null, queue: [] };
     this._repairs = 0;        // completed circuit repairs
@@ -59,18 +60,28 @@ export class ALCMS {
     for (const c of this._c) {
       const expected = c.lamps * RATE * dt;
       if (Math.random() < expected) {
-        c.failed.add(Math.floor(Math.random() * c.lamps));
+        const lamp = Math.floor(Math.random() * c.lamps);
+        if (!c.failed.has(lamp)) {
+          c.failed.add(lamp);
+          // The system takes time to notice: reported state trails physical.
+          c.pending.push({ lamp, at: now + DETECT_SEC });
+        }
       }
+      while (c.pending.length && c.pending[0].at <= now) {
+        const { lamp } = c.pending.shift();
+        if (c.failed.has(lamp)) c.reported.add(lamp);
+      }
+      for (const lamp of c.reported) if (!c.failed.has(lamp)) c.reported.delete(lamp);
     }
 
     // 2. Crew dispatch: worst circuit past its dispatch threshold.
     if (!this._crew.busy) {
       let worst = null, worstGap = 0;
       for (const c of this._c) {
-        const svc = 1 - c.failed.size / c.lamps;
+        const svc = 1 - c.reported.size / c.lamps;   // crews react to what is REPORTED
         const thr = c.critical ? CRIT_DISPATCH : GEN_DISPATCH;
         const gap = thr - svc;
-        if (c.failed.size > 0 && gap > worstGap) { worst = c; worstGap = gap; }
+        if (c.reported.size > 0 && gap > worstGap) { worst = c; worstGap = gap; }
       }
       if (worst) { this._crew = { busy: true, circuit: worst.id, queue: [] }; }
     }
@@ -108,15 +119,15 @@ export class ALCMS {
     let totalLamps = 0, totalFailed = 0;
     let anyCritBelow = false, anyDegraded = false;
     const circuits = this._c.map(c => {
-      const svc = 1 - c.failed.size / c.lamps;
+      const svc = 1 - c.reported.size / c.lamps;    // the panel shows the ALCMS view
       const min = c.critical ? CRIT_MIN : GEN_MIN;
       const adj = c.critical && this._adjacentOut(c);
       const status = (svc < min || adj) ? 'below'
                    : (svc < (c.critical ? CRIT_DISPATCH : GEN_DISPATCH)) ? 'degraded' : 'ok';
       if (status === 'below' && c.critical) anyCritBelow = true;
       if (status !== 'ok') anyDegraded = true;
-      totalLamps += c.lamps; totalFailed += c.failed.size;
-      return { id: c.id, key: c.key, lamps: c.lamps, failed: c.failed.size,
+      totalLamps += c.lamps; totalFailed += c.reported.size;
+      return { id: c.id, key: c.key, lamps: c.lamps, failed: c.reported.size,
                svcPct: +(svc * 100).toFixed(1), critical: c.critical, status,
                adjacentOut: adj };
     });

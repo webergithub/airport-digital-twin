@@ -88,12 +88,19 @@ export class GateManager {
     }
   }
 
-  getOccupancy() {
+  /** @param inBlockIds Set of flight ids physically AT the gate. A stand is
+   *  RESERVED from allocation (metering fix) but only OCCUPIED from in-block —
+   *  a real stand plan tracks both, and utilization means the latter. */
+  getOccupancy(inBlockIds = null) {
     const gates = getGates();
+    const occupiedN = inBlockIds
+      ? gates.filter(g => { const f = this._occupied.get(g.id); return f && inBlockIds.has(f); }).length
+      : this._occupied.size;
     return {
       total:    gates.length,
-      occupied: this._occupied.size,
-      utilization: gates.length ? this._occupied.size / gates.length : 0,
+      occupied: occupiedN,
+      reserved: this._occupied.size,
+      utilization: gates.length ? occupiedN / gates.length : 0,
       gates:    gates.map(g => ({
         id:       g.id,
         terminal: g.terminal,

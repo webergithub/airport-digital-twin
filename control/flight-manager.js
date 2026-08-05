@@ -35,12 +35,8 @@ const MIN_APPROACH = 6.5;            // sim-units/s (timescale-compressed); NOT 
 
 // Right-skewed turnaround multiplier: ~60% near-target, ~25% minor overrun,
 // ~15% significant overrun — mirrors real ground-handling delay distributions.
-function _turnFactor() {
-  const r = Math.random();
-  if (r < 0.60) return 0.95 + Math.random() * 0.10;   // 0.95–1.05 (on-time)
-  if (r < 0.85) return 1.05 + Math.random() * 0.15;   // 1.05–1.20 (minor delay)
-  return 1.20 + Math.random() * 0.30;                 // 1.20–1.50 (significant)
-}
+// (removed) _turnFactor — the at-creation outcome lottery. Realised durations
+// are now drawn per node, at node start, inside TurnaroundPlan.
 
 const holdXof = runway => (runway === 'RWY1' ? -45 : -55);
 const rzOf    = runway => (runway === 'RWY1' ? -25 : -42);
@@ -167,7 +163,9 @@ export class Flight {
     // Actual turnaround varies (right-skewed, like real ops): most flights are
     // near-target, a minority overrun due to late ground handling. The gap
     // between actual and target off-block is what A-CDM punctuality measures.
-    this.actualTurnaround = Math.round(turnaroundTime * _turnFactor());
+    // Realised handling now emerges per-node inside TurnaroundPlan (drawn as
+    // each service starts) — nothing is decided at aircraft creation anymore.
+    this.actualTurnaround = turnaroundTime;
 
     this.state          = FS.TAXIING_IN;
     this.stateTimer     = 0;
@@ -220,7 +218,7 @@ export class Flight {
       this.currentSpeed = 0;
       // Lightning ramp stop: outdoor ground handling pauses — turnaround
       // progress freezes and no pushback is initiated until the all-clear.
-      if (this.turnaround && !this._rampHold) this.turnaround.update(dt);
+      if (this.turnaround && !this._rampHold) this.turnaround.update(dt, this._svcStretch ?? 1);
       // Depart once turnaround completes AND the DMAN gate hold (departure
       // metering — awaiting TSAT start-up approval) has been released.
       if ((!this.turnaround || this.turnaround.complete) && !this.gateHold && !this._rampHold) this._startDeparture();

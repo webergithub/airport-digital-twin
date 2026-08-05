@@ -492,6 +492,45 @@ console.log('ARFF drill:');
   check('pass rate reported', drill.getStatus().passRate != null);
 }
 
+// ── 6r. Realism invariants (audit round 2) ───────────────────────────────────
+console.log('realism invariants:');
+{
+  // Turnaround execution must be REALISED, not replayed from the plan: at least
+  // one node has to finish off its planned end, or plan-vs-actual is theatre.
+  const tl = runLog.toJSON().turnarounds.flatMap(t => t.nodes || []);
+  const withBoth = tl.filter(n => n.actualEnd != null && n.plannedEnd != null);
+  check('turnaround nodes record realised timings', withBoth.length >= 20,
+    `nodes=${withBoth.length}`);
+  check('realised node timings differ from the plan',
+    withBoth.some(n => Math.abs(n.actualEnd - n.plannedEnd) > 0.5),
+    'every node finished exactly on plan — execution is not being simulated');
+  // Precedence: boarding cannot finish before deplaning does.
+  const bad = runLog.toJSON().turnarounds.filter(t => {
+    const n = Object.fromEntries((t.nodes || []).map(x => [x.id, x]));
+    return n.BOARD && n.DEPLANE && n.BOARD.actualStart != null &&
+           n.DEPLANE.actualEnd != null && n.BOARD.actualStart < n.DEPLANE.actualEnd - 0.01;
+  });
+  check('boarding never starts before deplaning finishes', bad.length === 0,
+    `violations=${bad.length}`);
+
+  // Stand allocation pressure ≥ on-block occupancy, always (a reserved stand
+  // may have no aircraft on it yet, never the reverse).
+  check('stand allocation is never below on-block occupancy',
+    snapshot.stats.standAlloc >= snapshot.stats.gateUtil - 1e-9,
+    JSON.stringify({ alloc: snapshot.stats.standAlloc, util: snapshot.stats.gateUtil }));
+
+  // The published wildlife picture is a radar TRACK, not ground truth.
+  const wl = wildlife.getStatus();
+  check('wildlife publishes tracks, not true bird counts',
+    wl.flocks.every(f => 'sizeClass' in f && !('size' in f)),
+    JSON.stringify(wl.flocks[0] || {}));
+
+  // ALCMS reports only what it has DETECTED.
+  const ag = alcms.getStatus(0);
+  check('AGL reports detected lamp state (never negative, never > lamps)',
+    ag.circuits.every(c => c.failed >= 0 && c.failed <= c.lamps));
+}
+
 // ── 6q. WASG capacity declaration & slot coordination ────────────────────────
 console.log('WASG slots:');
 {

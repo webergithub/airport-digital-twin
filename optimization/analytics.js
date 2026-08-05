@@ -173,7 +173,10 @@ export class AnalyticsEngine {
   /** Ingest one snapshot (called each logic tick). */
   update(snapshot, dt) {
     this._simT = snapshot.simTimeSec;
-    this._util.push(snapshot.stats.gateUtil);
+    // Tune on stand ALLOCATION pressure, not on-block occupancy: a stand held
+    // for an inbound is unavailable, so throttling on occupancy alone would
+    // keep spawning arrivals that then find no stand.
+    this._util.push(snapshot.stats.standAlloc ?? snapshot.stats.gateUtil);
     if (this._util.length > 1200) this._util.shift();
 
     this._optTimer += dt;

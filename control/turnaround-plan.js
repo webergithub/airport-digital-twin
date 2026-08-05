@@ -43,44 +43,86 @@ export const NODE_DEFS = [
   { id: TN.PUSHBACK_TUG, label: '牵引车推出', start: 0.93, dur: 0.07, side: 'nose',   vehicle: 'tug',      color: '#f1c40f' },
 ];
 
+// Precedence: services that physically cannot start before another finishes.
+// (Boarding needs deplaning done; loading needs unloading done; the closers
+// need everything else buttoned up.)
+const PRECEDES = {
+  BOARD: ['DEPLANE'],
+  LOAD_BAG: ['UNLOAD_BAG'],
+  CHOCKS_OFF: ['DEPLANE', 'UNLOAD_BAG', 'CATERING', 'WATER', 'LAV', 'GARBAGE', 'REFUEL', 'LOAD_BAG', 'BOARD'],
+  PUSHBACK_TUG: ['CHOCKS_OFF'],
+};
+
+/** Right-skewed per-node duration multiplier — drawn when the node STARTS,
+ *  not when the aircraft is created, so nothing knows the outcome in advance.
+ *  Illustrative shape (not fitted to carrier data): mostly ~on-plan, a fat
+ *  tail of overruns. */
+function nodeFactor() {
+  const r = Math.random();
+  if (r < 0.55) return 0.9 + Math.random() * 0.2;    // 0.90–1.10 on plan
+  if (r < 0.85) return 1.1 + Math.random() * 0.25;   // 1.10–1.35 slow
+  return 1.35 + Math.random() * 0.45;                // 1.35–1.80 overrun tail
+}
+
 export class TurnaroundPlan {
   constructor(totalSec = 60, startWallClock = null) {
-    this.totalSec = totalSec;
+    this.totalSec = totalSec;              // the PLANNED total (drives TOBT)
     this.t = 0; // elapsed sim-seconds since arriving at gate
+    this.realisedSec = null;               // set once, when handling completes
     this.startWallClock = startWallClock; // optional absolute ms at gate-arrival
     this.nodes = NODE_DEFS.map(d => ({
       id: d.id, label: d.label, side: d.side, vehicle: d.vehicle, color: d.color,
       start: d.start * totalSec,            // planned start (sec from gate-in)
       end:  (d.start + d.dur) * totalSec,   // planned end
       dur:   d.dur * totalSec,
+      durActual: null,                      // drawn at activation — unknown before
       active: false, done: false, progress: 0,
       actualStart: null,                    // recorded sim-sec when it actually began
       actualEnd: null,                      // recorded sim-sec when it actually finished
     }));
+    this._byId = new Map(this.nodes.map(n => [n.id, n]));
   }
 
-  update(dt) {
+  /** Advance realised execution. Each node runs on ITS OWN clock: it becomes
+   *  eligible at its planned start once its predecessors are done, draws its
+   *  realised duration at that moment (never before), and progresses at
+   *  1/durActual — stretched by the service-condition factor the control
+   *  layer supplies (weather slows outdoor handling). Plan-vs-actual variance
+   *  is therefore real, and nothing in the twin knows the outcome up front. */
+  update(dt, stretch = 1) {
     this.t += dt;
+    let allDone = true;
     for (const n of this.nodes) {
-      if (this.t < n.start)       { n.active = false; n.done = false; n.progress = 0; }
-      else if (this.t >= n.end)   {
-        if (n.actualStart === null) n.actualStart = n.start;  // started + finished same tick
-        if (n.actualEnd === null)   n.actualEnd = this.t;     // record completion time
-        n.active = false; n.done = true; n.progress = 1;
-      } else {
-        if (n.actualStart === null) n.actualStart = this.t;   // record first activation
-        n.active = true; n.done = false; n.progress = (this.t - n.start) / n.dur;
+      if (n.done) continue;
+      const predsDone = (PRECEDES[n.id] || []).every(id => this._byId.get(id).done);
+      if (!n.active) {
+        allDone = false;
+        if (this.t >= n.start && predsDone) {
+          n.active = true;
+          n.actualStart = +this.t.toFixed(1);
+          n.durActual = n.dur * nodeFactor();
+        }
+        continue;
       }
+      n.progress = Math.min(1, n.progress + dt / (n.durActual * Math.max(1, stretch)));
+      if (n.progress >= 1) {
+        n.active = false; n.done = true;
+        n.actualEnd = +this.t.toFixed(1);
+      } else allDone = false;
     }
+    if (allDone && this.realisedSec === null) this.realisedSec = +this.t.toFixed(1);
   }
 
-  get complete() { return this.t >= this.totalSec; }
-  get overall()  { return Math.min(1, this.t / this.totalSec); }
+  get complete() { return this.realisedSec !== null; }
+  get overall()  {
+    const tot = this.nodes.reduce((s, n) => s + n.dur, 0);
+    const got = this.nodes.reduce((s, n) => s + n.dur * (n.done ? 1 : n.progress), 0);
+    return Math.min(1, got / tot);
+  }
 
-  /** Sim-seconds of ground handling still remaining on the critical path.
-   *  The last node (pushback tug) ends at totalSec, so this is the predicted
-   *  time until the aircraft is ready to leave the gate — the basis for POBT. */
-  remainingSec() { return Math.max(0, this.totalSec - this.t); }
+  /** Rough remaining-handling estimate (planned pace on the unfinished share).
+   *  An estimate by construction — the realised durations are still unknown. */
+  remainingSec() { return Math.max(0, (1 - this.overall) * this.totalSec); }
 
   getActiveNodes() { return this.nodes.filter(n => n.active); }
 

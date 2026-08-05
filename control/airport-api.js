@@ -226,7 +226,9 @@ export class AirportAPI {
     for (const [id, flight] of this._flights) {
       const prevState = flight.state;
       flight._sepGuard = sepGuard;
-      flight._rampHold = rampStopped;        // freezes gate handling only (see flight-manager)
+      flight._rampHold = rampStopped;
+      // Outdoor ground handling slows with weather (marginal → LVP).
+      flight._svcStretch = [1, 1.06, 1.14, 1.24][this._weather] ?? 1;        // freezes gate handling only (see flight-manager)
       flight.update(dt);
 
       // Wheels-on (touchdown): stamp ALDT (Actual Landing Time) and emit the
@@ -371,8 +373,14 @@ export class AirportAPI {
     return Array.from(this._flights.values());
   }
 
+  _inBlockIds() {
+    const ids = new Set();
+    for (const [id, f] of this._flights) if (f.state === FS.AT_GATE) ids.add(id);
+    return ids;
+  }
+
   getStats() {
-    const occ    = this._gates.getOccupancy();
+    const occ    = this._gates.getOccupancy(this._inBlockIds());
     const active = Array.from(this._flights.values()).filter(f => f.state !== FS.DONE);
     // Movements in the last SIM-hour. All feeding processes run on the twin's
     // compressed timescale, so this is NOT comparable to a real airport's
@@ -382,7 +390,15 @@ export class AirportAPI {
       arrivals:   this._stats.arrivals,
       departures: this._stats.departures,
       onGround:   active.length,
+      // Two distinct facts, deliberately not conflated:
+      //   gateUtil  — stands actually OCCUPIED (aircraft on blocks). What an
+      //               operations display means by "gate utilisation".
+      //   standAlloc— stands ALLOCATED, including those held for inbounds that
+      //               have not landed yet. This is the allocation pressure a
+      //               stand planner (and the arrival-rate controller) acts on:
+      //               a reserved stand cannot be given to anyone else.
       gateUtil:   occ.utilization,
+      standAlloc: occ.total ? occ.reserved / occ.total : 0,
       throughput: recent,
     };
   }
@@ -527,7 +543,7 @@ export class AirportAPI {
       },
       deicing: this._deice.getStatus(),
       flights,
-      gates: this._gates.getOccupancy().gates,
+      gates: this._gates.getOccupancy(this._inBlockIds()).gates,
       runways: [this._runways.RWY1.getStatus(), this._runways.RWY2.getStatus()],
       stats: this.getStats(),
     };

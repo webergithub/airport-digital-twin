@@ -54,6 +54,10 @@ const PARAMS = {
 // airline. Measured mean taxi-in in this twin is ~50 s.
 const SCHED_TAXI_IN_SEC = 50;
 const SCHED_GROUND_SEC = 70;   // planned ground time filed with the schedule
+// Slots are FILED on a schedule grid (the nominal cadence airlines request),
+// not manufactured from the flight's live ETA — otherwise adherence measures
+// the plan against itself and can never detect over-declaration.
+const GRID_SEC = 25;
 const DELAY_CRIT_SEC   = 60;   // the 10-minute delay criterion on this timescale
 const MISUSE_MEAN_SEC  = 45;   // Annex 12.9 screen: mean beyond this…
 const MISUSE_SD_RATIO  = 0.8;  // …with spread below mean×this ⇒ structural
@@ -105,7 +109,14 @@ export class SlotCoordination {
       //    a planned ground time; the coordinator grants both or refuses.
       if (!this._seen.has(f.id)) {
         this._seen.add(f.id);
-        const sibt = +((f.eta != null ? f.eta : now) + SCHED_TAXI_IN_SEC).toFixed(1);
+        const want = (f.eta != null ? f.eta : now) + SCHED_TAXI_IN_SEC;
+        this._grid ??= new Set();
+        let sibt = Math.round(want / GRID_SEC) * GRID_SEC;
+        for (const step of [0, 1, -1, 2, -2]) {          // nearest free grid point
+          if (!this._grid.has(sibt + step * GRID_SEC)) { sibt = sibt + step * GRID_SEC; break; }
+        }
+        this._grid.add(sibt);
+        sibt = +sibt.toFixed(1);
         const sobt = +(sibt + SCHED_GROUND_SEC).toFixed(1);
         if (this._fits(sibt, 'arr') && this._fits(sobt, 'dep')) {
           this._slots.push({ t: sibt, kind: 'arr' }, { t: sobt, kind: 'dep' });

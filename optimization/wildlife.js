@@ -58,6 +58,11 @@ export class WildlifeMonitor {
         x: west ? -120 - Math.random() * 70 : -130 + Math.random() * 260,
         z: west ? RZ.RWY1 + (Math.random() * 10 - 5) : -52 + Math.random() * 34,
         size: 5 + Math.floor(Math.random() * 35),
+        // Per-flock sensor bias: the avian radar never sees the true position,
+        // it sees a track with a persistent offset (≈1 u σ) — risk grading and
+        // the published picture both use the TRACK, not the truth.
+        obx: (Math.random() - 0.5) * 2.2,
+        obz: (Math.random() - 0.5) * 2.2,
         vx: (Math.random() - 0.5) * 1.6,
         vz: (Math.random() - 0.5) * 1.0,
         born: now,
@@ -76,10 +81,12 @@ export class WildlifeMonitor {
       const rz = RZ[key];
       let level = 'low';
       for (const f of this._flocks) {
-        const inStrip = Math.abs(f.z - rz) < 5 && f.x > -90 && f.x < 100;
-        const nearStrip = Math.abs(f.z - rz) < 16 && f.x > -130 && f.x < 130;
+        // Grade risk off the radar TRACK (true position + sensor bias).
+        const tx = f.x + f.obx, tz = f.z + f.obz;
+        const inStrip = Math.abs(tz - rz) < 5 && tx > -90 && tx < 100;
+        const nearStrip = Math.abs(tz - rz) < 16 && tx > -130 && tx < 130;
         const bigNear = f.size >= 18 && nearStrip;
-        if (inStrip || (bigNear && Math.abs(f.z - rz) < 9)) { level = 'high'; break; }
+        if (inStrip || (bigNear && Math.abs(tz - rz) < 9)) { level = 'high'; break; }
         if (nearStrip) level = 'mod';
       }
       this._risk[key] = level;
@@ -137,7 +144,12 @@ export class WildlifeMonitor {
                 : Object.values(this._risk).includes('mod') ? 'mod' : 'low';
     return {
       activityPct: this._lastSim == null ? 0 : Math.round(this.activity(this._lastSim) * 100),
-      flocks: this._flocks.map(f => ({ x: +f.x.toFixed(1), z: +f.z.toFixed(1), size: f.size })),
+      // The published picture is the radar's, not the world's: track position
+      // (true + bias) and a bucketed size class, as real avian radars output.
+      flocks: this._flocks.map(f => ({
+        x: +(f.x + f.obx).toFixed(1), z: +(f.z + f.obz).toFixed(1),
+        sizeClass: f.size >= 25 ? 'L' : f.size >= 12 ? 'M' : 'S',
+      })),
       risk: { ...this._risk },
       worst,
       ...this._counts,
